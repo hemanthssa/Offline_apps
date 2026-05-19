@@ -418,6 +418,72 @@ header {
   </div>
 </div>
 
+<!-- VAULT SETUP MODAL (first time — no file chosen yet) -->
+<div class="modal-backdrop" id="vaultSetupModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-hdr">
+      <div class="modal-title">🗄️ Set Up Your Vault</div>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:14px;color:var(--muted);line-height:1.7;">
+        Your data is saved to a <strong style="color:var(--accent)">.fvault</strong> file stored
+        on your phone. Choose where to keep it — you’ll grant access once each session.
+      </div>
+      <div class="vault-opts">
+        <div class="vault-btn" onclick="pickVaultCreate()">
+          <div class="vb-icon">📄</div>
+          <div>
+            <div class="vb-title">Create New Vault</div>
+            <div class="vb-sub">Choose a folder on your phone to save a new .fvault file</div>
+          </div>
+        </div>
+        <div class="vault-btn" onclick="pickVaultOpen()">
+          <div class="vb-icon">📂</div>
+          <div>
+            <div class="vb-title">Open Existing Vault</div>
+            <div class="vb-sub">Load a .fvault transferred from another phone</div>
+          </div>
+        </div>
+      </div>
+      <div style="text-align:center;margin-top:6px;">
+        <span style="font-size:12px;color:var(--muted);text-decoration:underline;cursor:pointer" onclick="useInternalStorage()">
+          Use internal app storage instead (hidden from Files app)
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- VAULT PERMISSION MODAL (returning user — grant access each session) -->
+<div class="modal-backdrop" id="vaultPermModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-hdr">
+      <div class="modal-title">🔓 Open Your Vault</div>
+    </div>
+    <div class="modal-body">
+      <div style="text-align:center;padding:8px 0 16px;">
+        <div style="font-size:52px;margin-bottom:14px;">🗄️</div>
+        <div style="font-size:15px;color:var(--text2);line-height:1.7;">
+          Tap below to grant access to your vault file.<br>
+          Chrome requires this permission each session.
+        </div>
+        <div style="margin-top:16px;padding:12px 16px;background:var(--surface2);border-radius:12px;border:1px solid var(--border);">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.6px;">Vault File</div>
+          <div id="vp_filename" style="font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--accent);">lendlog.fvault</div>
+        </div>
+      </div>
+      <button class="modal-submit" onclick="grantVaultPermission()">🔓 Grant Access &amp; Open</button>
+      <div style="text-align:center;margin-top:10px;">
+        <span style="font-size:12px;color:var(--muted);text-decoration:underline;cursor:pointer" onclick="_showVaultSetup()">
+          Use a different vault file
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- PWA Install Banner -->
 <div id="installBanner">
   <div class="ib-icon">💰</div>
@@ -483,8 +549,10 @@ async function checkPin() {
   if (pinEntry === CORRECT_PIN) {
     document.getElementById('lockScreen').style.display = 'none';
     document.getElementById('app').classList.add('visible');
-    loans = await loadData();
-    renderCards();
+    const state = await initVault();
+    if      (state === 'need_pick')       _showVaultSetup();
+    else if (state === 'need_permission') document.getElementById('vaultPermModal').classList.add('open');
+    else                                  renderCards();
   } else {
     for (let i = 0; i < CORRECT_PIN.length; i++) {
       const d = document.getElementById('d' + i);
@@ -539,63 +607,150 @@ async function decryptData(bytes) {
 }
 
 // ═══════════════════════════════════════════════
-//  DATA STORE — OPFS .fvault (localStorage fallback)
+//  DATA STORE — File System Access API + OPFS fallback
 // ═══════════════════════════════════════════════
 const VAULT_FILENAME = 'lendlog_data.fvault';
+const FSA_AVAILABLE  = ('showOpenFilePicker' in window && 'showSaveFilePicker' in window);
 
-function opfsAvailable() {
-  return typeof navigator !== 'undefined' &&
-    navigator.storage && typeof navigator.storage.getDirectory === 'function';
+// ── IndexedDB: persist FileSystemFileHandle across sessions ──
+const IDB_NAME = 'lendlog_fs', IDB_STORE = 'handles', IDB_KEY = 'vault';
+function _openIDB() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open(IDB_NAME, 1);
+    r.onupgradeneeded = e => e.target.result.createObjectStore(IDB_STORE);
+    r.onsuccess = e => res(e.target.result); r.onerror = rej;
+  });
+}
+async function _idbPut(val) {
+  const db = await _openIDB();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).put(val, IDB_KEY);
+    tx.oncomplete = res; tx.onerror = rej;
+  });
+}
+async function _idbGet() {
+  const db = await _openIDB();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(IDB_STORE, 'readonly');
+    const r  = tx.objectStore(IDB_STORE).get(IDB_KEY);
+    r.onsuccess = e => res(e.target.result || null); r.onerror = rej;
+  });
 }
 
-async function getOPFSHandle(create) {
+// ── OPFS helpers (fallback when FSA not available) ──
+async function _opfsLoad() {
+  try {
+    const root = await navigator.storage.getDirectory();
+    const fh   = await root.getFileHandle(VAULT_FILENAME, { create: false });
+    const file = await fh.getFile();
+    if (!file.size) return [];
+    return JSON.parse(await decryptData(new Uint8Array(await file.arrayBuffer()))) || [];
+  } catch { return []; }
+}
+async function _opfsSave(data) {
   const root = await navigator.storage.getDirectory();
-  return root.getFileHandle(VAULT_FILENAME, { create });
+  const fh   = await root.getFileHandle(VAULT_FILENAME, { create: true });
+  const w    = await fh.createWritable();
+  await w.write(await encryptData(JSON.stringify(data))); await w.close();
 }
 
+// ── Active FSA file handle ──
+let _fileHandle = null;
+
+// ── Public read / write ──
 async function loadData() {
-  if (opfsAvailable()) {
+  if (_fileHandle) {
     try {
-      const handle = await getOPFSHandle(false);
-      const file   = await handle.getFile();
-      if (file.size === 0) return [];
-      const buf  = await file.arrayBuffer();
-      const json = await decryptData(new Uint8Array(buf));
-      return JSON.parse(json) || [];
-    } catch (e) {
-      if (e.name !== 'NotFoundError') console.warn('OPFS load:', e);
-    }
+      const file = await _fileHandle.getFile();
+      if (!file.size) return [];
+      return JSON.parse(await decryptData(new Uint8Array(await file.arrayBuffer()))) || [];
+    } catch(e) { console.warn('loadData FSA:', e); return []; }
   }
-  // Migrate from old localStorage data if present
+  return _opfsLoad();
+}
+async function saveData(data) {
+  if (_fileHandle) {
+    try {
+      const w = await _fileHandle.createWritable();
+      await w.write(await encryptData(JSON.stringify(data))); await w.close();
+      return;
+    } catch(e) { console.error('saveData FSA:', e); showToast('Save failed', 'fail'); return; }
+  }
+  try { await _opfsSave(data); } catch(e) { console.error('saveData OPFS:', e); }
+}
+
+// ── Vault init (called after PIN — returns 'loaded'|'need_pick'|'need_permission') ──
+async function initVault() {
+  // Migrate old localStorage data if present
   try {
     const ls = localStorage.getItem(STORE_KEY);
-    if (ls) {
-      const data = JSON.parse(ls) || [];
-      if (data.length > 0) {
-        await saveData(data);
-        localStorage.removeItem(STORE_KEY);
-        return data;
-      }
-    }
+    if (ls) { const d = JSON.parse(ls)||[]; if (d.length) { await _opfsSave(d); localStorage.removeItem(STORE_KEY); } }
   } catch {}
-  return [];
+
+  if (!FSA_AVAILABLE) {
+    loans = await _opfsLoad(); return 'loaded';
+  }
+  const handle = await _idbGet();
+  if (!handle) return 'need_pick';
+  try {
+    const perm = await handle.queryPermission({ mode: 'readwrite' });
+    if (perm === 'granted') { _fileHandle = handle; loans = await loadData(); return 'loaded'; }
+    document.getElementById('vp_filename').textContent = handle.name;
+    return 'need_permission';
+  } catch { return 'need_pick'; }
 }
 
-async function saveData(data) {
-  if (opfsAvailable()) {
-    try {
-      const handle    = await getOPFSHandle(true);
-      const encrypted = await encryptData(JSON.stringify(data));
-      const writable  = await handle.createWritable();
-      await writable.write(encrypted);
-      await writable.close();
-      return;
-    } catch (e) {
-      console.error('OPFS save failed:', e);
-    }
-  }
-  // Fallback
-  try { localStorage.setItem(STORE_KEY, JSON.stringify(data)); } catch {}
+// ── FSA: create a new .fvault file ──
+async function pickVaultCreate() {
+  try {
+    const h = await window.showSaveFilePicker({
+      suggestedName: 'lendlog.fvault',
+      types: [{ description: 'LendLog Vault', accept: { 'application/octet-stream': ['.fvault'] } }]
+    });
+    _fileHandle = h; await _idbPut(h);
+    loans = []; await saveData(loans);
+    _finishVaultInit(); showToast('Vault created ✓', 'success');
+  } catch(e) { if (e.name !== 'AbortError') showToast('Error: ' + e.message, 'fail'); }
+}
+
+// ── FSA: open an existing .fvault file ──
+async function pickVaultOpen() {
+  try {
+    const [h] = await window.showOpenFilePicker({
+      types: [{ description: 'LendLog Vault', accept: { 'application/octet-stream': ['.fvault'] } }]
+    });
+    _fileHandle = h; await _idbPut(h);
+    loans = await loadData();
+    _finishVaultInit(); showToast('Vault loaded — ' + loans.length + ' records ✓', 'success');
+  } catch(e) { if (e.name !== 'AbortError') showToast('Error: ' + e.message, 'fail'); }
+}
+
+// ── FSA: request permission for the stored handle (needs user gesture) ──
+async function grantVaultPermission() {
+  const handle = await _idbGet();
+  if (!handle) { _showVaultSetup(); return; }
+  try {
+    const perm = await handle.requestPermission({ mode: 'readwrite' });
+    if (perm === 'granted') {
+      _fileHandle = handle; loans = await loadData(); _finishVaultInit();
+    } else { showToast('Permission denied — tap to try again', 'fail'); }
+  } catch { _showVaultSetup(); }
+}
+
+// ── Fallback: use internal (OPFS) storage ──
+async function useInternalStorage() {
+  _fileHandle = null; loans = await _opfsLoad(); _finishVaultInit();
+}
+
+function _finishVaultInit() {
+  document.getElementById('vaultSetupModal').classList.remove('open');
+  document.getElementById('vaultPermModal').classList.remove('open');
+  renderCards();
+}
+function _showVaultSetup() {
+  document.getElementById('vaultPermModal').classList.remove('open');
+  document.getElementById('vaultSetupModal').classList.add('open');
 }
 
 let loans = [];
@@ -851,11 +1006,14 @@ async function handleVaultFile(input) {
 }
 
 async function createFreshVault() {
-  if(!confirm('Start a fresh vault? All current data will be cleared permanently.')) return;
-  loans=[];
-  await saveData(loans);
-  closeVaultModal(); renderCards();
-  showToast('New vault created ✓','success');
+  closeVaultModal();
+  if (FSA_AVAILABLE) {
+    await pickVaultCreate();
+  } else {
+    if(!confirm('Start a fresh vault? All current data will be cleared permanently.')) return;
+    loans=[]; await saveData(loans); renderCards();
+    showToast('New vault created ✓','success');
+  }
 }
 
 ['addModal','repayModal','vaultModal'].forEach(id => {
@@ -868,10 +1026,26 @@ async function createFreshVault() {
 //  PWA — SERVICE WORKER
 // ═══════════════════════════════════════════════
 if ('serviceWorker' in navigator) {
+  // Auto-reload when a new service worker takes over (delivers fresh files)
+  let _swRefreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!_swRefreshing) { _swRefreshing = true; window.location.reload(); }
+  });
+
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js')
-      .then(reg => console.log('✅ SW registered:', reg.scope))
-      .catch(err => console.warn('SW failed:', err));
+    navigator.serviceWorker.register('./sw.js').then(reg => {
+      console.log('✅ SW registered:', reg.scope);
+      // Detect a new SW installing and activate it immediately
+      reg.addEventListener('updatefound', () => {
+        const nw = reg.installing;
+        nw.addEventListener('statechange', () => {
+          if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+            // New version ready — force it to activate now
+            nw.postMessage({ type: 'SKIP_WAITING' });
+          }
+        });
+      });
+    }).catch(err => console.warn('SW failed:', err));
   });
 }
 

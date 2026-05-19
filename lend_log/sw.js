@@ -1,5 +1,5 @@
 // LendLog Service Worker — Full Offline Support
-const CACHE_NAME = 'lendlog-v1';
+const CACHE_NAME = 'lendlog-v2';
 
 const ASSETS = [
   './index.html',
@@ -10,6 +10,11 @@ const ASSETS = [
   'https://fonts.gstatic.com/s/nunito/v26/XRXI3I6Li01BKofiOc5wtlZ2di8HDIkhdTQ3j6zbXWjgeg.woff2',
   'https://fonts.gstatic.com/s/rubik/v28/iJWKBXyIfDnIV7nBrXyw023e.woff2'
 ];
+
+// MESSAGE — allow page to trigger immediate activation
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
+});
 
 // INSTALL — cache all core assets
 self.addEventListener('install', event => {
@@ -52,6 +57,20 @@ self.addEventListener('fetch', event => {
           return response;
         }).catch(() => cached);
       })
+    );
+    return;
+  }
+
+  // For HTML navigation requests — network first (always get latest)
+  if (event.request.mode === 'navigate' || url.endsWith('.html')) {
+    event.respondWith(
+      fetch(event.request).then(response => {
+        if (response && response.status === 200) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+        }
+        return response;
+      }).catch(() => caches.match(event.request))
     );
     return;
   }
