@@ -85,7 +85,6 @@ html, body {
 }
 .num-btn:active { transform: scale(0.92); background: var(--surface3); }
 .num-btn.del { font-size: 20px; color: var(--muted); }
-.num-btn.empty { background: var(--surface2); border-color: var(--border); pointer-events: none; opacity: 0.22; }
 .lock-error { font-size: 14px; color: var(--red); font-weight: 600; margin-top: 20px; height: 20px; text-align: center; }
 
 /* ══════════════════════════════════════
@@ -287,7 +286,7 @@ header {
     <div class="num-btn" onclick="pinPress('7')">7</div>
     <div class="num-btn" onclick="pinPress('8')">8</div>
     <div class="num-btn" onclick="pinPress('9')">9</div>
-    <div class="num-btn empty"></div>
+    <div class="num-btn" style="pointer-events:none;cursor:default;">&nbsp;</div>
     <div class="num-btn" onclick="pinPress('0')">0</div>
     <div class="num-btn del" onclick="pinDel()">⌫</div>
   </div>
