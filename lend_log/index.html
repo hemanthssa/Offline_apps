@@ -85,7 +85,7 @@ html, body {
 }
 .num-btn:active { transform: scale(0.92); background: var(--surface3); }
 .num-btn.del { font-size: 20px; color: var(--muted); }
-.num-btn.empty { background: transparent; border-color: transparent; pointer-events: none; }
+.num-btn.empty { background: var(--surface2); border-color: var(--border); pointer-events: none; opacity: 0.22; }
 .lock-error { font-size: 14px; color: var(--red); font-weight: 600; margin-top: 20px; height: 20px; text-align: center; }
 
 /* ══════════════════════════════════════
@@ -217,6 +217,16 @@ header {
 }
 .field input:focus, .field textarea:focus { border-color: var(--accent); }
 .field textarea { resize: none; height: 78px; }
+.field select {
+  background: var(--surface2); border: 1.5px solid var(--border); border-radius: 14px;
+  padding: 14px 40px 14px 16px; color: var(--text); font-family: var(--font-body);
+  font-size: 16px; outline: none; width: 100%; -webkit-appearance: none; appearance: none;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235a6285' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 16px center;
+}
+.field select:focus { border-color: var(--accent); }
+.field select option { background: var(--surface2); color: var(--text); }
 .mrow { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .modal-submit { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; border: none; border-radius: 16px; padding: 17px; font-family: var(--font-display); font-size: 17px; font-weight: 900; cursor: pointer; margin-top: 4px; box-shadow: 0 6px 20px rgba(245,166,35,0.25); }
 .modal-submit:active { transform: scale(0.97); }
@@ -337,6 +347,16 @@ header {
         <div class="field"><label>Date Given</label><input type="date" id="f_date"></div>
       </div>
       <div class="field"><label>Purpose / Note</label><textarea id="f_purpose" placeholder="e.g. Medical emergency, business need…"></textarea></div>
+      <div class="field"><label>Payment Method</label>
+        <select id="f_payMethod">
+          <option value="Cash">💵 Cash</option>
+          <option value="UPI">📱 UPI</option>
+          <option value="NEFT/RTGS">🏦 NEFT / RTGS</option>
+          <option value="Cheque">📄 Cheque</option>
+          <option value="Online Transfer">💻 Online Transfer</option>
+          <option value="Other">🔁 Other</option>
+        </select>
+      </div>
       <button class="modal-submit" onclick="saveNewLoan()">Save Loan</button>
     </div>
   </div>
@@ -375,21 +395,25 @@ header {
     </div>
     <div class="modal-body">
       <div style="font-size:14px;color:var(--muted);line-height:1.6;">
-        Save your data as an encrypted <strong style="color:var(--accent)">.fvault</strong> file, or load a previously saved vault.
+        Your data auto-saves to an encrypted <strong style="color:var(--accent)">.fvault</strong> file on this device. Export to share or transfer to another phone.
       </div>
       <div class="vault-opts">
         <div class="vault-btn" onclick="exportVault()">
           <div class="vb-icon">💾</div>
-          <div><div class="vb-title">Save to .fvault</div><div class="vb-sub">Export encrypted backup to Downloads</div></div>
+          <div><div class="vb-title">Export .fvault</div><div class="vb-sub">Download vault to share with another phone</div></div>
         </div>
         <div class="vault-btn" onclick="importVault()">
           <div class="vb-icon">📂</div>
-          <div><div class="vb-title">Load .fvault File</div><div class="vb-sub">Restore data from a saved vault file</div></div>
+          <div><div class="vb-title">Import .fvault File</div><div class="vb-sub">Load vault from another device or backup</div></div>
+        </div>
+        <div class="vault-btn" onclick="createFreshVault()">
+          <div class="vb-icon">🆕</div>
+          <div><div class="vb-title">Create New Vault</div><div class="vb-sub">Start fresh — clears all current data</div></div>
         </div>
       </div>
       <input type="file" id="vaultFileInput" accept=".fvault" style="display:none" onchange="handleVaultFile(this)">
       <div style="font-size:12px;color:var(--muted);text-align:center;line-height:1.6;">
-        AES-256 encrypted · Password protected · Only readable by LendLog
+        AES-256 encrypted · Auto-saves locally · Only readable by LendLog
       </div>
     </div>
   </div>
@@ -456,10 +480,11 @@ function pinDel() {
   document.getElementById('lockError').textContent = '';
 }
 
-function checkPin() {
+async function checkPin() {
   if (pinEntry === CORRECT_PIN) {
     document.getElementById('lockScreen').style.display = 'none';
     document.getElementById('app').classList.add('visible');
+    loans = await loadData();
     renderCards();
   } else {
     for (let i = 0; i < CORRECT_PIN.length; i++) {
@@ -515,12 +540,66 @@ async function decryptData(bytes) {
 }
 
 // ═══════════════════════════════════════════════
-//  DATA STORE
+//  DATA STORE — OPFS .fvault (localStorage fallback)
 // ═══════════════════════════════════════════════
-function loadData() { try { return JSON.parse(localStorage.getItem(STORE_KEY)) || []; } catch { return []; } }
-function saveData(loans) { localStorage.setItem(STORE_KEY, JSON.stringify(loans)); }
+const VAULT_FILENAME = 'lendlog_data.fvault';
 
-let loans = loadData();
+function opfsAvailable() {
+  return typeof navigator !== 'undefined' &&
+    navigator.storage && typeof navigator.storage.getDirectory === 'function';
+}
+
+async function getOPFSHandle(create) {
+  const root = await navigator.storage.getDirectory();
+  return root.getFileHandle(VAULT_FILENAME, { create });
+}
+
+async function loadData() {
+  if (opfsAvailable()) {
+    try {
+      const handle = await getOPFSHandle(false);
+      const file   = await handle.getFile();
+      if (file.size === 0) return [];
+      const buf  = await file.arrayBuffer();
+      const json = await decryptData(new Uint8Array(buf));
+      return JSON.parse(json) || [];
+    } catch (e) {
+      if (e.name !== 'NotFoundError') console.warn('OPFS load:', e);
+    }
+  }
+  // Migrate from old localStorage data if present
+  try {
+    const ls = localStorage.getItem(STORE_KEY);
+    if (ls) {
+      const data = JSON.parse(ls) || [];
+      if (data.length > 0) {
+        await saveData(data);
+        localStorage.removeItem(STORE_KEY);
+        return data;
+      }
+    }
+  } catch {}
+  return [];
+}
+
+async function saveData(data) {
+  if (opfsAvailable()) {
+    try {
+      const handle    = await getOPFSHandle(true);
+      const encrypted = await encryptData(JSON.stringify(data));
+      const writable  = await handle.createWritable();
+      await writable.write(encrypted);
+      await writable.close();
+      return;
+    } catch (e) {
+      console.error('OPFS save failed:', e);
+    }
+  }
+  // Fallback
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(data)); } catch {}
+}
+
+let loans = [];
 let currentFilter = 'all';
 let editingId = null, repayingId = null;
 
@@ -635,6 +714,7 @@ function buildCard(loan) {
       <div class="card-details" id="det-${loan.id}">
         <div class="drow"><div class="dlbl">Amount Lent</div><div class="dval">${fmt(loan.amount)}</div></div>
         <div class="drow"><div class="dlbl">Date Given</div><div class="dval">${fmtDate(loan.dateGiven)}</div></div>
+        ${loan.payMethod?`<div class="drow"><div class="dlbl">Payment Via</div><div class="dval">${escHtml(loan.payMethod)}</div></div>`:''}
         ${st!=='unpaid'?`
         <div class="drow"><div class="dlbl">Total Repaid</div><div class="dval" style="color:var(--green)">${fmt(paid)}</div></div>
         <div class="drow"><div class="dlbl">Outstanding</div><div class="dval" style="color:${out>0?'var(--red)':'var(--green)'}">${fmt(out)}</div></div>`:''}
@@ -658,6 +738,7 @@ function openAddModal() {
   document.getElementById('addModalTitle').textContent = 'New Loan';
   document.getElementById('f_name').value=''; document.getElementById('f_amount').value='';
   document.getElementById('f_date').value=todayStr(); document.getElementById('f_purpose').value='';
+  document.getElementById('f_payMethod').value='Cash';
   document.getElementById('addModal').classList.add('open');
   setTimeout(()=>document.getElementById('f_name').focus(),300);
 }
@@ -669,26 +750,28 @@ function openEditModal(id) {
   document.getElementById('addModalTitle').textContent = 'Edit Loan';
   document.getElementById('f_name').value=l.name; document.getElementById('f_amount').value=l.amount;
   document.getElementById('f_date').value=l.dateGiven; document.getElementById('f_purpose').value=l.purpose||'';
+  document.getElementById('f_payMethod').value=l.payMethod||'Cash';
   document.getElementById('addModal').classList.add('open');
 }
 
-function saveNewLoan() {
+async function saveNewLoan() {
   const name=document.getElementById('f_name').value.trim();
   const amount=parseFloat(document.getElementById('f_amount').value);
   const date=document.getElementById('f_date').value;
   const purpose=document.getElementById('f_purpose').value.trim();
+  const payMethod=document.getElementById('f_payMethod').value;
   if (!name) { showToast('Enter borrower name','fail'); return; }
   if (!amount||amount<=0) { showToast('Enter valid amount','fail'); return; }
   if (!date) { showToast('Select a date','fail'); return; }
   if (editingId) {
     const i=loans.findIndex(l=>l.id===editingId);
-    if(i!==-1) loans[i]={...loans[i],name,amount,dateGiven:date,purpose};
+    if(i!==-1) loans[i]={...loans[i],name,amount,dateGiven:date,purpose,payMethod};
     showToast('Loan updated ✓','success');
   } else {
-    loans.unshift({id:genId(),name,amount,dateGiven:date,purpose,repayments:[]});
+    loans.unshift({id:genId(),name,amount,dateGiven:date,purpose,payMethod,repayments:[]});
     showToast('Loan added ✓','success');
   }
-  saveData(loans); closeAddModal(); renderCards();
+  await saveData(loans); closeAddModal(); renderCards();
 }
 
 // ═══════════════════════════════════════════════
@@ -706,7 +789,7 @@ function openRepayModal(id) {
 }
 function closeRepayModal() { document.getElementById('repayModal').classList.remove('open'); }
 
-function saveRepayment() {
+async function saveRepayment() {
   const amount=parseFloat(document.getElementById('r_amount').value);
   const date=document.getElementById('r_date').value;
   const note=document.getElementById('r_note').value.trim();
@@ -717,20 +800,20 @@ function saveRepayment() {
   if (amount>out+0.01) { if(!confirm(`₹${amount} exceeds outstanding ₹${out.toFixed(2)}. Save anyway?`)) return; }
   loans[i].repayments=loans[i].repayments||[];
   loans[i].repayments.push({id:genId(),amount,date,note});
-  saveData(loans); closeRepayModal(); showToast('Payment recorded ✓','success'); renderCards();
+  await saveData(loans); closeRepayModal(); showToast('Payment recorded ✓','success'); renderCards();
 }
 
-function deleteRepayment(loanId,repId) {
+async function deleteRepayment(loanId,repId) {
   if(!confirm('Delete this repayment entry?')) return;
   const i=loans.findIndex(l=>l.id===loanId); if(i===-1) return;
   loans[i].repayments=(loans[i].repayments||[]).filter(r=>r.id!==repId);
-  saveData(loans); showToast('Entry removed','success'); renderCards();
+  await saveData(loans); showToast('Entry removed','success'); renderCards();
 }
 
-function deleteLoan(id) {
+async function deleteLoan(id) {
   if(!confirm('Delete this loan record permanently?')) return;
   loans=loans.filter(l=>l.id!==id);
-  saveData(loans); showToast('Deleted','success'); renderCards();
+  await saveData(loans); showToast('Deleted','success'); renderCards();
 }
 
 // ═══════════════════════════════════════════════
@@ -763,9 +846,17 @@ async function handleVaultFile(input) {
     const data=JSON.parse(json);
     if(!Array.isArray(data)) throw new Error('Invalid vault data');
     if(!confirm(`Load ${data.length} records? Current data will be replaced.`)) return;
-    loans=data; saveData(loans); closeVaultModal(); renderCards();
+    loans=data; await saveData(loans); closeVaultModal(); renderCards();
     showToast(`Vault loaded — ${data.length} records ✓`,'success');
   } catch(e) { showToast('Load failed: wrong file or password','fail'); }
+}
+
+async function createFreshVault() {
+  if(!confirm('Start a fresh vault? All current data will be cleared permanently.')) return;
+  loans=[];
+  await saveData(loans);
+  closeVaultModal(); renderCards();
+  showToast('New vault created ✓','success');
 }
 
 ['addModal','repayModal','vaultModal'].forEach(id => {
