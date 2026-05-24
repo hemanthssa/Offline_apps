@@ -825,7 +825,7 @@ function renderPayMethodsList() {
   } else {
     customList.innerHTML = customPayMethods.map((m, i) =>
       `<div style="display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border:1.5px solid var(--border);border-radius:14px;padding:13px 16px;">
-        <span style="font-size:15px;font-weight:600;">💳 ${escHtml(m)}</span>
+        <span style="font-size:15px;font-weight:600;">${escHtml(m)}</span>
         <span onclick="deleteCustomPayMethod(${i})" style="cursor:pointer;color:var(--muted);font-size:18px;padding:4px;line-height:1;" title="Remove">🗑</span>
       </div>`
     ).join('');
