@@ -1,5 +1,5 @@
 // LendLog Service Worker — Full Offline Support
-const CACHE_NAME = 'lendlog-v2';
+const CACHE_NAME = 'lendlog-v3';
 
 const ASSETS = [
   './index.html',
@@ -61,16 +61,19 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // For HTML navigation requests — network first (always get latest)
+  // For HTML navigation requests — cache first, revalidate in background
   if (event.request.mode === 'navigate' || url.endsWith('.html')) {
     event.respondWith(
-      fetch(event.request).then(response => {
-        if (response && response.status === 200) {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
-        }
-        return response;
-      }).catch(() => caches.match(event.request))
+      caches.match(event.request).then(cached => {
+        const networkFetch = fetch(event.request).then(response => {
+          if (response && response.status === 200) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+          }
+          return response;
+        }).catch(() => null);
+        return cached || networkFetch;
+      })
     );
     return;
   }
