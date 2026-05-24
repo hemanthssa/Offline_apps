@@ -799,7 +799,7 @@ function populatePayMethodSelect(selectVal) {
   const prev = selectVal !== undefined ? selectVal : sel.value;
   sel.innerHTML =
     DEFAULT_PAY_METHODS.map(m => `<option value="${m.value}">${m.label}</option>`).join('') +
-    customPayMethods.map(m => `<option value="${escHtml(m)}">💳 ${escHtml(m)}</option>`).join('');
+    customPayMethods.map(m => `<option value="${escHtml(m)}">${escHtml(m)}</option>`).join('');
   if (prev && [...sel.options].some(o => o.value === prev)) sel.value = prev;
 }
 
