@@ -346,15 +346,9 @@ header {
         <div class="field"><label>Date Given</label><input type="date" id="f_date"></div>
       </div>
       <div class="field"><label>Purpose / Note</label><textarea id="f_purpose" placeholder="e.g. Medical emergency, business need…"></textarea></div>
-      <div class="field"><label>Payment Method</label>
-        <select id="f_payMethod">
-          <option value="Cash">💵 Cash</option>
-          <option value="UPI">📱 UPI</option>
-          <option value="NEFT/RTGS">🏦 NEFT / RTGS</option>
-          <option value="Cheque">📄 Cheque</option>
-          <option value="Online Transfer">💻 Online Transfer</option>
-          <option value="Other">🔁 Other</option>
-        </select>
+      <div class="field">
+        <label style="display:flex;align-items:center;justify-content:space-between;">Payment Method<span onclick="openPayMethodsModal()" style="font-size:11px;color:var(--accent);cursor:pointer;text-transform:none;letter-spacing:0;font-weight:700;">＋ Manage</span></label>
+        <select id="f_payMethod"></select>
       </div>
       <button class="modal-submit" onclick="saveNewLoan()">Save Loan</button>
     </div>
@@ -484,6 +478,31 @@ header {
   </div>
 </div>
 
+<!-- PAYMENT METHODS MODAL -->
+<div class="modal-backdrop" id="payMethodsModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-hdr">
+      <div class="modal-title">💳 Payment Methods</div>
+      <div class="modal-close" onclick="closePayMethodsModal()">✕</div>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;">Built-in</div>
+      <div id="pm_defaults" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;"></div>
+      <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;">Custom</div>
+      <div id="pm_custom_list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:18px;"></div>
+      <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;">Add New Method</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input type="text" id="pm_input" placeholder="e.g. GPay, PhonePe, Crypto…" autocomplete="off"
+          onkeydown="if(event.key==='Enter')addCustomPayMethod()"
+          style="flex:1;background:var(--surface2);border:1.5px solid var(--border);border-radius:14px;padding:14px 16px;color:var(--text);font-family:var(--font-body);font-size:16px;outline:none;-webkit-appearance:none;">
+        <button onclick="addCustomPayMethod()"
+          style="background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:14px;padding:0 20px;height:50px;color:#fff;font-family:var(--font-display);font-size:15px;font-weight:800;cursor:pointer;white-space:nowrap;box-shadow:0 4px 14px rgba(245,166,35,.25);">Add</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- PWA Install Banner -->
 <div id="installBanner">
   <div class="ib-icon">💰</div>
@@ -506,6 +525,16 @@ header {
 const CORRECT_PIN = '981330';
 const STORE_KEY   = 'lendlog_data_v2';
 const VAULT_MAGIC = 'LENDLOG_FVAULT_V1';
+const PM_STORE_KEY = 'lendlog_paymethods';
+
+const DEFAULT_PAY_METHODS = [
+  { value: 'Cash',            label: '💵 Cash' },
+  { value: 'UPI',             label: '📱 UPI' },
+  { value: 'NEFT/RTGS',       label: '🏦 NEFT / RTGS' },
+  { value: 'Cheque',          label: '📄 Cheque' },
+  { value: 'Online Transfer', label: '💻 Online Transfer' },
+  { value: 'Other',           label: '🔁 Other' },
+];
 
 // ═══════════════════════════════════════════════
 //  PIN LOCK
@@ -754,6 +783,82 @@ function _showVaultSetup() {
 }
 
 let loans = [];
+let customPayMethods = [];
+
+function loadCustomPayMethods() {
+  try { customPayMethods = JSON.parse(localStorage.getItem(PM_STORE_KEY) || '[]'); }
+  catch { customPayMethods = []; }
+}
+
+function saveCustomPayMethods() {
+  localStorage.setItem(PM_STORE_KEY, JSON.stringify(customPayMethods));
+}
+
+function populatePayMethodSelect(selectVal) {
+  const sel = document.getElementById('f_payMethod');
+  const prev = selectVal !== undefined ? selectVal : sel.value;
+  sel.innerHTML =
+    DEFAULT_PAY_METHODS.map(m => `<option value="${m.value}">${m.label}</option>`).join('') +
+    customPayMethods.map(m => `<option value="${escHtml(m)}">💳 ${escHtml(m)}</option>`).join('');
+  if (prev && [...sel.options].some(o => o.value === prev)) sel.value = prev;
+}
+
+function openPayMethodsModal() {
+  renderPayMethodsList();
+  document.getElementById('payMethodsModal').classList.add('open');
+  document.getElementById('pm_input').value = '';
+}
+
+function closePayMethodsModal() {
+  document.getElementById('payMethodsModal').classList.remove('open');
+}
+
+function renderPayMethodsList() {
+  // Built-in chips
+  document.getElementById('pm_defaults').innerHTML = DEFAULT_PAY_METHODS.map(m =>
+    `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:50px;padding:8px 16px;font-size:13px;font-weight:600;color:var(--text2);">${m.label}</div>`
+  ).join('');
+  // Custom list
+  const customList = document.getElementById('pm_custom_list');
+  if (customPayMethods.length === 0) {
+    customList.innerHTML = `<div style="color:var(--muted);font-size:14px;padding:4px 0;">No custom methods yet. Add one below.</div>`;
+  } else {
+    customList.innerHTML = customPayMethods.map((m, i) =>
+      `<div style="display:flex;align-items:center;justify-content:space-between;background:var(--surface2);border:1.5px solid var(--border);border-radius:14px;padding:13px 16px;">
+        <span style="font-size:15px;font-weight:600;">💳 ${escHtml(m)}</span>
+        <span onclick="deleteCustomPayMethod(${i})" style="cursor:pointer;color:var(--muted);font-size:18px;padding:4px;line-height:1;" title="Remove">🗑</span>
+      </div>`
+    ).join('');
+  }
+}
+
+function addCustomPayMethod() {
+  const val = document.getElementById('pm_input').value.trim();
+  if (!val) { showToast('Enter a method name', 'fail'); return; }
+  if (DEFAULT_PAY_METHODS.some(m => m.value.toLowerCase() === val.toLowerCase())) {
+    showToast('Already a built-in method', 'fail'); return;
+  }
+  if (customPayMethods.some(m => m.toLowerCase() === val.toLowerCase())) {
+    showToast('Method already exists', 'fail'); return;
+  }
+  customPayMethods.push(val);
+  saveCustomPayMethods();
+  document.getElementById('pm_input').value = '';
+  renderPayMethodsList();
+  populatePayMethodSelect();
+  showToast(val + ' added ✓', 'success');
+}
+
+function deleteCustomPayMethod(idx) {
+  if (!confirm('Remove "' + customPayMethods[idx] + '" from payment methods?')) return;
+  customPayMethods.splice(idx, 1);
+  saveCustomPayMethods();
+  renderPayMethodsList();
+  populatePayMethodSelect();
+  showToast('Method removed', 'success');
+}
+
+loadCustomPayMethods();
 let currentFilter = 'all';
 let editingId = null, repayingId = null;
 
@@ -892,7 +997,7 @@ function openAddModal() {
   document.getElementById('addModalTitle').textContent = 'New Loan';
   document.getElementById('f_name').value=''; document.getElementById('f_amount').value='';
   document.getElementById('f_date').value=todayStr(); document.getElementById('f_purpose').value='';
-  document.getElementById('f_payMethod').value='Cash';
+  populatePayMethodSelect('Cash');
   document.getElementById('addModal').classList.add('open');
   setTimeout(()=>document.getElementById('f_name').focus(),300);
 }
@@ -904,7 +1009,7 @@ function openEditModal(id) {
   document.getElementById('addModalTitle').textContent = 'Edit Loan';
   document.getElementById('f_name').value=l.name; document.getElementById('f_amount').value=l.amount;
   document.getElementById('f_date').value=l.dateGiven; document.getElementById('f_purpose').value=l.purpose||'';
-  document.getElementById('f_payMethod').value=l.payMethod||'Cash';
+  populatePayMethodSelect(l.payMethod||'Cash');
   document.getElementById('addModal').classList.add('open');
 }
 
@@ -1016,7 +1121,7 @@ async function createFreshVault() {
   }
 }
 
-['addModal','repayModal','vaultModal'].forEach(id => {
+['addModal','repayModal','vaultModal','payMethodsModal'].forEach(id => {
   document.getElementById(id).addEventListener('click', function(e) {
     if(e.target===this) this.classList.remove('open');
   });
