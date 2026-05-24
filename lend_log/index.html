@@ -343,7 +343,7 @@ header {
       <div class="field"><label>Borrower Name</label><input type="text" id="f_name" placeholder="e.g. Ravi Kumar" autocomplete="off"></div>
       <div class="mrow">
         <div class="field"><label>Amount (₹)</label><input type="number" id="f_amount" placeholder="0" inputmode="decimal"></div>
-        <div class="field"><label>Date Given</label><input type="date" id="f_date"></div>
+        <div class="field"><label>Date Given</label><input type="text" id="f_date" placeholder="DD/MM/YYYY" inputmode="numeric" maxlength="10" autocomplete="off" oninput="fmtDateInput(this)"></div>
       </div>
       <div class="field"><label>Purpose / Note</label><textarea id="f_purpose" placeholder="e.g. Medical emergency, business need…"></textarea></div>
       <div class="field">
@@ -370,7 +370,7 @@ header {
       </div>
       <div class="mrow">
         <div class="field"><label>Amount Paid (₹)</label><input type="number" id="r_amount" placeholder="0" inputmode="decimal"></div>
-        <div class="field"><label>Payment Date</label><input type="date" id="r_date"></div>
+        <div class="field"><label>Payment Date</label><input type="text" id="r_date" placeholder="DD/MM/YYYY" inputmode="numeric" maxlength="10" autocomplete="off" oninput="fmtDateInput(this)"></div>
       </div>
       <div class="field"><label>Note (optional)</label><input type="text" id="r_note" placeholder="e.g. Cash, UPI, Bank transfer" autocomplete="off"></div>
       <button class="modal-submit" onclick="saveRepayment()">Record Payment</button>
@@ -874,6 +874,23 @@ function fmtDate(d) {
 }
 function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function todayStr() { return new Date().toISOString().split('T')[0]; }
+function toDMY(iso) {
+  if (!iso) return '';
+  const [y,mo,d] = iso.split('-');
+  return `${d}/${mo}/${y}`;
+}
+function parseDMY(str) {
+  const m = (str||'').match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!m) return '';
+  return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+}
+function fmtDateInput(el) {
+  let v = el.value.replace(/\D/g,'');
+  if (v.length > 8) v = v.slice(0,8);
+  if (v.length > 4)      v = v.slice(0,2)+'/'+v.slice(2,4)+'/'+v.slice(4);
+  else if (v.length > 2) v = v.slice(0,2)+'/'+v.slice(2);
+  el.value = v;
+}
 function getStatus(l) { const p = getPaid(l); if (p<=0) return 'unpaid'; if (p>=parseFloat(l.amount)-0.01) return 'paid'; return 'partial'; }
 function getPaid(l) { return (l.repayments||[]).reduce((s,r)=>s+parseFloat(r.amount||0),0); }
 function getOutstanding(l) { return Math.max(0, parseFloat(l.amount) - getPaid(l)); }
@@ -996,7 +1013,7 @@ function openAddModal() {
   editingId = null;
   document.getElementById('addModalTitle').textContent = 'New Loan';
   document.getElementById('f_name').value=''; document.getElementById('f_amount').value='';
-  document.getElementById('f_date').value=todayStr(); document.getElementById('f_purpose').value='';
+  document.getElementById('f_date').value=toDMY(todayStr()); document.getElementById('f_purpose').value='';
   populatePayMethodSelect('Cash');
   document.getElementById('addModal').classList.add('open');
   setTimeout(()=>document.getElementById('f_name').focus(),300);
@@ -1008,7 +1025,7 @@ function openEditModal(id) {
   editingId = id;
   document.getElementById('addModalTitle').textContent = 'Edit Loan';
   document.getElementById('f_name').value=l.name; document.getElementById('f_amount').value=l.amount;
-  document.getElementById('f_date').value=l.dateGiven; document.getElementById('f_purpose').value=l.purpose||'';
+  document.getElementById('f_date').value=toDMY(l.dateGiven); document.getElementById('f_purpose').value=l.purpose||'';
   populatePayMethodSelect(l.payMethod||'Cash');
   document.getElementById('addModal').classList.add('open');
 }
@@ -1016,12 +1033,12 @@ function openEditModal(id) {
 async function saveNewLoan() {
   const name=document.getElementById('f_name').value.trim();
   const amount=parseFloat(document.getElementById('f_amount').value);
-  const date=document.getElementById('f_date').value;
+  const date=parseDMY(document.getElementById('f_date').value);
   const purpose=document.getElementById('f_purpose').value.trim();
   const payMethod=document.getElementById('f_payMethod').value;
   if (!name) { showToast('Enter borrower name','fail'); return; }
   if (!amount||amount<=0) { showToast('Enter valid amount','fail'); return; }
-  if (!date) { showToast('Select a date','fail'); return; }
+  if (!date) { showToast('Enter date as DD/MM/YYYY','fail'); return; }
   if (editingId) {
     const i=loans.findIndex(l=>l.id===editingId);
     if(i!==-1) loans[i]={...loans[i],name,amount,dateGiven:date,purpose,payMethod};
@@ -1041,7 +1058,7 @@ function openRepayModal(id) {
   repayingId=id;
   document.getElementById('ri_name').textContent=l.name;
   document.getElementById('ri_out').textContent=fmt(getOutstanding(l));
-  document.getElementById('r_amount').value=''; document.getElementById('r_date').value=todayStr();
+  document.getElementById('r_amount').value=''; document.getElementById('r_date').value=toDMY(todayStr());
   document.getElementById('r_note').value='';
   document.getElementById('repayModal').classList.add('open');
   setTimeout(()=>document.getElementById('r_amount').focus(),300);
@@ -1050,10 +1067,10 @@ function closeRepayModal() { document.getElementById('repayModal').classList.rem
 
 async function saveRepayment() {
   const amount=parseFloat(document.getElementById('r_amount').value);
-  const date=document.getElementById('r_date').value;
+  const date=parseDMY(document.getElementById('r_date').value);
   const note=document.getElementById('r_note').value.trim();
   if (!amount||amount<=0) { showToast('Enter valid amount','fail'); return; }
-  if (!date) { showToast('Select payment date','fail'); return; }
+  if (!date) { showToast('Enter date as DD/MM/YYYY','fail'); return; }
   const i=loans.findIndex(l=>l.id===repayingId); if(i===-1) return;
   const out=getOutstanding(loans[i]);
   if (amount>out+0.01) { if(!confirm(`₹${amount} exceeds outstanding ₹${out.toFixed(2)}. Save anyway?`)) return; }
