@@ -1,0 +1,1365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#090e1a">
+<meta name="apple-mobile-web-app-title" content="FinCalc Pro">
+<meta name="application-name" content="FinCalc Pro">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>FinCalc Pro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-deep: #090e1a;
+    --bg-card: #0f1929;
+    --bg-elevated: #162035;
+    --bg-input: #1a2540;
+    --border: rgba(255,255,255,0.07);
+    --border-active: rgba(212,175,55,0.5);
+    --gold: #d4af37;
+    --gold-light: #f0d060;
+    --gold-dim: rgba(212,175,55,0.15);
+    --teal: #00c9a7;
+    --teal-dim: rgba(0,201,167,0.12);
+    --red: #ff6b6b;
+    --text-primary: #e8eaf2;
+    --text-secondary: #8892a4;
+    --text-muted: #4a566a;
+    --radius: 16px;
+    --radius-sm: 10px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--bg-deep);
+    font-family: 'Inter', sans-serif;
+    color: var(--text-primary);
+    min-height: 100vh;
+    padding: 0;
+    overflow-x: hidden;
+  }
+
+  /* Background texture */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 50% at 20% -10%, rgba(212,175,55,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 110%, rgba(0,201,167,0.05) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .app-wrapper {
+    position: relative;
+    z-index: 1;
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 0 0 32px;
+  }
+
+  /* Header */
+  .header {
+    padding: 20px 20px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .logo-icon {
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, var(--gold), var(--gold-light));
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    box-shadow: 0 4px 16px rgba(212,175,55,0.3);
+  }
+
+  .logo-text {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    color: var(--text-primary);
+  }
+
+  .logo-text span {
+    color: var(--gold);
+  }
+
+  .tagline {
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 0 20px;
+    margin-bottom: 20px;
+  }
+
+  /* Tab Navigation */
+  .tab-nav {
+    display: flex;
+    gap: 0;
+    margin: 0 20px 20px;
+    background: var(--bg-card);
+    border-radius: var(--radius-sm);
+    padding: 4px;
+    border: 1px solid var(--border);
+  }
+
+  .tab-btn {
+    flex: 1;
+    padding: 9px 6px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    cursor: pointer;
+    border-radius: 7px;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+  }
+
+  .tab-btn.active {
+    background: linear-gradient(135deg, var(--gold), #b8941e);
+    color: #090e1a;
+    box-shadow: 0 2px 12px rgba(212,175,55,0.35);
+  }
+
+  /* Cards */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin: 0 20px 16px;
+  }
+
+  .card-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.8px;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .card-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, rgba(212,175,55,0.3), transparent);
+  }
+
+  /* Input Groups */
+  .input-group {
+    margin-bottom: 14px;
+  }
+
+  .input-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+    display: block;
+  }
+
+  .input-row {
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+  }
+
+  .input-field {
+    flex: 1;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 11px 14px;
+    color: var(--text-primary);
+    font-family: 'Roboto Mono', monospace;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    width: 100%;
+    -webkit-appearance: none;
+  }
+
+  .input-field:focus {
+    border-color: var(--border-active);
+    box-shadow: 0 0 0 3px rgba(212,175,55,0.08);
+  }
+
+  .input-field::placeholder {
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+
+  /* Select */
+  .select-field {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 11px 12px;
+    color: var(--text-primary);
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    outline: none;
+    cursor: pointer;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238892a4' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 28px;
+    min-width: 90px;
+    transition: border-color 0.2s;
+  }
+
+  .select-field:focus { border-color: var(--border-active); }
+
+  /* Pill selectors */
+  .pill-group {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .pill {
+    padding: 7px 13px;
+    border-radius: 50px;
+    border: 1px solid var(--border);
+    background: var(--bg-input);
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    letter-spacing: 0.3px;
+  }
+
+  .pill.active {
+    background: var(--gold-dim);
+    border-color: var(--gold);
+    color: var(--gold-light);
+  }
+
+  /* Checkbox toggle */
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    background: var(--bg-elevated);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    margin-bottom: 10px;
+    cursor: pointer;
+  }
+
+  .toggle-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .toggle-icon { font-size: 14px; }
+
+  .toggle-switch {
+    width: 40px;
+    height: 22px;
+    background: var(--bg-input);
+    border-radius: 50px;
+    border: 1px solid var(--border);
+    position: relative;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+
+  .toggle-switch::after {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    background: var(--text-muted);
+    border-radius: 50%;
+    top: 2px;
+    left: 2px;
+    transition: all 0.2s ease;
+  }
+
+  .toggle-row.active .toggle-switch {
+    background: var(--gold-dim);
+    border-color: var(--gold);
+  }
+
+  .toggle-row.active .toggle-switch::after {
+    background: var(--gold);
+    left: 18px;
+  }
+
+  .toggle-extra {
+    margin-top: 10px;
+    padding: 12px 14px;
+    background: var(--bg-elevated);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    animation: slideDown 0.2s ease;
+  }
+
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Calculate Button */
+  .calc-btn {
+    width: 100%;
+    padding: 15px;
+    background: linear-gradient(135deg, var(--gold) 0%, #b8941e 100%);
+    color: #090e1a;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 20px rgba(212,175,55,0.3);
+    margin-top: 4px;
+  }
+
+  .calc-btn:active {
+    transform: scale(0.98);
+    box-shadow: 0 2px 10px rgba(212,175,55,0.2);
+  }
+
+  /* Results Card */
+  .result-card {
+    background: linear-gradient(135deg, #0d1e35 0%, #0a1525 100%);
+    border: 1px solid rgba(212,175,55,0.25);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin: 0 20px 16px;
+    display: none;
+    animation: fadeIn 0.3s ease;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  }
+
+  .result-card.visible { display: block; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .result-header {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .result-header::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: var(--teal);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--teal);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .result-main {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .result-total-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+    letter-spacing: 0.4px;
+  }
+
+  .result-total-val {
+    font-family: 'Roboto Mono', monospace;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--teal);
+    letter-spacing: -0.5px;
+    line-height: 1;
+  }
+
+  .result-total-val.gold { color: var(--gold-light); }
+
+  .result-badge {
+    background: var(--teal-dim);
+    border: 1px solid rgba(0,201,167,0.3);
+    border-radius: 8px;
+    padding: 6px 10px;
+    text-align: right;
+  }
+
+  .result-badge.gold-badge {
+    background: var(--gold-dim);
+    border-color: rgba(212,175,55,0.3);
+  }
+
+  .badge-label { font-size: 9px; color: var(--text-muted); letter-spacing: 0.5px; }
+  .badge-val {
+    font-family: 'Roboto Mono', monospace;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--teal);
+  }
+  .badge-val.gold { color: var(--gold); }
+
+  .result-rows { display: flex; flex-direction: column; gap: 10px; }
+
+  .result-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    background: rgba(255,255,255,0.025);
+    border-radius: 8px;
+    border-left: 3px solid transparent;
+  }
+
+  .result-row.invested { border-left-color: var(--text-muted); }
+  .result-row.interest { border-left-color: var(--gold); }
+  .result-row.total { border-left-color: var(--teal); }
+  .result-row.inflation { border-left-color: var(--red); }
+
+  .rr-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+
+  .rr-val {
+    font-family: 'Roboto Mono', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  .rr-val.accent { color: var(--gold-light); }
+  .rr-val.green { color: var(--teal); }
+  .rr-val.red { color: var(--red); }
+
+  /* Section panels */
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* rupee prefix input */
+  .input-prefix-wrap {
+    position: relative;
+    flex: 1;
+  }
+
+  .input-prefix {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--gold);
+    font-family: 'Roboto Mono', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    pointer-events: none;
+  }
+
+  .input-prefix-wrap .input-field {
+    padding-left: 26px;
+  }
+
+  /* divider line */
+  .section-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 16px 0;
+  }
+
+  /* Clarity bar */
+  .alloc-bar {
+    display: flex;
+    height: 6px;
+    border-radius: 50px;
+    overflow: hidden;
+    margin: 10px 0 6px;
+    gap: 2px;
+  }
+
+  .alloc-bar-invested {
+    background: var(--text-muted);
+    border-radius: 50px;
+    transition: width 0.4s ease;
+  }
+
+  .alloc-bar-returns {
+    background: linear-gradient(90deg, var(--gold), var(--teal));
+    border-radius: 50px;
+    flex: 1;
+    transition: width 0.4s ease;
+  }
+
+  .alloc-legend {
+    display: flex;
+    gap: 14px;
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+
+  .legend-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 4px;
+    vertical-align: middle;
+  }
+
+  /* PWA Install Banner */
+  #installBanner {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 500;
+    background: var(--bg-card);
+    border-top: 1px solid rgba(212,175,55,0.25);
+    padding: 16px 18px env(safe-area-inset-bottom, 12px);
+    display: none; align-items: center; gap: 14px;
+    box-shadow: 0 -8px 32px rgba(0,0,0,0.5);
+    animation: slideUp 0.3s ease;
+  }
+  @keyframes slideUp {
+    from { transform: translateY(100%); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
+  #installBanner.show { display: flex; }
+  .ib-icon { font-size: 34px; flex-shrink: 0; }
+  .ib-text { flex: 1; }
+  .ib-title { font-family: 'Inter', sans-serif; font-weight: 700; font-size: 15px; color: var(--text-primary); }
+  .ib-sub { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+  .ib-actions { display: flex; gap: 8px; flex-shrink: 0; }
+  .ib-install {
+    background: linear-gradient(135deg, var(--gold), #b8941e);
+    color: #090e1a; border: none; border-radius: 10px;
+    padding: 10px 16px; font-family: 'Inter', sans-serif;
+    font-weight: 700; font-size: 13px; cursor: pointer;
+    box-shadow: 0 4px 14px rgba(212,175,55,0.3);
+  }
+  .ib-install:active { transform: scale(0.95); }
+  .ib-dismiss {
+    background: var(--bg-elevated); border: 1px solid var(--border);
+    color: var(--text-muted); border-radius: 10px;
+    padding: 10px 14px; font-size: 14px; font-weight: 600;
+    font-family: 'Inter', sans-serif; cursor: pointer;
+  }
+
+  /* PWA Toast */
+  .pwa-toast {
+    position: fixed; bottom: 28px; left: 50%;
+    transform: translateX(-50%) translateY(10px);
+    background: var(--bg-elevated); color: var(--text-primary);
+    border: 1px solid var(--border);
+    padding: 12px 24px; border-radius: 50px;
+    font-weight: 600; font-size: 14px; z-index: 999;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.28s, transform 0.28s;
+    white-space: nowrap; box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  }
+  .pwa-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<div class="app-wrapper">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">
+      <div class="logo-icon">₹</div>
+      <div class="logo-text">Fin<span>Calc</span> Pro</div>
+    </div>
+  </div>
+  <div class="tagline">Your Personal Returns Calculator</div>
+
+  <!-- Tab Navigation -->
+  <div class="tab-nav">
+    <button class="tab-btn active" onclick="switchTab('si')">Simple Int.</button>
+    <button class="tab-btn" onclick="switchTab('ci')">Compound</button>
+    <button class="tab-btn" onclick="switchTab('sip')">SIP</button>
+  </div>
+
+  <!-- ============ SIMPLE INTEREST ============ -->
+  <div class="tab-panel active" id="panel-si">
+    <div class="card">
+      <div class="card-title">Simple Interest</div>
+
+      <div class="input-group">
+        <label class="input-label">Principal Amount</label>
+        <div class="input-prefix-wrap">
+          <span class="input-prefix">₹</span>
+          <input class="input-field money-input" type="text" id="si-principal" placeholder="e.g. 1,00,000" inputmode="decimal">
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label class="input-label">Rate of Interest (% per annum)</label>
+        <input class="input-field" type="number" id="si-rate" placeholder="e.g. 8.5" inputmode="decimal" step="0.1">
+      </div>
+
+      <div class="input-group">
+        <label class="input-label">Time Period</label>
+        <div class="input-row">
+          <input class="input-field" type="number" id="si-time" placeholder="Duration" inputmode="decimal" style="flex:1">
+          <select class="select-field" id="si-unit">
+            <option value="years">Years</option>
+            <option value="months">Months</option>
+            <option value="days">Days</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Inflation Toggle -->
+      <div class="toggle-row" id="toggle-si-inflation" onclick="toggleExtra('si-inflation')" style="margin-top:10px">
+        <span class="toggle-label"><span class="toggle-icon">🧮</span> Inflation Adjusted</span>
+        <div class="toggle-switch"></div>
+      </div>
+      <div class="toggle-extra" id="extra-si-inflation" style="display:none">
+        <label class="input-label">Expected Inflation Rate (% per annum)</label>
+        <input class="input-field" type="number" id="si-inflation" placeholder="e.g. 6" inputmode="decimal" step="0.5" value="6">
+      </div>
+
+      <button class="calc-btn" style="margin-top:16px" onclick="calcSI()">Calculate Returns</button>
+    </div>
+
+    <div class="result-card" id="result-si">
+      <div class="result-header">Result Summary</div>
+      <div class="result-main">
+        <div>
+          <div class="result-total-label">Total Maturity Value</div>
+          <div class="result-total-val" id="si-total">—</div>
+        </div>
+        <div class="result-badge gold-badge">
+          <div class="badge-label">RETURNS</div>
+          <div class="badge-val gold" id="si-pct">—</div>
+        </div>
+      </div>
+      <div class="alloc-bar">
+        <div class="alloc-bar-invested" id="si-bar-invested" style="width:50%"></div>
+        <div class="alloc-bar-returns" id="si-bar-returns" style="flex:1"></div>
+      </div>
+      <div class="alloc-legend">
+        <span><span class="legend-dot" style="background:var(--text-muted)"></span>Invested</span>
+        <span><span class="legend-dot" style="background:var(--gold)"></span>Returns</span>
+      </div>
+      <div class="section-divider"></div>
+      <div class="result-rows">
+        <div class="result-row invested">
+          <span class="rr-label">Principal Invested</span>
+          <span class="rr-val" id="si-r-principal">—</span>
+        </div>
+        <div class="result-row interest">
+          <span class="rr-label">Interest Earned</span>
+          <span class="rr-val accent" id="si-r-interest">—</span>
+        </div>
+        <div class="result-row">
+          <span class="rr-label">Rate (p.a.)</span>
+          <span class="rr-val" id="si-r-rate">—</span>
+        </div>
+        <div class="result-row">
+          <span class="rr-label">Time Period</span>
+          <span class="rr-val" id="si-r-time">—</span>
+        </div>
+        <div class="result-row total">
+          <span class="rr-label">Total Value</span>
+          <span class="rr-val green" id="si-r-total">—</span>
+        </div>
+        <!-- Inflation rows (shown conditionally) -->
+        <div class="result-row inflation" id="si-r-inflation-row" style="display:none">
+          <span class="rr-label">Inflation Rate</span>
+          <span class="rr-val red" id="si-r-inflation">—</span>
+        </div>
+        <div class="result-row inflation" id="si-r-real-row" style="display:none">
+          <span class="rr-label">Real Value (Today's ₹)</span>
+          <span class="rr-val red" id="si-r-real">—</span>
+        </div>
+        <div class="result-row inflation" id="si-r-purchasing-row" style="display:none">
+          <span class="rr-label">Purchasing Power Loss</span>
+          <span class="rr-val red" id="si-r-purchasing">—</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ COMPOUND INTEREST ============ -->
+  <div class="tab-panel" id="panel-ci">
+    <div class="card">
+      <div class="card-title">Compound Interest</div>
+
+      <div class="input-group">
+        <label class="input-label">Principal Amount</label>
+        <div class="input-prefix-wrap">
+          <span class="input-prefix">₹</span>
+          <input class="input-field money-input" type="text" id="ci-principal" placeholder="e.g. 1,00,000" inputmode="decimal">
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label class="input-label">Rate of Interest (% per annum)</label>
+        <input class="input-field" type="number" id="ci-rate" placeholder="e.g. 12" inputmode="decimal" step="0.1">
+      </div>
+
+      <div class="input-group">
+        <label class="input-label">Compounding Frequency</label>
+        <div class="pill-group" id="ci-freq-group">
+          <span class="pill active" data-val="12" onclick="selectPill(this,'ci-freq-group')">Monthly</span>
+          <span class="pill" data-val="4" onclick="selectPill(this,'ci-freq-group')">Quarterly</span>
+          <span class="pill" data-val="2" onclick="selectPill(this,'ci-freq-group')">Half-Yearly</span>
+          <span class="pill" data-val="1" onclick="selectPill(this,'ci-freq-group')">Annually</span>
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label class="input-label">Time Period</label>
+        <div class="input-row">
+          <input class="input-field" type="number" id="ci-time" placeholder="Duration" inputmode="decimal" style="flex:1">
+          <select class="select-field" id="ci-unit">
+            <option value="years">Years</option>
+            <option value="months">Months</option>
+            <option value="days">Days</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Inflation Toggle -->
+      <div class="toggle-row" id="toggle-ci-inflation" onclick="toggleExtra('ci-inflation')" style="margin-top:10px">
+        <span class="toggle-label"><span class="toggle-icon">🧮</span> Inflation Adjusted</span>
+        <div class="toggle-switch"></div>
+      </div>
+      <div class="toggle-extra" id="extra-ci-inflation" style="display:none">
+        <label class="input-label">Expected Inflation Rate (% per annum)</label>
+        <input class="input-field" type="number" id="ci-inflation" placeholder="e.g. 6" inputmode="decimal" step="0.5" value="6">
+      </div>
+
+      <button class="calc-btn" style="margin-top:16px" onclick="calcCI()">Calculate Returns</button>
+    </div>
+
+    <div class="result-card" id="result-ci">
+      <div class="result-header">Result Summary</div>
+      <div class="result-main">
+        <div>
+          <div class="result-total-label">Total Maturity Value</div>
+          <div class="result-total-val" id="ci-total">—</div>
+        </div>
+        <div class="result-badge gold-badge">
+          <div class="badge-label">RETURNS</div>
+          <div class="badge-val gold" id="ci-pct">—</div>
+        </div>
+      </div>
+      <div class="alloc-bar">
+        <div class="alloc-bar-invested" id="ci-bar-invested" style="width:50%"></div>
+        <div class="alloc-bar-returns" id="ci-bar-returns" style="flex:1"></div>
+      </div>
+      <div class="alloc-legend">
+        <span><span class="legend-dot" style="background:var(--text-muted)"></span>Invested</span>
+        <span><span class="legend-dot" style="background:var(--gold)"></span>Returns</span>
+      </div>
+      <div class="section-divider"></div>
+      <div class="result-rows">
+        <div class="result-row invested">
+          <span class="rr-label">Principal Invested</span>
+          <span class="rr-val" id="ci-r-principal">—</span>
+        </div>
+        <div class="result-row interest">
+          <span class="rr-label">Interest Earned</span>
+          <span class="rr-val accent" id="ci-r-interest">—</span>
+        </div>
+        <div class="result-row">
+          <span class="rr-label">Compounding</span>
+          <span class="rr-val" id="ci-r-freq">—</span>
+        </div>
+        <div class="result-row">
+          <span class="rr-label">Effective Annual Rate</span>
+          <span class="rr-val accent" id="ci-r-ear">—</span>
+        </div>
+        <div class="result-row">
+          <span class="rr-label">Time Period</span>
+          <span class="rr-val" id="ci-r-time">—</span>
+        </div>
+        <div class="result-row total">
+          <span class="rr-label">Total Value</span>
+          <span class="rr-val green" id="ci-r-total">—</span>
+        </div>
+        <!-- Inflation rows (shown conditionally) -->
+        <div class="result-row inflation" id="ci-r-inflation-row" style="display:none">
+          <span class="rr-label">Inflation Rate</span>
+          <span class="rr-val red" id="ci-r-inflation">—</span>
+        </div>
+        <div class="result-row inflation" id="ci-r-real-row" style="display:none">
+          <span class="rr-label">Real Value (Today's ₹)</span>
+          <span class="rr-val red" id="ci-r-real">—</span>
+        </div>
+        <div class="result-row inflation" id="ci-r-purchasing-row" style="display:none">
+          <span class="rr-label">Purchasing Power Loss</span>
+          <span class="rr-val red" id="ci-r-purchasing">—</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SIP ============ -->
+  <div class="tab-panel" id="panel-sip">
+    <div class="card">
+      <div class="card-title">SIP Calculator</div>
+
+      <div class="input-group">
+        <label class="input-label">SIP Investment Amount</label>
+        <div class="input-prefix-wrap">
+          <span class="input-prefix">₹</span>
+          <input class="input-field money-input" type="text" id="sip-amount" placeholder="e.g. 5,000" inputmode="decimal">
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label class="input-label">SIP Frequency</label>
+        <div class="pill-group" id="sip-freq-group">
+          <span class="pill active" data-val="52" onclick="selectPill(this,'sip-freq-group')">Weekly</span>
+          <span class="pill" data-val="26" onclick="selectPill(this,'sip-freq-group')">Bi-Monthly</span>
+          <span class="pill" data-val="12" onclick="selectPill(this,'sip-freq-group')">Monthly</span>
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label class="input-label">Expected CAGR (% per annum)</label>
+        <input class="input-field" type="number" id="sip-cagr" placeholder="e.g. 12" inputmode="decimal" step="0.1">
+      </div>
+
+      <div class="input-group">
+        <label class="input-label">Time Period</label>
+        <div class="input-row">
+          <input class="input-field" type="number" id="sip-time" placeholder="Duration" inputmode="decimal" style="flex:1">
+          <select class="select-field" id="sip-unit">
+            <option value="years">Years</option>
+            <option value="months">Months</option>
+            <option value="days">Days</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Step-up SIP Toggle -->
+      <div class="toggle-row" id="toggle-stepup" onclick="toggleExtra('stepup')">
+        <span class="toggle-label"><span class="toggle-icon">📈</span> Step-up SIP</span>
+        <div class="toggle-switch"></div>
+      </div>
+      <div class="toggle-extra" id="extra-stepup" style="display:none">
+        <label class="input-label">Annual Step-up Percentage (%)</label>
+        <input class="input-field" type="number" id="sip-stepup" placeholder="e.g. 10" inputmode="decimal" step="0.5" value="10">
+      </div>
+
+      <!-- Inflation Toggle -->
+      <div class="toggle-row" id="toggle-inflation" onclick="toggleExtra('inflation')" style="margin-top:10px">
+        <span class="toggle-label"><span class="toggle-icon">🧮</span> Inflation Adjusted</span>
+        <div class="toggle-switch"></div>
+      </div>
+      <div class="toggle-extra" id="extra-inflation" style="display:none">
+        <label class="input-label">Expected Inflation Rate (% per annum)</label>
+        <input class="input-field" type="number" id="sip-inflation" placeholder="e.g. 6" inputmode="decimal" step="0.5" value="6">
+      </div>
+
+      <button class="calc-btn" style="margin-top:16px" onclick="calcSIP()">Calculate Returns</button>
+    </div>
+
+    <div class="result-card" id="result-sip">
+      <div class="result-header">Result Summary</div>
+      <div class="result-main">
+        <div>
+          <div class="result-total-label">Total Corpus</div>
+          <div class="result-total-val gold" id="sip-total">—</div>
+        </div>
+        <div class="result-badge">
+          <div class="badge-label">GAIN</div>
+          <div class="badge-val" id="sip-pct">—</div>
+        </div>
+      </div>
+      <div class="alloc-bar">
+        <div class="alloc-bar-invested" id="sip-bar-invested" style="width:50%"></div>
+        <div class="alloc-bar-returns" id="sip-bar-returns" style="flex:1"></div>
+      </div>
+      <div class="alloc-legend">
+        <span><span class="legend-dot" style="background:var(--text-muted)"></span>Invested</span>
+        <span><span class="legend-dot" style="background:var(--teal)"></span>Returns</span>
+      </div>
+      <div class="section-divider"></div>
+      <div class="result-rows">
+        <div class="result-row invested">
+          <span class="rr-label">Total Invested</span>
+          <span class="rr-val" id="sip-r-invested">—</span>
+        </div>
+        <div class="result-row interest">
+          <span class="rr-label">Estimated Returns</span>
+          <span class="rr-val accent" id="sip-r-returns">—</span>
+        </div>
+        <div class="result-row">
+          <span class="rr-label">SIP Frequency</span>
+          <span class="rr-val" id="sip-r-freq">—</span>
+        </div>
+        <div class="result-row">
+          <span class="rr-label">CAGR</span>
+          <span class="rr-val" id="sip-r-cagr">—</span>
+        </div>
+        <div class="result-row">
+          <span class="rr-label">Time Period</span>
+          <span class="rr-val" id="sip-r-time">—</span>
+        </div>
+        <div class="result-row total">
+          <span class="rr-label">Total Corpus</span>
+          <span class="rr-val green" id="sip-r-total">—</span>
+        </div>
+        <!-- Step-up row (shown conditionally) -->
+        <div class="result-row" id="sip-r-stepup-row" style="display:none">
+          <span class="rr-label">Annual Step-up</span>
+          <span class="rr-val accent" id="sip-r-stepup">—</span>
+        </div>
+        <!-- Inflation rows (shown conditionally) -->
+        <div class="result-row inflation" id="sip-r-inflation-row" style="display:none">
+          <span class="rr-label">Inflation Rate</span>
+          <span class="rr-val red" id="sip-r-inflation">—</span>
+        </div>
+        <div class="result-row inflation" id="sip-r-real-row" style="display:none">
+          <span class="rr-label">Real Value (Today's ₹)</span>
+          <span class="rr-val red" id="sip-r-real">—</span>
+        </div>
+        <div class="result-row inflation" id="sip-r-purchasing-row" style="display:none">
+          <span class="rr-label">Purchasing Power Loss</span>
+          <span class="rr-val red" id="sip-r-purchasing">—</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- PWA Install Banner -->
+<div id="installBanner">
+  <div class="ib-icon">₹</div>
+  <div class="ib-text">
+    <div class="ib-title">Install FinCalc Pro</div>
+    <div class="ib-sub">Add to home screen — works offline</div>
+  </div>
+  <div class="ib-actions">
+    <button class="ib-install" onclick="triggerInstall()">Install</button>
+    <button class="ib-dismiss" onclick="dismissInstall()">✕</button>
+  </div>
+</div>
+<div class="pwa-toast" id="pwa-toast"></div>
+
+<script>
+// ---- Indian comma formatting for money inputs ----
+function _applyIndianCommas(str) {
+  str = str.replace(/,/g, '');
+  if (!str) return '';
+  const dotIdx = str.indexOf('.');
+  let intPart = dotIdx === -1 ? str : str.slice(0, dotIdx);
+  const decPart = dotIdx === -1 ? '' : str.slice(dotIdx); // keep decimal as-is while typing
+  if (intPart.length > 3) {
+    const last3 = intPart.slice(-3);
+    const rest  = intPart.slice(0, -3).replace(/\B(?=(\d{2})+(?!\d))/g, ',');
+    intPart = rest + ',' + last3;
+  }
+  return intPart + decPart;
+}
+
+function moneyVal(id) {
+  const raw = document.getElementById(id).value.replace(/,/g, '');
+  return parseFloat(raw);
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+  document.querySelectorAll('.money-input').forEach(function (inp) {
+    inp.addEventListener('input', function () {
+      const start  = this.selectionStart;
+      const oldLen = this.value.length;
+      // Allow only digits and one decimal point
+      let raw = this.value.replace(/[^0-9.]/g, '');
+      const first = raw.indexOf('.');
+      if (first !== -1) raw = raw.slice(0, first + 1) + raw.slice(first + 1).replace(/\./g, '');
+      const formatted = _applyIndianCommas(raw);
+      this.value = formatted;
+      // Reposition cursor accounting for added/removed commas
+      const diff = formatted.length - oldLen;
+      const newPos = Math.max(0, start + diff);
+      this.setSelectionRange(newPos, newPos);
+    });
+  });
+});
+
+// ---- Formatting ----
+function fmtINR(val) {
+  if (isNaN(val)) return '—';
+  val = Math.round(val);
+  if (val >= 1e7) return '₹' + (val/1e7).toFixed(2) + ' Cr';
+  if (val >= 1e5) return '₹' + (val/1e5).toFixed(2) + ' L';
+  return '₹' + val.toLocaleString('en-IN');
+}
+
+function fmtPct(val) {
+  return val.toFixed(2) + '%';
+}
+
+// ---- Time to Years ----
+function toYears(t, unit) {
+  if (unit === 'years') return t;
+  if (unit === 'months') return t / 12;
+  if (unit === 'days') return t / 365;
+}
+
+// ---- Tab Switch ----
+function switchTab(tab) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + tab).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ---- Pill Select ----
+function selectPill(el, groupId) {
+  document.querySelectorAll('#' + groupId + ' .pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function getActivePill(groupId) {
+  const active = document.querySelector('#' + groupId + ' .pill.active');
+  return active ? parseFloat(active.dataset.val) : null;
+}
+
+// ---- Toggle extras ----
+function toggleExtra(name) {
+  const row = document.getElementById('toggle-' + name);
+  const extra = document.getElementById('extra-' + name);
+  const isActive = row.classList.toggle('active');
+  extra.style.display = isActive ? 'block' : 'none';
+}
+
+// ---- Allocation bar ----
+function setBar(prefix, invested, total) {
+  const pct = total > 0 ? (invested / total) * 100 : 50;
+  document.getElementById(prefix + '-bar-invested').style.width = pct.toFixed(1) + '%';
+}
+
+// ---- SIMPLE INTEREST ----
+function calcSI() {
+  const P = moneyVal('si-principal');
+  const r = parseFloat(document.getElementById('si-rate').value);
+  const t_raw = parseFloat(document.getElementById('si-time').value);
+  const unit = document.getElementById('si-unit').value;
+
+  if (isNaN(P) || isNaN(r) || isNaN(t_raw)) { alert('Please fill all fields'); return; }
+
+  const t = toYears(t_raw, unit);
+  const SI = P * r * t / 100;
+  const total = P + SI;
+  const pct = (SI / P) * 100;
+
+  document.getElementById('si-total').textContent = fmtINR(total);
+  document.getElementById('si-pct').textContent = '+' + fmtPct(pct);
+
+  document.getElementById('si-r-principal').textContent = fmtINR(P);
+  document.getElementById('si-r-interest').textContent = fmtINR(SI);
+  document.getElementById('si-r-rate').textContent = fmtPct(r) + ' p.a.';
+  document.getElementById('si-r-time').textContent = t_raw + ' ' + unit;
+  document.getElementById('si-r-total').textContent = fmtINR(total);
+
+  // Inflation
+  const siInflationActive = document.getElementById('toggle-si-inflation').classList.contains('active');
+  if (siInflationActive) {
+    const inf = parseFloat(document.getElementById('si-inflation').value) || 0;
+    const realValue = total / Math.pow(1 + inf/100, t);
+    const loss = total - realValue;
+    document.getElementById('si-r-inflation-row').style.display = 'flex';
+    document.getElementById('si-r-real-row').style.display = 'flex';
+    document.getElementById('si-r-purchasing-row').style.display = 'flex';
+    document.getElementById('si-r-inflation').textContent = fmtPct(inf) + ' p.a.';
+    document.getElementById('si-r-real').textContent = fmtINR(realValue);
+    document.getElementById('si-r-purchasing').textContent = fmtINR(loss);
+  } else {
+    document.getElementById('si-r-inflation-row').style.display = 'none';
+    document.getElementById('si-r-real-row').style.display = 'none';
+    document.getElementById('si-r-purchasing-row').style.display = 'none';
+  }
+
+  setBar('si', P, total);
+  document.getElementById('result-si').classList.add('visible');
+  document.getElementById('result-si').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// ---- COMPOUND INTEREST ----
+function calcCI() {
+  const P = moneyVal('ci-principal');
+  const r = parseFloat(document.getElementById('ci-rate').value);
+  const t_raw = parseFloat(document.getElementById('ci-time').value);
+  const unit = document.getElementById('ci-unit').value;
+  const n = getActivePill('ci-freq-group');
+
+  if (isNaN(P) || isNaN(r) || isNaN(t_raw) || !n) { alert('Please fill all fields'); return; }
+
+  const t = toYears(t_raw, unit);
+  const total = P * Math.pow(1 + (r/100)/n, n * t);
+  const interest = total - P;
+  const pct = (interest / P) * 100;
+  // Effective Annual Rate
+  const ear = (Math.pow(1 + (r/100)/n, n) - 1) * 100;
+
+  const freqMap = { 12: 'Monthly', 4: 'Quarterly', 2: 'Half-Yearly', 1: 'Annually' };
+
+  document.getElementById('ci-total').textContent = fmtINR(total);
+  document.getElementById('ci-pct').textContent = '+' + fmtPct(pct);
+
+  document.getElementById('ci-r-principal').textContent = fmtINR(P);
+  document.getElementById('ci-r-interest').textContent = fmtINR(interest);
+  document.getElementById('ci-r-freq').textContent = freqMap[n] || n + 'x/year';
+  document.getElementById('ci-r-ear').textContent = fmtPct(ear);
+  document.getElementById('ci-r-time').textContent = t_raw + ' ' + unit;
+  document.getElementById('ci-r-total').textContent = fmtINR(total);
+
+  // Inflation
+  const ciInflationActive = document.getElementById('toggle-ci-inflation').classList.contains('active');
+  if (ciInflationActive) {
+    const inf = parseFloat(document.getElementById('ci-inflation').value) || 0;
+    const realValue = total / Math.pow(1 + inf/100, t);
+    const loss = total - realValue;
+    document.getElementById('ci-r-inflation-row').style.display = 'flex';
+    document.getElementById('ci-r-real-row').style.display = 'flex';
+    document.getElementById('ci-r-purchasing-row').style.display = 'flex';
+    document.getElementById('ci-r-inflation').textContent = fmtPct(inf) + ' p.a.';
+    document.getElementById('ci-r-real').textContent = fmtINR(realValue);
+    document.getElementById('ci-r-purchasing').textContent = fmtINR(loss);
+  } else {
+    document.getElementById('ci-r-inflation-row').style.display = 'none';
+    document.getElementById('ci-r-real-row').style.display = 'none';
+    document.getElementById('ci-r-purchasing-row').style.display = 'none';
+  }
+
+  setBar('ci', P, total);
+  document.getElementById('result-ci').classList.add('visible');
+  document.getElementById('result-ci').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// ---- SIP ----
+function calcSIP() {
+  const amount = moneyVal('sip-amount');
+  const cagr = parseFloat(document.getElementById('sip-cagr').value);
+  const t_raw = parseFloat(document.getElementById('sip-time').value);
+  const unit = document.getElementById('sip-unit').value;
+  const freq = getActivePill('sip-freq-group'); // installments per year
+
+  const stepupActive = document.getElementById('toggle-stepup').classList.contains('active');
+  const inflationActive = document.getElementById('toggle-inflation').classList.contains('active');
+
+  if (isNaN(amount) || isNaN(cagr) || isNaN(t_raw) || !freq) { alert('Please fill all fields'); return; }
+
+  const years = toYears(t_raw, unit);
+  const r_per_period = cagr / 100 / freq; // periodic rate
+
+  let totalCorpus = 0;
+  let totalInvested = 0;
+
+  if (stepupActive) {
+    const stepupPct = parseFloat(document.getElementById('sip-stepup').value) || 0;
+    const stepupRate = stepupPct / 100;
+    // Year-by-year with step-up
+    const totalInstallments = Math.round(years * freq);
+    let currentSIP = amount;
+    let installmentsThisYear = 0;
+    let yearCount = 0;
+
+    for (let i = 1; i <= totalInstallments; i++) {
+      // Step up at the start of each year
+      installmentsThisYear++;
+      if (installmentsThisYear > freq) {
+        installmentsThisYear = 1;
+        yearCount++;
+        currentSIP = currentSIP * (1 + stepupRate);
+      }
+
+      const remainingPeriods = totalInstallments - i + 1;
+      totalCorpus += currentSIP * Math.pow(1 + r_per_period, remainingPeriods - 1);
+      totalInvested += currentSIP;
+    }
+    // Compound to end
+    // Already accounted above: each installment grows for remaining periods
+    // Recalc properly: FV of each payment
+    totalCorpus = 0;
+    totalInvested = 0;
+    currentSIP = amount;
+    installmentsThisYear = 0;
+    yearCount = 0;
+
+    for (let i = 0; i < totalInstallments; i++) {
+      if (i > 0 && i % freq === 0) {
+        currentSIP = currentSIP * (1 + stepupRate);
+      }
+      const periodsRemaining = totalInstallments - i;
+      totalCorpus += currentSIP * Math.pow(1 + r_per_period, periodsRemaining);
+      totalInvested += currentSIP;
+    }
+
+    document.getElementById('sip-r-stepup-row').style.display = 'flex';
+    document.getElementById('sip-r-stepup').textContent = stepupPct + '% p.a.';
+  } else {
+    // Standard SIP formula: FV = PMT * [((1+r)^n - 1) / r] * (1+r)
+    const n = Math.round(years * freq);
+    totalCorpus = amount * (Math.pow(1 + r_per_period, n) - 1) / r_per_period * (1 + r_per_period);
+    totalInvested = amount * n;
+
+    document.getElementById('sip-r-stepup-row').style.display = 'none';
+  }
+
+  const returns = totalCorpus - totalInvested;
+  const gainPct = (returns / totalInvested) * 100;
+
+  const freqLabel = { 52: 'Weekly', 26: 'Bi-Monthly', 12: 'Monthly' };
+
+  document.getElementById('sip-total').textContent = fmtINR(totalCorpus);
+  document.getElementById('sip-pct').textContent = '+' + fmtPct(gainPct);
+
+  document.getElementById('sip-r-invested').textContent = fmtINR(totalInvested);
+  document.getElementById('sip-r-returns').textContent = fmtINR(returns);
+  document.getElementById('sip-r-freq').textContent = freqLabel[freq] || freq + 'x/year';
+  document.getElementById('sip-r-cagr').textContent = fmtPct(cagr) + ' p.a.';
+  document.getElementById('sip-r-time').textContent = t_raw + ' ' + unit;
+  document.getElementById('sip-r-total').textContent = fmtINR(totalCorpus);
+
+  // Inflation
+  if (inflationActive) {
+    const inf = parseFloat(document.getElementById('sip-inflation').value) || 0;
+    const realValue = totalCorpus / Math.pow(1 + inf/100, years);
+    const loss = totalCorpus - realValue;
+
+    document.getElementById('sip-r-inflation-row').style.display = 'flex';
+    document.getElementById('sip-r-real-row').style.display = 'flex';
+    document.getElementById('sip-r-purchasing-row').style.display = 'flex';
+
+    document.getElementById('sip-r-inflation').textContent = fmtPct(inf) + ' p.a.';
+    document.getElementById('sip-r-real').textContent = fmtINR(realValue);
+    document.getElementById('sip-r-purchasing').textContent = fmtINR(loss);
+  } else {
+    document.getElementById('sip-r-inflation-row').style.display = 'none';
+    document.getElementById('sip-r-real-row').style.display = 'none';
+    document.getElementById('sip-r-purchasing-row').style.display = 'none';
+  }
+
+  setBar('sip', totalInvested, totalCorpus);
+  document.getElementById('result-sip').classList.add('visible');
+  document.getElementById('result-sip').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// ---- PWA: Service Worker ----
+if ('serviceWorker' in navigator) {
+  let _swRefreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!_swRefreshing) { _swRefreshing = true; window.location.reload(); }
+  });
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').then(reg => {
+      reg.addEventListener('updatefound', () => {
+        const nw = reg.installing;
+        nw.addEventListener('statechange', () => {
+          if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+            nw.postMessage({ type: 'SKIP_WAITING' });
+          }
+        });
+      });
+    }).catch(err => console.warn('SW failed:', err));
+  });
+}
+
+// ---- PWA: Install Prompt ----
+let _deferredPrompt = null;
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  _deferredPrompt = e;
+  setTimeout(() => {
+    if (!localStorage.getItem('fincalc_pwa_dismissed')) {
+      document.getElementById('installBanner').classList.add('show');
+    }
+  }, 2000);
+});
+
+window.addEventListener('appinstalled', () => {
+  document.getElementById('installBanner').classList.remove('show');
+  _deferredPrompt = null;
+  _pwaToast('FinCalc Pro installed! 🎉');
+});
+
+function triggerInstall() {
+  if (!_deferredPrompt) {
+    _pwaToast('Tap ⋮ → Add to Home screen');
+    document.getElementById('installBanner').classList.remove('show');
+    return;
+  }
+  _deferredPrompt.prompt();
+  _deferredPrompt.userChoice.then(() => {
+    _deferredPrompt = null;
+    document.getElementById('installBanner').classList.remove('show');
+  });
+}
+
+function dismissInstall() {
+  document.getElementById('installBanner').classList.remove('show');
+  localStorage.setItem('fincalc_pwa_dismissed', '1');
+}
+
+function _pwaToast(msg) {
+  const t = document.getElementById('pwa-toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>
