@@ -1,0 +1,241 @@
+{
+  "quizzes": [
+    {
+      "id": "mpr70he27gybs1houcv",
+      "name": "Geography",
+      "emoji": "📘",
+      "description": "To Revise the geography knowledge learnt for competitive exams.",
+      "pct": 100,
+      "createdAt": 1780075535114
+    }
+  ],
+  "questions": [
+    {
+      "id": "mpr71p6riov2mf5ig2",
+      "quizId": "mpr70he27gybs1houcv",
+      "type": "mcq",
+      "question": "In terms of length coastline among the Indian states, Andhra Pradesh has the rank of",
+      "options": [
+        "First",
+        "Second",
+        "Third",
+        "Fourth"
+      ],
+      "correctIndices": [
+        1
+      ],
+      "createdAt": 1780075591875
+    },
+    {
+      "id": "mpr73p0d476jto6fmec",
+      "quizId": "mpr70he27gybs1houcv",
+      "type": "mcq",
+      "question": "Tungabhadra River joins the Krishna River near ?",
+      "options": [
+        "Sangameswaram village in Kurnool district",
+        "Ambapuram in Vijaywada",
+        "Lepakshi in Anantapur",
+        "None of these"
+      ],
+      "correctIndices": [
+        0
+      ],
+      "createdAt": 1780075684957
+    },
+    {
+      "id": "mpr74fb3xupgwfg0w",
+      "quizId": "mpr70he27gybs1houcv",
+      "type": "mcq",
+      "question": "Andhra Pradesh shares border with how many Indian states?",
+      "options": [
+        "4",
+        "5",
+        "6",
+        "7"
+      ],
+      "correctIndices": [
+        1
+      ],
+      "createdAt": 1780075719039
+    },
+    {
+      "id": "mpr76k2yl3a2i96w7a",
+      "quizId": "mpr70he27gybs1houcv",
+      "type": "mcq",
+      "question": "Which of the following river is called the father of African river?",
+      "options": [
+        "Amazon River",
+        "Nile River",
+        "Niger River",
+        "Zambezi River"
+      ],
+      "correctIndices": [
+        1
+      ],
+      "createdAt": 1780075818538
+    },
+    {
+      "id": "mpr7a060063a6bfxn08r",
+      "quizId": "mpr70he27gybs1houcv",
+      "type": "mcq",
+      "question": "Which of the following river is called the father of African river?",
+      "options": [
+        "Troposphere",
+        "Mesosphere",
+        "Stratosphere",
+        "Ionosphere"
+      ],
+      "correctIndices": [
+        3
+      ],
+      "createdAt": 1780075979352
+    },
+    {
+      "id": "mpr7b3068mprtkaiagk",
+      "quizId": "mpr70he27gybs1houcv",
+      "type": "mcq",
+      "question": "Which of the following river is called the father of African river?",
+      "options": [
+        "Cyclones over the sea",
+        "Monsoons",
+        "Earth quakes under sea",
+        "Gravitational pulls by Sun and Moon"
+      ],
+      "correctIndices": [
+        2
+      ],
+      "createdAt": 1780076029686
+    },
+    {
+      "id": "mpr7fddn89h714idcxt",
+      "quizId": "mpr70he27gybs1houcv",
+      "type": "mcq",
+      "question": "Which was the India’s first National Park?",
+      "options": [
+        "Madhav National Park",
+        "Jim Corbett National Park",
+        "Kanha National Park",
+        "Tadobha National Park"
+      ],
+      "correctIndices": [
+        1
+      ],
+      "createdAt": 1780076229755
+    },
+    {
+      "id": "mpr7iodoc1kwanf29m9",
+      "quizId": "mpr70he27gybs1houcv",
+      "type": "mcq",
+      "question": "From which mountain range does the Luni river originate ?",
+      "options": [
+        "Maikala range",
+        "Aravali range",
+        "Western Ghats",
+        "Himalayas"
+      ],
+      "correctIndices": [
+        1
+      ],
+      "createdAt": 1780076383980
+    },
+    {
+      "id": "mpr7kf2d8rzrbfzjrww",
+      "quizId": "mpr70he27gybs1houcv",
+      "type": "mcq",
+      "question": "What is the discontinuity between earth's lower mantle and outer core called ?",
+      "options": [
+        "Conrad discontinuity",
+        "Lehmann discontinuity",
+        "Gutenberg discontinuity",
+        "Moho discontinuity"
+      ],
+      "correctIndices": [
+        2
+      ],
+      "createdAt": 1780076465221
+    },
+    {
+      "id": "mpr7lxxkk2h9u43lt0k",
+      "quizId": "mpr70he27gybs1houcv",
+      "type": "mcq",
+      "question": "Which of the following states has largest coastline?",
+      "options": [
+        "Gujarat",
+        "Andhra Pradesh",
+        "Maharastra",
+        "Tamilnadu"
+      ],
+      "correctIndices": [
+        0
+      ],
+      "createdAt": 1780076536328
+    },
+    {
+      "id": "mpr7oc2dwhdczfiimxc",
+      "quizId": "mpr70he27gybs1houcv",
+      "type": "mcq",
+      "question": "\"Lipulekh Pass\" is located in which Indian State ?",
+      "options": [
+        "Himachal Pradesh",
+        "Uttarakhand",
+        "Sikkim",
+        "Jammu and Kashmir"
+      ],
+      "correctIndices": [
+        1
+      ],
+      "createdAt": 1780076940185
+    },
+    {
+      "id": "mpr7pk6rx9y46nkou2",
+      "quizId": "mpr70he27gybs1houcv",
+      "type": "mcq",
+      "question": "\"Nathu La Pass\" is located in which Indian state ?",
+      "options": [
+        "Himachal Pradesh",
+        "Jammu and Kashmir",
+        "Uttarakhand",
+        "Sikkim"
+      ],
+      "correctIndices": [
+        3
+      ],
+      "createdAt": 1780076967672
+    },
+    {
+      "id": "mpr7r02tgo19rysz43s",
+      "quizId": "mpr70he27gybs1houcv",
+      "type": "mcq",
+      "question": "\"Rohtang Pass\" is located in which Indian state ?",
+      "options": [
+        "Himachal Pradesh",
+        "Uttarakhand",
+        "Sikkim",
+        "Jammu and Kashmir"
+      ],
+      "correctIndices": [
+        0
+      ],
+      "createdAt": 1780077003688
+    },
+    {
+      "id": "mpr7tbksaes09uhp415",
+      "quizId": "mpr70he27gybs1houcv",
+      "type": "mcq",
+      "question": "\"Palghat Pass\" is located in which Indian state ?",
+      "options": [
+        "Kerala",
+        "Jammu and Kashmir",
+        "Sikkim",
+        "Uttarakhand"
+      ],
+      "correctIndices": [
+        0
+      ],
+      "createdAt": 1780076880604
+    }
+  ],
+  "history": [],
+  "streak": 0,
+  "lastTakenDate": null
+}
