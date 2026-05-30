@@ -346,6 +346,17 @@
         .history-pct { font-size:12px; color:var(--text-muted); }
         #file-input-backup { display:none; }
 
+        /* INSTALL BANNER */
+        #installBanner { position:fixed; bottom:0; left:0; right:0; z-index:500; background:var(--card2); border-top:1px solid var(--border); padding:16px 18px; display:none; align-items:center; gap:14px; box-shadow:0 -8px 32px rgba(0,0,0,0.5); animation:slideUp 0.3s ease; }
+        #installBanner.show { display:flex; }
+        .ib-icon { font-size:36px; flex-shrink:0; }
+        .ib-text { flex:1; }
+        .ib-title { font-weight:700; font-size:16px; }
+        .ib-sub { font-size:13px; color:var(--text-muted); margin-top:2px; }
+        .ib-actions { display:flex; gap:8px; flex-shrink:0; }
+        .ib-install { background:linear-gradient(135deg, var(--primary), #A855F7); color:#fff; border:none; border-radius:10px; padding:10px 16px; font-weight:700; font-size:14px; cursor:pointer; font-family:inherit; }
+        .ib-dismiss { background:var(--card); border:1px solid var(--border); color:var(--text-muted); border-radius:10px; padding:10px 14px; font-size:14px; font-weight:600; font-family:inherit; cursor:pointer; }
+
         /* CROSS-QUIZ & TEAM-QUIZ WIZARD */
         .wizard-steps { display:flex; gap:6px; margin-bottom:20px; }
         .wizard-step-dot { flex:1; height:4px; border-radius:2px; background:var(--border); transition:background 0.3s; }
@@ -933,6 +944,19 @@
 </div>
 
 <div id="print-area"></div>
+
+<!-- PWA Install Banner -->
+<div id="installBanner">
+    <div class="ib-icon">🧠</div>
+    <div class="ib-text">
+        <div class="ib-title">Install Quiz App</div>
+        <div class="ib-sub">Add to home screen — works offline</div>
+    </div>
+    <div class="ib-actions">
+        <button class="ib-install" onclick="triggerInstall()">Install</button>
+        <button class="ib-dismiss" onclick="dismissInstall()">✕</button>
+    </div>
+</div>
 
 <div class="toast" id="toast"></div>
 
@@ -2501,20 +2525,61 @@ if (window.speechSynthesis) {
 // ─────────────────────────────────────────────
 // SERVICE WORKER REGISTRATION
 // ─────────────────────────────────────────────
+// ─────────────────────────────────────────────
+// SERVICE WORKER + PWA INSTALL
+// ─────────────────────────────────────────────
+let _deferredPrompt = null;
+
+window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    _deferredPrompt = e;
+    setTimeout(() => {
+        if (!localStorage.getItem('quiz_pwa_dismissed')) {
+            document.getElementById('installBanner').classList.add('show');
+        }
+    }, 2500);
+});
+
+window.addEventListener('appinstalled', () => {
+    document.getElementById('installBanner').classList.remove('show');
+    _deferredPrompt = null;
+    showToast('Quiz App installed! 🎉');
+});
+
+function triggerInstall() {
+    if (!_deferredPrompt) {
+        showToast('Tap ⋮ → Add to Home screen');
+        document.getElementById('installBanner').classList.remove('show');
+        return;
+    }
+    _deferredPrompt.prompt();
+    _deferredPrompt.userChoice.then(() => {
+        _deferredPrompt = null;
+        document.getElementById('installBanner').classList.remove('show');
+    });
+}
+
+function dismissInstall() {
+    document.getElementById('installBanner').classList.remove('show');
+    localStorage.setItem('quiz_pwa_dismissed', '1');
+}
+
 if ('serviceWorker' in navigator) {
+    let _swRefreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!_swRefreshing) { _swRefreshing = true; window.location.reload(); }
+    });
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
-            .then(reg => {
-                reg.addEventListener('updatefound', () => {
-                    const newWorker = reg.installing;
-                    newWorker.addEventListener('statechange', () => {
-                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                            newWorker.postMessage({ type: 'SKIP_WAITING' });
-                        }
-                    });
+        navigator.serviceWorker.register('./sw.js').then(reg => {
+            reg.addEventListener('updatefound', () => {
+                const nw = reg.installing;
+                nw.addEventListener('statechange', () => {
+                    if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+                        nw.postMessage({ type: 'SKIP_WAITING' });
+                    }
                 });
-            })
-            .catch(err => console.warn('SW registration failed:', err));
+            });
+        }).catch(err => console.warn('SW failed:', err));
     });
 }
 </script>
