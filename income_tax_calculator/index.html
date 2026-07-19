@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tax Ledger — FY 2025-26 Computation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#EDEBDD;
+    --paper-line:#c9c6b0;
+    --ink:#1D2B4A;
+    --ink-soft:#4a5578;
+    --seal:#8E2A2A;
+    --seal-soft:#c9847f;
+    --gold:#9C7A2E;
+    --gold-bg:#efe4c2;
+    --good:#2f5d3a;
+    --paper-card:#F7F5EA;
+    --shadow: 0 1px 0 rgba(29,43,74,0.06);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    background-image:
+      repeating-linear-gradient(rgba(29,43,74,0.035) 0px, rgba(29,43,74,0.035) 1px, transparent 1px, transparent 34px);
+    color:var(--ink);
+    font-family:'IBM Plex Sans', sans-serif;
+    padding-bottom:80px;
+  }
+  .wrap{max-width:920px;margin:0 auto;padding:28px 20px 40px;}
+
+  /* Header / letterhead */
+  .letterhead{
+    border-bottom:3px double var(--ink);
+    padding-bottom:16px;
+    margin-bottom:22px;
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    gap:16px;
+    flex-wrap:wrap;
+  }
+  .letterhead h1{
+    font-family:'Spectral', serif;
+    font-weight:700;
+    font-size:2rem;
+    margin:0 0 4px;
+    letter-spacing:0.3px;
+  }
+  .letterhead .sub{
+    font-size:0.82rem;
+    color:var(--ink-soft);
+    letter-spacing:0.4px;
+    text-transform:uppercase;
+  }
+  .seal{
+    width:100px;height:100px;border-radius:50%;
+    border:2px solid var(--seal);
+    color:var(--seal);
+    display:flex;align-items:center;justify-content:center;
+    text-align:center;
+    font-family:'Spectral',serif;
+    font-size:0.64rem;
+    font-weight:600;
+    letter-spacing:0.5px;
+    line-height:1.25;
+    transform:rotate(-8deg);
+    opacity:0.85;
+    flex-shrink:0;
+    padding:14px;
+  }
+
+  /* Regime toggle */
+  .regime-bar{
+    display:flex;
+    gap:0;
+    margin-bottom:22px;
+    border:1.5px solid var(--ink);
+    width:fit-content;
+    border-radius:3px;
+    overflow:hidden;
+  }
+  .regime-bar button{
+    font-family:'IBM Plex Sans';
+    font-weight:600;
+    font-size:0.85rem;
+    padding:10px 22px;
+    border:none;
+    background:var(--paper-card);
+    color:var(--ink-soft);
+    cursor:pointer;
+    letter-spacing:0.3px;
+  }
+  .regime-bar button + button{ border-left:1.5px solid var(--ink); }
+  .regime-bar button.active{
+    background:var(--ink);
+    color:var(--paper-card);
+  }
+
+  /* Ledger section */
+  .ledger-section{
+    background:var(--paper-card);
+    border:1px solid var(--paper-line);
+    border-radius:4px;
+    margin-bottom:16px;
+    box-shadow:var(--shadow);
+  }
+  .ledger-head{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:12px 16px;
+    border-bottom:1px solid var(--paper-line);
+    background:linear-gradient(180deg, rgba(29,43,74,0.03), transparent);
+  }
+  .ledger-head .num{
+    font-family:'IBM Plex Mono';
+    font-size:0.75rem;
+    color:var(--gold);
+    border:1px solid var(--gold);
+    border-radius:50%;
+    width:22px;height:22px;
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;
+  }
+  .ledger-head h2{
+    font-family:'Spectral',serif;
+    font-size:1.05rem;
+    font-weight:600;
+    margin:0;
+    flex:1;
+  }
+  .ledger-head .tag{
+    font-size:0.68rem;
+    color:var(--ink-soft);
+    text-transform:uppercase;
+    letter-spacing:0.4px;
+  }
+
+  .row{
+    display:grid;
+    grid-template-columns:1fr auto;
+    align-items:center;
+    padding:11px 16px;
+    border-bottom:1px dashed var(--paper-line);
+    gap:10px;
+  }
+  .row:last-child{border-bottom:none;}
+  .row .label{
+    font-size:0.9rem;
+    font-weight:500;
+  }
+  .row .rate-note{
+    display:block;
+    font-size:0.72rem;
+    color:var(--ink-soft);
+    font-family:'IBM Plex Mono';
+    margin-top:2px;
+  }
+
+  .switch{
+    position:relative;
+    width:40px;height:22px;
+    flex-shrink:0;
+  }
+  .switch input{opacity:0;width:0;height:0;}
+  .slider{
+    position:absolute;inset:0;
+    background:#cfcabb;
+    border-radius:22px;
+    cursor:pointer;
+    transition:0.15s;
+  }
+  .slider:before{
+    content:"";
+    position:absolute;
+    height:16px;width:16px;
+    left:3px;top:3px;
+    background:var(--paper-card);
+    border-radius:50%;
+    transition:0.15s;
+  }
+  .switch input:checked + .slider{ background:var(--seal); }
+  .switch input:checked + .slider:before{ transform:translateX(18px); }
+
+  .entry-body{
+    padding:0 16px 14px;
+    display:none;
+  }
+  .entry-body.open{display:block;}
+  .field-row{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+    margin-top:8px;
+  }
+  .field{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+  }
+  .field label{
+    font-size:0.68rem;
+    text-transform:uppercase;
+    letter-spacing:0.4px;
+    color:var(--ink-soft);
+  }
+  .field .input-wrap{
+    display:flex;
+    align-items:center;
+    border:1px solid var(--paper-line);
+    border-radius:3px;
+    background:#fff;
+    overflow:hidden;
+  }
+  .field .input-wrap span{
+    font-family:'IBM Plex Mono';
+    font-size:0.85rem;
+    color:var(--ink-soft);
+    padding:8px 8px 8px 10px;
+    background:rgba(29,43,74,0.04);
+  }
+  .field input{
+    border:none;
+    outline:none;
+    padding:8px 10px 8px 4px;
+    font-family:'IBM Plex Mono';
+    font-size:0.9rem;
+    width:100%;
+    background:transparent;
+    color:var(--ink);
+  }
+
+  /* Tally / Summary */
+  .tally{
+    background:var(--ink);
+    color:var(--paper-card);
+    border-radius:4px;
+    padding:20px;
+    margin-top:24px;
+    position:relative;
+  }
+  .tally h2{
+    font-family:'Spectral',serif;
+    font-size:1.15rem;
+    margin:0 0 14px;
+    border-bottom:1px solid rgba(247,245,234,0.25);
+    padding-bottom:10px;
+    display:flex;justify-content:space-between;align-items:center;
+  }
+  .tally h2 .regime-label{
+    font-size:0.68rem;
+    text-transform:uppercase;
+    background:var(--gold-bg);
+    color:#5a4415;
+    padding:3px 8px;
+    border-radius:2px;
+    letter-spacing:0.4px;
+  }
+  .tally-row{
+    display:flex;
+    justify-content:space-between;
+    padding:6px 0;
+    font-family:'IBM Plex Mono';
+    font-size:0.87rem;
+    border-bottom:1px dotted rgba(247,245,234,0.18);
+  }
+  .tally-row.sub{ color:rgba(247,245,234,0.65); font-size:0.8rem; padding-left:14px;}
+  .tally-row.total{
+    font-size:1.1rem;
+    font-weight:600;
+    border-bottom:none;
+    border-top:2px solid rgba(247,245,234,0.4);
+    margin-top:8px;
+    padding-top:12px;
+  }
+  .tally-row.result{
+    font-size:1.25rem;
+    font-weight:700;
+    margin-top:10px;
+    padding-top:12px;
+    border-top:none;
+  }
+  .tally-row.result.refund{ color:#9fd6a8; }
+  .tally-row.result.payable{ color:#f0b0a8; }
+
+  .note{
+    font-size:0.72rem;
+    color:rgba(247,245,234,0.55);
+    margin-top:14px;
+    line-height:1.5;
+    font-family:'IBM Plex Sans';
+  }
+
+  .footer-note{
+    text-align:center;
+    font-size:0.72rem;
+    color:var(--ink-soft);
+    margin-top:22px;
+    line-height:1.6;
+  }
+
+  @media (max-width:520px){
+    .field-row{grid-template-columns:1fr;}
+    .letterhead h1{font-size:1.5rem;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="letterhead">
+    <div>
+      <div class="sub">Personal Computation Sheet</div>
+      <h1>Tax Ledger</h1>
+
+    </div>
+    <div class="seal">PROVISIONAL<br>COMPUTATION<br>ONLY</div>
+  </div>
+
+  <div class="regime-bar">
+    <button id="btn-new" class="active" onclick="setRegime('new')">New Regime</button>
+    <button id="btn-old" onclick="setRegime('old')">Old Regime</button>
+  </div>
+
+  <div id="ledger-container"></div>
+
+  <div class="tally" id="tally"></div>
+
+  <div class="footer-note">
+    All figures in ₹ (Indian Rupees). This is a personal-use estimation tool — not a substitute for professional tax advice or the official ITR utility.
+  </div>
+
+</div>
+
+<script>
+const RUPEE = n => {
+  n = Math.round(n || 0);
+  const neg = n < 0; n = Math.abs(n);
+  let s = n.toString();
+  let last3 = s.substring(s.length - 3);
+  let rest = s.substring(0, s.length - 3);
+  if (rest !== '') last3 = ',' + last3;
+  let formatted = rest.replace(/\B(?=(\d{2})+(?!\d))/g, ",") + last3;
+  return (neg ? '-' : '') + '₹' + formatted;
+};
+
+let regime = 'new';
+
+// Component definitions
+// category: 'normal' (slab rate, gets std deduction if salary), 'stcg_equity' (20%),
+// 'ltcg_equity' (12.5%, 1.25L exemption), 'ltcg_bond' (12.5% flat), 'stcg_bond' (slab rate)
+const components = [
+  { id:'salary', label:'Salary Income', note:'Taxed at slab rate · standard deduction applies', category:'normal', isSalary:true, enabled:true, amount:0, advance:0 },
+  { id:'dividends', label:'Dividend Income', note:'Taxed at slab rate (DDT abolished)', category:'normal', enabled:false, amount:0, advance:0 },
+  { id:'sb_interest', label:'Savings Account Interest', note:'Taxed at slab rate', category:'normal', enabled:false, amount:0, advance:0 },
+  { id:'fd_interest', label:'Fixed Deposit Interest', note:'Taxed at slab rate · enter only the interest accrued/received in this year (Sec 194A TDS, if any, goes in advance tax)', category:'normal', enabled:false, amount:0, advance:0 },
+  { id:'bond_interest', label:'Interest from Bonds', note:'Taxed at slab rate', category:'normal', enabled:false, amount:0, advance:0 },
+  { id:'life_insurance', label:'Life Insurance Receipt (Sec 194DA)', note:'Taxable if not exempt u/s 10(10D) · taxed at slab rate on (amount received − premiums paid)', category:'normal', special:'lic', enabled:false, received:0, premium:0, advance:0 },
+  { id:'bond_stcg', label:'Sale of Bonds — STCG', note:'Held ≤ 12 months · taxed at slab rate', category:'normal', enabled:false, amount:0, advance:0 },
+  { id:'bond_ltcg', label:'Sale of Bonds — LTCG', note:'Held > 12 months · flat 12.5%, no indexation, no exemption', category:'ltcg_bond', enabled:false, amount:0, advance:0 },
+  { id:'stock_stcg', label:'Sale of Stocks — STCG', note:'Sec 111A · flat 20% (STT paid)', category:'stcg_equity', enabled:false, amount:0, advance:0 },
+  { id:'stock_ltcg', label:'Sale of Stocks — LTCG', note:'Sec 112A · flat 12.5% · shares combined ₹1,25,000 exemption with equity MF LTCG below', category:'ltcg_equity', enabled:false, amount:0, advance:0 },
+  { id:'mf_stcg', label:'Equity Mutual Funds — STCG', note:'Held ≤ 12 months · Sec 111A · flat 20%', category:'stcg_equity', enabled:false, amount:0, advance:0 },
+  { id:'mf_ltcg', label:'Equity Mutual Funds — LTCG', note:'Held > 12 months · Sec 112A · flat 12.5% · shares combined ₹1,25,000 exemption with stock LTCG above', category:'ltcg_equity', enabled:false, amount:0, advance:0 },
+  { id:'debt_mf', label:'Debt Mutual Funds (bought on/after 1 Apr 2023)', note:'No LTCG concept applies · always taxed as STCG at slab rate, any holding period', category:'normal', enabled:false, amount:0, advance:0 },
+];
+
+function setRegime(r){
+  regime = r;
+  document.getElementById('btn-new').classList.toggle('active', r==='new');
+  document.getElementById('btn-old').classList.toggle('active', r==='old');
+  render();
+}
+
+function slabTax(income, r){
+  let brackets;
+  if(r === 'new'){
+    brackets = [
+      [0,400000,0],[400000,800000,0.05],[800000,1200000,0.10],
+      [1200000,1600000,0.15],[1600000,2000000,0.20],
+      [2000000,2400000,0.25],[2400000,Infinity,0.30]
+    ];
+  } else {
+    brackets = [
+      [0,250000,0],[250000,500000,0.05],[500000,1000000,0.20],[1000000,Infinity,0.30]
+    ];
+  }
+  let tax = 0;
+  for(const [lo,hi,rate] of brackets){
+    if(income > lo){
+      tax += (Math.min(income,hi) - lo) * rate;
+    }
+  }
+  return Math.max(0, tax);
+}
+
+function compute(){
+  const get = id => components.find(c=>c.id===id);
+  const enabledSum = (ids) => ids.reduce((s,id)=>{
+    const c = get(id);
+    return s + (c.enabled ? (c.amount||0) : 0);
+  }, 0);
+
+  const salary = get('salary').enabled ? (get('salary').amount||0) : 0;
+  const normalIds = ['salary','dividends','sb_interest','fd_interest','bond_interest','bond_stcg','debt_mf'];
+  const lic = get('life_insurance');
+  const licTaxable = lic.enabled ? Math.max(0, (lic.received||0) - (lic.premium||0)) : 0;
+  const grossNormal = enabledSum(normalIds) + licTaxable;
+
+  const stdDeductionCap = regime === 'new' ? 75000 : 50000;
+  const stdDeductionApplied = Math.min(stdDeductionCap, salary);
+  const normalTaxable = Math.max(0, grossNormal - stdDeductionApplied);
+
+  const bondLTCG = get('bond_ltcg').enabled ? (get('bond_ltcg').amount||0) : 0;
+  const stockSTCG = get('stock_stcg').enabled ? (get('stock_stcg').amount||0) : 0;
+  const mfSTCG = get('mf_stcg').enabled ? (get('mf_stcg').amount||0) : 0;
+  const stockLTCGraw = get('stock_ltcg').enabled ? (get('stock_ltcg').amount||0) : 0;
+  const mfLTCGraw = get('mf_ltcg').enabled ? (get('mf_ltcg').amount||0) : 0;
+
+  const combinedSTCGequity = stockSTCG + mfSTCG;
+  const combinedLTCGequityRaw = stockLTCGraw + mfLTCGraw;
+  const combinedLTCGequityTaxable = Math.max(0, combinedLTCGequityRaw - 125000);
+
+  const bondLTCGtax = bondLTCG * 0.125;
+  const stockSTCGtax = combinedSTCGequity * 0.20;
+  const stockLTCGtax = combinedLTCGequityTaxable * 0.125;
+  const specialTaxTotal = bondLTCGtax + stockSTCGtax + stockLTCGtax;
+  const specialIncomeTotal = bondLTCG + combinedSTCGequity + combinedLTCGequityTaxable;
+
+  let normalTaxBeforeRebate = slabTax(normalTaxable, regime);
+
+  const totalTaxableIncome = normalTaxable + specialIncomeTotal;
+  const rebateThreshold = regime === 'new' ? 1200000 : 500000;
+  const rebateCap = regime === 'new' ? 60000 : 12500;
+
+  let rebate = 0;
+  if(totalTaxableIncome <= rebateThreshold){
+    rebate = Math.min(normalTaxBeforeRebate, rebateCap);
+  } else if(regime === 'new' && normalTaxable > 0){
+    // marginal relief zone just above 12L (normal-rate income only)
+    const excessOverThreshold = totalTaxableIncome - rebateThreshold;
+    if(excessOverThreshold < normalTaxBeforeRebate){
+      const relief = normalTaxBeforeRebate - excessOverThreshold;
+      rebate = Math.max(0, relief);
+    }
+  }
+
+  const normalTaxAfterRebate = Math.max(0, normalTaxBeforeRebate - rebate);
+  const totalTaxBeforeCess = normalTaxAfterRebate + specialTaxTotal;
+  const cess = totalTaxBeforeCess * 0.04;
+  const totalLiability = totalTaxBeforeCess + cess;
+
+  const advancePaid = components.reduce((s,c)=> s + (c.enabled ? (c.advance||0) : 0), 0);
+  const balance = totalLiability - advancePaid;
+
+  return {
+    salary, grossNormal, stdDeductionApplied, normalTaxable, licTaxable,
+    bondLTCG, combinedSTCGequity, combinedLTCGequityRaw, combinedLTCGequityTaxable,
+    bondLTCGtax, stockSTCGtax, stockLTCGtax, specialTaxTotal,
+    normalTaxBeforeRebate, rebate, normalTaxAfterRebate,
+    totalTaxBeforeCess, cess, totalLiability, advancePaid, balance
+  };
+}
+
+function render(){
+  const container = document.getElementById('ledger-container');
+  container.innerHTML = '';
+
+  const sections = [
+    { title:'Income from Salary', ids:['salary'] },
+    { title:'Income from Other Sources', ids:['dividends','sb_interest','fd_interest','bond_interest','life_insurance'] },
+    { title:'Capital Gains — Bonds', ids:['bond_stcg','bond_ltcg'] },
+    { title:'Capital Gains — Equity Shares & Equity Mutual Funds', ids:['stock_stcg','stock_ltcg','mf_stcg','mf_ltcg'] },
+    { title:'Capital Gains — Debt Mutual Funds', ids:['debt_mf'] },
+  ];
+
+  sections.forEach((sec, si) => {
+    const secEl = document.createElement('div');
+    secEl.className = 'ledger-section';
+    secEl.innerHTML = `<div class="ledger-head">
+        <div class="num">${si+1}</div>
+        <h2>${sec.title}</h2>
+      </div>`;
+    sec.ids.forEach(id => {
+      const c = components.find(x=>x.id===id);
+      const row = document.createElement('div');
+      const fieldsHtml = c.special === 'lic' ? `
+          <div class="field-row">
+            <div class="field">
+              <label>Amount received</label>
+              <div class="input-wrap"><span>₹</span><input type="number" min="0" step="1" value="${c.received||''}" placeholder="0" oninput="updateLic('${c.id}','received', this.value)"></div>
+            </div>
+            <div class="field">
+              <label>Total premiums paid</label>
+              <div class="input-wrap"><span>₹</span><input type="number" min="0" step="1" value="${c.premium||''}" placeholder="0" oninput="updateLic('${c.id}','premium', this.value)"></div>
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label>TDS deducted u/s 194DA (advance tax)</label>
+              <div class="input-wrap"><span>₹</span><input type="number" min="0" step="1" value="${c.advance||''}" placeholder="0" oninput="updateAdvance('${c.id}', this.value)"></div>
+            </div>
+          </div>
+      ` : `
+          <div class="field-row">
+            <div class="field">
+              <label>Amount</label>
+              <div class="input-wrap"><span>₹</span><input type="number" min="0" step="1" value="${c.amount||''}" placeholder="0" oninput="updateAmount('${c.id}', this.value)"></div>
+            </div>
+            <div class="field">
+              <label>Advance tax already paid</label>
+              <div class="input-wrap"><span>₹</span><input type="number" min="0" step="1" value="${c.advance||''}" placeholder="0" oninput="updateAdvance('${c.id}', this.value)"></div>
+            </div>
+          </div>
+      `;
+      row.innerHTML = `
+        <div class="row">
+          <div class="label">${c.label}<span class="rate-note">${c.note}</span></div>
+          <label class="switch">
+            <input type="checkbox" ${c.enabled?'checked':''} onchange="toggleComponent('${c.id}', this.checked)">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="entry-body ${c.enabled?'open':''}" id="body-${c.id}">
+          ${fieldsHtml}
+        </div>
+      `;
+      secEl.appendChild(row);
+    });
+    container.appendChild(secEl);
+  });
+
+  renderTally();
+}
+
+function toggleComponent(id, val){
+  const c = components.find(x=>x.id===id);
+  c.enabled = val;
+  const body = document.getElementById('body-'+id);
+  if(body) body.classList.toggle('open', val);
+  renderTally();
+}
+function updateAmount(id, val){
+  const c = components.find(x=>x.id===id);
+  c.amount = parseFloat(val) || 0;
+  renderTally();
+}
+function updateAdvance(id, val){
+  const c = components.find(x=>x.id===id);
+  c.advance = parseFloat(val) || 0;
+  renderTally();
+}
+function updateLic(id, field, val){
+  const c = components.find(x=>x.id===id);
+  c[field] = parseFloat(val) || 0;
+  renderTally();
+}
+
+function renderTally(){
+  const r = compute();
+  const t = document.getElementById('tally');
+  const balanceLabel = r.balance > 0 ? 'Balance Tax Payable' : 'Refund Due';
+  const balanceClass = r.balance > 0 ? 'payable' : 'refund';
+
+  t.innerHTML = `
+    <h2>Tally <span class="regime-label">${regime === 'new' ? 'New Regime' : 'Old Regime'}</span></h2>
+
+    <div class="tally-row"><span>Gross slab-rate income (salary + other sources + bond STCG)</span><span>${RUPEE(r.grossNormal)}</span></div>
+    <div class="tally-row sub"><span>...of which, Life Insurance receipt taxable portion</span><span>${RUPEE(r.licTaxable)}</span></div>
+    <div class="tally-row sub"><span>Less: Standard deduction</span><span>−${RUPEE(r.stdDeductionApplied)}</span></div>
+    <div class="tally-row"><span>Net taxable income at slab rate</span><span>${RUPEE(r.normalTaxable)}</span></div>
+    <div class="tally-row sub"><span>Tax at slab rate</span><span>${RUPEE(r.normalTaxBeforeRebate)}</span></div>
+    <div class="tally-row sub"><span>Less: Rebate u/s 87A</span><span>−${RUPEE(r.rebate)}</span></div>
+
+    <div class="tally-row"><span>Bond LTCG @ 12.5%</span><span>${RUPEE(r.bondLTCGtax)}</span></div>
+    <div class="tally-row"><span>Equity Shares + Equity MF STCG @ 20% (Sec 111A)</span><span>${RUPEE(r.stockSTCGtax)}</span></div>
+    <div class="tally-row"><span>Equity Shares + Equity MF LTCG @ 12.5% (Sec 112A)</span><span>${RUPEE(r.stockLTCGtax)}</span></div>
+    <div class="tally-row sub"><span>...combined LTCG before ₹1,25,000 exemption</span><span>${RUPEE(r.combinedLTCGequityRaw)}</span></div>
+
+    <div class="tally-row total"><span>Total tax before cess</span><span>${RUPEE(r.totalTaxBeforeCess)}</span></div>
+    <div class="tally-row"><span>Health & Education Cess @ 4%</span><span>${RUPEE(r.cess)}</span></div>
+    <div class="tally-row total"><span>Total Tax Liability</span><span>${RUPEE(r.totalLiability)}</span></div>
+    <div class="tally-row"><span>Total advance tax / TDS paid</span><span>−${RUPEE(r.advancePaid)}</span></div>
+
+    <div class="tally-row result ${balanceClass}"><span>${balanceLabel}</span><span>${RUPEE(Math.abs(r.balance))}</span></div>
+
+    <div class="note">
+      Assumes resident individual below 60 years, no Section 80C/80D or other deductions (applicable to old regime), no surcharge (income assumed ≤ ₹50 lakh), and standard slab structure for FY 2025-26 (AY 2026-27). Rebate u/s 87A is applied only against tax on slab-rate income, not against capital gains tax, per current interpretation. Toggle components on/off above to match your actual sources of income.
+    </div>
+  `;
+}
+
+render();
+</script>
+</body>
+</html>
