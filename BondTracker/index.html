@@ -1,0 +1,2046 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<meta name="theme-color" content="#0d0f14"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="BondVault"/>
+<meta name="application-name" content="BondVault"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="apple-touch-icon" href="icon-192.png"/>
+<title>BondVault</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+:root{
+  --bg:#0d0f14;--bg2:#13161e;--bg3:#1a1e2a;--bg4:#222736;
+  --border:#2a3045;--gold:#c9a84c;--gold2:#e8c97a;
+  --green:#4caf82;--red:#e05c6a;--blue:#5b8dee;--purple:#9b7fe8;--orange:#e8924a;
+  --text:#e8eaf0;--text2:#9aa0b8;--text3:#5c6278;
+  --radius:16px;--radius-sm:10px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;overflow:hidden;}
+body{display:flex;flex-direction:column;}
+::-webkit-scrollbar{width:3px;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+#app{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+
+/* SCREENS */
+.screen{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:32px;}
+.screen.hidden{display:none!important;}
+.vault-logo{display:flex;flex-direction:column;align-items:center;gap:8px;}
+.vault-logo-icon{width:72px;height:72px;border-radius:20px;background:linear-gradient(135deg,#1e2535,#2a3248);border:1px solid var(--gold);display:flex;align-items:center;justify-content:center;font-size:32px;box-shadow:0 0 40px rgba(201,168,76,0.2);}
+.vault-logo h1{font-family:'Playfair Display',serif;font-size:28px;color:var(--gold2);letter-spacing:2px;}
+.vault-logo p{font-size:11px;color:var(--text3);letter-spacing:3px;text-transform:uppercase;}
+
+/* PIN */
+.pin-dots{display:flex;gap:14px;}
+.pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--border);transition:all 0.2s;}
+.pin-dot.filled{background:var(--gold);border-color:var(--gold);box-shadow:0 0 8px rgba(201,168,76,0.5);}
+.pin-numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:100%;max-width:260px;}
+.pin-btn{aspect-ratio:1;border-radius:50%;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-size:22px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.pin-btn:active{background:var(--bg4);transform:scale(0.93);}
+.pin-btn.del{font-size:16px;color:var(--text2);}
+.pin-btn.empty{background:transparent;border:none;pointer-events:none;}
+.pin-hint{font-size:12px;color:var(--text3);}
+.pin-error{color:var(--red);font-size:13px;min-height:18px;text-align:center;}
+
+/* FILE SCREEN */
+.file-card{width:100%;max-width:320px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:24px;display:flex;flex-direction:column;gap:14px;}
+.file-card-title{font-family:'Playfair Display',serif;font-size:16px;color:var(--gold2);text-align:center;}
+.file-card-sub{font-size:12px;color:var(--text3);text-align:center;line-height:1.6;}
+.file-btn{width:100%;padding:14px;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;border:none;display:flex;align-items:center;justify-content:center;gap:8px;}
+.file-btn:active{opacity:0.85;}
+.file-btn.primary{background:linear-gradient(135deg,var(--gold),#a8782a);color:#0d0f14;}
+.file-btn.secondary{background:var(--bg3);border:1px solid var(--border);color:var(--text2);}
+.file-divider{display:flex;align-items:center;gap:10px;}
+.file-divider::before,.file-divider::after{content:'';flex:1;height:1px;background:var(--border);}
+.file-divider span{font-size:11px;color:var(--text3);}
+
+/* TOPBAR */
+#topbar{padding:14px 16px 10px;background:var(--bg);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.topbar-logo{display:flex;align-items:center;gap:10px;}
+.topbar-logo-icon{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#1e2535,#2a3248);border:1px solid var(--gold);display:flex;align-items:center;justify-content:center;font-size:15px;}
+.topbar-title{font-family:'Playfair Display',serif;font-size:20px;color:var(--gold2);}
+.topbar-right{display:flex;gap:8px;align-items:center;}
+.sync-badge{font-size:11px;color:var(--text3);display:flex;align-items:center;gap:5px;padding:4px 10px;background:var(--bg3);border-radius:20px;border:1px solid var(--border);}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0;}
+.sync-dot.syncing{background:var(--gold);animation:pulse 1s infinite;}
+.sync-dot.error{background:var(--red);}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.2;}}
+.icon-btn{width:34px;height:34px;border-radius:10px;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px;color:var(--text2);}
+.icon-btn:active{background:var(--bg4);}
+.icon-btn.connected{border-color:var(--gold);color:var(--gold2);}
+
+/* NAV */
+#navbar{display:flex;border-top:1px solid var(--border);background:var(--bg);flex-shrink:0;padding-bottom:env(safe-area-inset-bottom);}
+.nav-item{flex:1;padding:10px 4px 8px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;border:none;background:none;color:var(--text3);font-size:10px;font-family:'DM Sans',sans-serif;transition:color 0.2s;}
+.nav-item.active{color:var(--gold2);}
+.nav-icon{font-size:20px;}
+
+/* PAGES */
+.page{display:none;flex:1;overflow-y:auto;padding:16px 16px 24px;}
+.page.active{display:block;}
+
+/* SUMMARY STRIP */
+.summary-strip{background:linear-gradient(135deg,#1a1e2a,#1f2436);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:14px;position:relative;overflow:hidden;}
+.summary-strip::before{content:'';position:absolute;top:-30px;right:-30px;width:120px;height:120px;border-radius:50%;background:radial-gradient(circle,rgba(201,168,76,0.07),transparent 70%);}
+.summary-label{font-size:10px;color:var(--text3);letter-spacing:2px;text-transform:uppercase;margin-bottom:2px;}
+.summary-value{font-family:'Playfair Display',serif;font-size:26px;color:var(--gold2);font-weight:600;}
+.summary-sub{font-size:12px;color:var(--text2);margin-top:2px;}
+.summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;}
+.summary-chip{background:var(--bg3);border-radius:var(--radius-sm);padding:10px;}
+.chip-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;}
+.chip-val{font-family:'DM Mono',monospace;font-size:14px;color:var(--text);margin-top:2px;}
+.chip-val.green{color:var(--green);}
+.chip-val.gold{color:var(--gold2);}
+.chip-val.red{color:var(--red);}
+.chip-val.blue{color:var(--blue);}
+.chip-val.orange{color:var(--orange);}
+
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;margin-top:4px;}
+.section-title{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:2px;}
+.add-btn{display:flex;align-items:center;gap:5px;padding:7px 14px;border-radius:20px;background:linear-gradient(135deg,var(--gold),#a8782a);border:none;color:#0d0f14;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.add-btn:active{opacity:0.85;}
+.add-btn.purple{background:linear-gradient(135deg,#7c5cbf,#5a3d9a);color:#fff;}
+.add-btn.muted{background:var(--bg3);border:1px solid var(--border);color:var(--text2);}
+
+/* BOND CARD */
+.bond-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:10px;overflow:hidden;cursor:pointer;transition:border-color 0.2s;}
+.bond-card:active{border-color:var(--gold);}
+.bond-card.inactive{opacity:0.72;border-style:dashed;}
+.bond-card-wrap{position:relative;margin-bottom:10px;}
+.sold-stamp{
+  position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%) rotate(-22deg);
+  font-family:'Playfair Display',serif;
+  font-size:22px;font-weight:700;letter-spacing:4px;
+  color:rgba(232,146,74,0.55);
+  border:2px solid rgba(232,146,74,0.45);
+  border-radius:6px;padding:4px 14px;
+  pointer-events:none;white-space:nowrap;
+  text-shadow:0 0 12px rgba(232,146,74,0.3);
+  box-shadow:inset 0 0 8px rgba(232,146,74,0.08);
+  z-index:2;
+}
+.bond-card-header{padding:14px 14px 10px;display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
+.bond-name-row{display:flex;flex-direction:column;gap:4px;flex:1;min-width:0;}
+.bond-platform{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--gold);background:rgba(201,168,76,0.1);padding:2px 8px;border-radius:20px;width:fit-content;}
+.bond-platform.sold{color:var(--text3);background:var(--bg3);}
+.bond-name{font-family:'Playfair Display',serif;font-size:15px;color:var(--text);line-height:1.3;}
+.bond-ytm-badge{font-family:'DM Mono',monospace;font-size:13px;color:var(--green);background:rgba(76,175,130,0.12);padding:4px 9px;border-radius:20px;white-space:nowrap;flex-shrink:0;}
+.bond-ytm-badge.sold{color:var(--text3);background:var(--bg3);}
+.bond-sold-badge{font-size:10px;color:var(--orange);background:rgba(232,146,74,0.12);padding:2px 8px;border-radius:20px;width:fit-content;text-transform:uppercase;letter-spacing:1px;}
+.bond-meta{padding:0 14px 12px;display:flex;gap:6px;flex-wrap:wrap;}
+.meta-tag{font-size:11px;color:var(--text2);background:var(--bg3);border-radius:6px;padding:3px 8px;}
+.bond-footer{border-top:1px solid var(--border);padding:10px 14px;display:flex;justify-content:space-between;align-items:center;}
+.footer-stat{display:flex;flex-direction:column;gap:1px;}
+.footer-stat-label{font-size:10px;color:var(--text3);}
+.footer-stat-val{font-family:'DM Mono',monospace;font-size:12px;color:var(--text);}
+.footer-stat-val.green{color:var(--green);}
+.footer-stat-val.orange{color:var(--orange);}
+
+/* POOL CARD */
+.pool-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:10px;overflow:hidden;cursor:pointer;}
+.pool-card:active{border-color:var(--purple);}
+.pool-card-header{padding:14px 14px 10px;display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
+.pool-name-col{display:flex;flex-direction:column;gap:3px;flex:1;}
+.pool-badge{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--purple);background:rgba(155,127,232,0.12);padding:2px 8px;border-radius:20px;width:fit-content;}
+.pool-name{font-family:'Playfair Display',serif;font-size:16px;color:var(--text);}
+.pool-corpus-badge{font-family:'DM Mono',monospace;font-size:13px;color:var(--gold2);background:rgba(232,201,122,0.1);padding:4px 9px;border-radius:20px;white-space:nowrap;flex-shrink:0;}
+.pool-bar-wrap{padding:0 14px 12px;}
+.pool-bar-bg{height:5px;background:var(--bg4);border-radius:3px;overflow:hidden;}
+.pool-bar-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--purple),var(--blue));}
+.pool-bar-labels{display:flex;justify-content:space-between;margin-top:4px;}
+.pool-bar-label{font-size:10px;color:var(--text3);}
+.pool-footer{border-top:1px solid var(--border);padding:10px 14px;display:flex;justify-content:space-between;align-items:center;}
+.pool-stat{display:flex;flex-direction:column;gap:1px;}
+.pool-stat-label{font-size:10px;color:var(--text3);}
+.pool-stat-val{font-family:'DM Mono',monospace;font-size:12px;}
+.pool-stat-val.green{color:var(--green);}
+.pool-stat-val.blue{color:var(--blue);}
+.pool-stat-val.gold{color:var(--gold2);}
+
+/* FORM */
+.form-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:14px;}
+.form-title{font-family:'Playfair Display',serif;font-size:18px;color:var(--gold2);margin-bottom:16px;}
+.form-section{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:2px;margin:16px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+.form-group{margin-bottom:14px;}
+.form-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;display:block;}
+.form-input{width:100%;padding:12px 13px;border-radius:var(--radius-sm);background:var(--bg3);border:1px solid var(--border);color:var(--text);font-size:15px;font-family:'DM Sans',sans-serif;outline:none;transition:border 0.2s;-webkit-appearance:none;}
+.form-input:focus{border-color:var(--gold);}
+.form-input::placeholder{color:var(--text3);}
+select.form-input{cursor:pointer;}
+option{background:var(--bg3);}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.form-hint{font-size:11px;color:var(--text3);margin-top:4px;}
+.submit-btn{width:100%;padding:14px;border-radius:var(--radius-sm);background:linear-gradient(135deg,var(--gold),#a8782a);border:none;color:#0d0f14;font-size:15px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:4px;}
+.submit-btn:active{opacity:0.85;}
+.submit-btn.red{background:linear-gradient(135deg,#c0392b,#922b21);}
+.submit-btn.green{background:linear-gradient(135deg,#27ae60,#1e8449);}
+.submit-btn.purple{background:linear-gradient(135deg,#7c5cbf,#5a3d9a);}
+.cancel-btn{width:100%;padding:13px;border-radius:var(--radius-sm);background:transparent;border:1px solid var(--border);color:var(--text2);font-size:14px;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:8px;}
+
+/* POOL FUNDING */
+.funding-row{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:8px;display:flex;flex-direction:column;gap:8px;}
+.funding-row-top{display:flex;align-items:center;gap:8px;}
+.funding-pool-select{flex:1;padding:10px 12px;border-radius:8px;background:var(--bg4);border:1px solid var(--border);color:var(--text);font-size:14px;font-family:'DM Sans',sans-serif;outline:none;-webkit-appearance:none;}
+.funding-pool-select:focus{border-color:var(--purple);}
+.funding-row-bottom{display:flex;align-items:center;gap:8px;}
+.funding-amount-input{flex:1;padding:11px 12px;border-radius:8px;background:var(--bg4);border:1px solid var(--border);color:var(--text);font-size:15px;font-family:'DM Mono',monospace;outline:none;-webkit-appearance:none;}
+.funding-amount-input:focus{border-color:var(--purple);}
+.funding-remove{width:44px;height:44px;border-radius:8px;background:rgba(224,92,106,0.12);border:1px solid rgba(224,92,106,0.25);color:var(--red);font-size:18px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.funding-pct{font-size:11px;color:var(--text3);text-align:right;}
+.add-funding-btn{width:100%;padding:11px;border-radius:var(--radius-sm);background:rgba(155,127,232,0.1);border:1px dashed rgba(155,127,232,0.4);color:var(--purple);font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:4px;}
+.funding-total-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0 2px;}
+.funding-total-label{font-size:12px;color:var(--text3);}
+.funding-total-val{font-family:'DM Mono',monospace;font-size:13px;color:var(--text);}
+.funding-total-val.match{color:var(--green);}
+.funding-total-val.over{color:var(--red);}
+
+/* DETAIL */
+.detail-hero{background:linear-gradient(135deg,#1a1e2a,#1f2436);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:14px;position:relative;overflow:hidden;}
+.detail-hero.sold-hero{background:linear-gradient(135deg,#1e1810,#2a2010);border-color:#4a3820;}
+.detail-platform{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--gold);margin-bottom:3px;}
+.detail-name{font-family:'Playfair Display',serif;font-size:20px;color:var(--text);margin-bottom:12px;}
+.detail-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.detail-stat{background:var(--bg3);border-radius:var(--radius-sm);padding:10px;}
+.detail-stat-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;}
+.detail-stat-val{font-family:'DM Mono',monospace;font-size:14px;color:var(--text);margin-top:3px;}
+.detail-stat-val.gold{color:var(--gold2);}
+.detail-stat-val.green{color:var(--green);}
+.detail-stat-val.orange{color:var(--orange);}
+.detail-stat-val.red{color:var(--red);}
+
+/* CONTRIB */
+.contrib-row{display:flex;align-items:center;justify-content:space-between;background:var(--bg3);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:6px;}
+.contrib-pool-name{font-size:13px;color:var(--text);}
+.contrib-right{display:flex;flex-direction:column;align-items:flex-end;gap:2px;}
+.contrib-amount{font-family:'DM Mono',monospace;font-size:13px;color:var(--purple);}
+.contrib-pct{font-size:11px;color:var(--text3);}
+
+/* LEDGER */
+.ledger-summary{background:var(--bg3);border-radius:var(--radius-sm);padding:12px;margin-bottom:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.ls-item{display:flex;flex-direction:column;gap:2px;}
+.ls-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;}
+.ls-val{font-family:'DM Mono',monospace;font-size:13px;color:var(--text);}
+.ls-val.green{color:var(--green);}
+.ls-val.gold{color:var(--gold2);}
+.ls-val.orange{color:var(--orange);}
+.ls-val.red{color:var(--red);}
+.ledger-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.ledger-title{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:2px;}
+.ledger-add-btn{padding:7px 13px;border-radius:20px;background:rgba(76,175,130,0.15);border:1px solid rgba(76,175,130,0.3);color:var(--green);font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.ledger-entry{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:8px;position:relative;}
+.ledger-entry.sold-entry{border-color:#4a3820;background:linear-gradient(135deg,#1e1810,#1a160c);}
+.ledger-entry.rebate-entry{border-color:#1a3a2a;background:linear-gradient(135deg,#0d1e15,#0a1810);}
+.ledger-entry-type{font-size:10px;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;display:flex;align-items:center;gap:5px;}
+.ledger-date{font-size:12px;color:var(--text3);margin-bottom:6px;}
+.ledger-amounts{display:flex;gap:14px;flex-wrap:wrap;}
+.ledger-amt{display:flex;flex-direction:column;gap:1px;}
+.ledger-amt-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;}
+.ledger-amt-val{font-family:'DM Mono',monospace;font-size:14px;}
+.ledger-amt-val.green{color:var(--green);}
+.ledger-amt-val.yellow{color:var(--gold2);}
+.ledger-amt-val.orange{color:var(--orange);}
+.ledger-pool-credits{margin-top:8px;display:flex;flex-wrap:wrap;gap:5px;}
+.ledger-credit-tag{font-size:11px;color:var(--purple);background:rgba(155,127,232,0.1);border-radius:5px;padding:2px 7px;}
+.ledger-del{position:absolute;top:10px;right:10px;background:rgba(224,92,106,0.1);border:none;border-radius:6px;color:var(--red);font-size:13px;padding:4px 8px;cursor:pointer;}
+
+/* TAX REBATE CALLOUT */
+.tax-rebate-box{background:linear-gradient(135deg,#0d1e15,#0a1810);border:1px solid #1a3a2a;border-radius:var(--radius-sm);padding:14px;margin-bottom:12px;}
+.tax-rebate-box-title{font-size:12px;color:var(--green);font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:6px;}
+.tax-rebate-box-body{font-size:12px;color:var(--text2);line-height:1.6;}
+
+/* ACTION ROW */
+.action-row{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+.action-btn{flex:1;min-width:120px;padding:11px 8px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;border:none;text-align:center;}
+.action-btn:active{opacity:0.85;}
+.action-btn.interest{background:rgba(76,175,130,0.15);border:1px solid rgba(76,175,130,0.3);color:var(--green);}
+.action-btn.sold{background:rgba(232,146,74,0.15);border:1px solid rgba(232,146,74,0.3);color:var(--orange);}
+.action-btn.rebate{background:rgba(91,141,238,0.15);border:1px solid rgba(91,141,238,0.3);color:var(--blue);}
+
+/* POOL DETAIL */
+.pool-detail-hero{background:linear-gradient(135deg,#1c1428,#241830);border:1px solid #3a2a4a;border-radius:var(--radius);padding:18px;margin-bottom:14px;}
+.pool-big-bar{margin:12px 0 4px;}
+.pool-big-bg{height:8px;background:var(--bg4);border-radius:4px;overflow:hidden;}
+.pool-big-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--purple),var(--blue));}
+.pool-big-labels{display:flex;justify-content:space-between;margin-top:5px;}
+.pool-big-label{font-size:11px;color:var(--text3);}
+.pool-bond-row{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:8px;cursor:pointer;}
+.pool-bond-row:active{border-color:var(--gold);}
+.pool-bond-name{font-size:14px;color:var(--text);margin-bottom:4px;}
+.pool-bond-meta{display:flex;justify-content:space-between;align-items:center;}
+.pool-bond-invested{font-family:'DM Mono',monospace;font-size:13px;color:var(--purple);}
+.pool-bond-interest{font-family:'DM Mono',monospace;font-size:13px;color:var(--green);}
+
+/* BACK */
+.back-row{display:flex;align-items:center;gap:10px;margin-bottom:14px;cursor:pointer;}
+.back-arrow{width:32px;height:32px;border-radius:10px;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+.back-label{font-size:14px;color:var(--text2);}
+.danger-btn{width:100%;padding:12px;border-radius:var(--radius-sm);background:rgba(224,92,106,0.1);border:1px solid rgba(224,92,106,0.3);color:var(--red);font-size:14px;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:8px;}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);display:flex;align-items:flex-end;justify-content:center;}
+.modal-overlay.hidden{display:none;}
+.modal-sheet{width:100%;max-width:480px;max-height:90vh;background:var(--bg2);border-radius:20px 20px 0 0;border-top:1px solid var(--border);overflow-y:auto;padding:8px 18px 40px;animation:slideUp 0.3s ease;}
+@keyframes slideUp{from{transform:translateY(100%);}to{transform:translateY(0);}}
+.modal-handle{width:40px;height:4px;border-radius:2px;background:var(--border);margin:8px auto 14px;}
+.modal-title{font-family:'Playfair Display',serif;font-size:18px;color:var(--gold2);margin-bottom:4px;}
+.modal-sub{font-size:12px;color:var(--text3);margin-bottom:16px;}
+.modal-header-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:4px;}
+.modal-close-x{width:30px;height:30px;border-radius:50%;background:var(--bg3);border:1px solid var(--border);color:var(--text2);font-size:14px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.modal-close-x:active{background:var(--bg4,#2a3045);}
+.month-detail-row{display:flex;justify-content:space-between;align-items:center;padding:11px 2px;border-bottom:1px solid var(--border);}
+.month-detail-row:last-child{border-bottom:none;}
+.month-detail-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;}
+.month-detail-val{font-family:'DM Mono',monospace;font-size:16px;font-weight:600;}
+
+/* EMPTY */
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;gap:10px;}
+.empty-icon{font-size:44px;opacity:0.25;}
+.empty-text{font-size:13px;color:var(--text3);text-align:center;line-height:1.6;}
+
+/* INSTALL BANNER */
+#installBanner{position:fixed;bottom:0;left:0;right:0;z-index:500;background:var(--bg3);border-top:1px solid var(--border);padding:16px 18px env(safe-area-inset-bottom,12px);display:none;align-items:center;gap:14px;box-shadow:0 -8px 32px rgba(0,0,0,0.5);}
+#installBanner.show{display:flex;}
+.ib-icon{font-size:36px;flex-shrink:0;}
+.ib-text{flex:1;}
+.ib-title{font-family:'Playfair Display',serif;font-weight:700;font-size:16px;color:var(--gold2);}
+.ib-sub{font-size:13px;color:var(--text2);margin-top:2px;}
+.ib-actions{display:flex;gap:8px;flex-shrink:0;}
+.ib-install{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#14161d;border:none;border-radius:10px;padding:10px 16px;font-family:'DM Sans',sans-serif;font-weight:700;font-size:14px;cursor:pointer;}
+.ib-install:active{transform:scale(0.95);}
+.ib-dismiss{background:var(--bg4);border:1px solid var(--border);color:var(--text2);border-radius:10px;padding:10px 14px;font-size:14px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;}
+
+/* TOAST */
+#toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--bg4);border:1px solid var(--border);color:var(--text);font-size:13px;padding:10px 18px;border-radius:20px;opacity:0;transition:all 0.3s;pointer-events:none;z-index:200;white-space:nowrap;}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.add-btn.btn-disabled{background:var(--bg3);color:var(--text3);cursor:not-allowed;border:1px solid var(--border);}
+.add-btn.btn-disabled:active{opacity:1;transform:none;}
+/* SUB-TABS */
+.sub-tab-bar{display:flex;background:var(--bg3);border-radius:var(--radius-sm);padding:3px;margin-bottom:14px;gap:4px;}
+.sub-tab-btn{flex:1;padding:10px 8px;border-radius:8px;font-size:13px;font-weight:600;border:none;background:none;color:var(--text2);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.2s;}
+.sub-tab-btn.active{background:var(--bg);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,0.3);}
+/* FILTER BAR */
+.filter-bar{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-bottom:12px;display:flex;flex-direction:column;gap:8px;}
+.filter-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.filter-group{display:flex;flex-direction:column;gap:3px;}
+.filter-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;}
+.filter-select,.filter-input{width:100%;padding:10px;border-radius:8px;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-size:13px;font-family:'DM Sans',sans-serif;-webkit-appearance:none;outline:none;box-sizing:border-box;}
+.filter-select:focus,.filter-input:focus{border-color:var(--gold);}
+.filter-status-row{display:flex;gap:6px;}
+.filter-status-btn{flex:1;padding:9px 4px;border-radius:8px;font-size:12px;font-weight:600;border:1px solid var(--border);background:var(--bg3);color:var(--text2);cursor:pointer;font-family:'DM Sans',sans-serif;}
+.filter-status-btn.active{background:var(--gold);color:#0d0f14;border-color:var(--gold);}
+.filter-status-btn:active{opacity:0.85;}
+.clear-filter-btn{width:100%;padding:9px;border-radius:8px;background:none;border:1px solid var(--border);color:var(--text3);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;}
+/* YEAR NAVIGATOR */
+.year-nav{display:flex;align-items:center;justify-content:space-between;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;margin-bottom:12px;}
+.year-nav-btn{width:44px;height:44px;border-radius:10px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.year-nav-btn:active{background:var(--bg4,#2a3045);}
+.year-label{font-family:'Playfair Display',serif;font-size:22px;color:var(--gold2,#e8c97a);}
+/* CALENDAR GRID */
+.cal-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:14px;}
+.cal-cell{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 6px;cursor:pointer;}
+.cal-cell.has-activity{border-color:var(--gold);background:linear-gradient(135deg,#1a1e2a,#1f2436);}
+.cal-month{font-size:11px;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;}
+.cal-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;}
+.cal-lbl{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;}
+.cal-val{font-family:'DM Mono',monospace;font-size:10px;color:var(--text2);}
+.cal-val.inv{color:var(--blue);}
+.cal-val.int{color:var(--green);}
+.cal-val.tds{color:var(--red);}
+/* CHART */
+.chart-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:12px;}
+.chart-title{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:2px;margin-bottom:10px;}
+.chart-legend{display:flex;gap:14px;justify-content:center;margin-top:10px;flex-wrap:wrap;}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);}
+.legend-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0;}
+</style>
+</head>
+<body>
+
+<!-- SCREEN 1: PIN -->
+<div class="screen" id="screenPin">
+  <div class="vault-logo">
+    <div class="vault-logo-icon">&#x1F3E6;</div>
+    <h1>BondVault</h1>
+    <p>Fixed Income Tracker</p>
+  </div>
+  <div class="pin-hint" id="pinHint">Enter your PIN</div>
+  <div class="pin-dots">
+    <div class="pin-dot" id="d0"></div><div class="pin-dot" id="d1"></div>
+    <div class="pin-dot" id="d2"></div><div class="pin-dot" id="d3"></div>
+    <div class="pin-dot" id="d4"></div><div class="pin-dot" id="d5"></div>
+  </div>
+  <div class="pin-error" id="pinError"></div>
+  <div class="pin-numpad">
+    <button class="pin-btn" onclick="pinPress(1)">1</button>
+    <button class="pin-btn" onclick="pinPress(2)">2</button>
+    <button class="pin-btn" onclick="pinPress(3)">3</button>
+    <button class="pin-btn" onclick="pinPress(4)">4</button>
+    <button class="pin-btn" onclick="pinPress(5)">5</button>
+    <button class="pin-btn" onclick="pinPress(6)">6</button>
+    <button class="pin-btn" onclick="pinPress(7)">7</button>
+    <button class="pin-btn" onclick="pinPress(8)">8</button>
+    <button class="pin-btn" onclick="pinPress(9)">9</button>
+    <button class="pin-btn empty"></button>
+    <button class="pin-btn" onclick="pinPress(0)">0</button>
+    <button class="pin-btn del" onclick="pinDel()">&#x232B;</button>
+  </div>
+  <button id="pinBackBtn" onclick="pinBack()" style="display:none;background:none;border:none;color:var(--text3);font-size:13px;cursor:pointer;padding:8px 16px;font-family:'DM Sans',sans-serif;margin-top:4px;">&#x2190; Back</button>
+</div>
+
+<!-- SCREEN 2: FILE -->
+<div class="screen hidden" id="screenFile">
+  <div class="vault-logo">
+    <div class="vault-logo-icon">&#x1F3E6;</div>
+    <h1>BondVault</h1>
+    <p>Fixed Income Tracker</p>
+  </div>
+  <div class="file-card">
+    <div class="file-card-title">Your Vault File</div>
+    <div class="file-card-sub">Select your <strong>.fVault</strong> file from anywhere. All changes auto-save to it.</div>
+    <button class="file-btn primary" onclick="pickExistingFile()">&#x1F4C2; Open .fVault File</button>
+    <div class="file-divider"><span>first time?</span></div>
+    <button class="file-btn secondary" onclick="createNewVault()">&#x2736; Create New Vault</button>
+    <div class="file-divider"><span>or</span></div>
+    <button class="file-btn secondary" onclick="continueWithCloudSync()">&#x2601; Continue with Cloud Sync</button>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app" style="display:none;">
+  <div id="topbar">
+    <div class="topbar-logo">
+      <div class="topbar-logo-icon">&#x1F3E6;</div>
+      <span class="topbar-title">BondVault</span>
+    </div>
+    <div class="topbar-right">
+      <div class="sync-badge"><div class="sync-dot" id="syncDot"></div><span id="syncStatus">Synced</span></div>
+      <div class="icon-btn" id="cloudIconBtn" title="Cloud Sync" onclick="toggleCloudSync()">&#x2601;</div>
+      <div class="icon-btn" title="Change PIN" onclick="showChangePinFlow()">&#x1F511;</div>
+      <div class="icon-btn" onclick="lockApp()">&#x1F512;</div>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="page active" id="pageDashboard">
+    <div class="summary-strip">
+      <div class="summary-label">Total Deployed in Bonds</div>
+      <div class="summary-value" id="totalInvested">&#x20B9;0</div>
+      <div class="summary-sub" id="totalBondsCount">0 bonds</div>
+      <div class="summary-grid">
+        <div class="summary-chip"><div class="chip-label">Net Interest Received</div><div class="chip-val green" id="totalEarned">&#x20B9;0</div></div>
+        <div class="summary-chip"><div class="chip-label">Avg YTM</div><div class="chip-val gold" id="avgYtm">0%</div></div>
+        <div class="summary-chip"><div class="chip-label">Sale Proceeds</div><div class="chip-val orange" id="totalSaleProceeds">&#x20B9;0</div></div>
+        <div class="summary-chip"><div class="chip-label">Tax Rebates</div><div class="chip-val blue" id="totalRebates">&#x20B9;0</div></div>
+      </div>
+    </div>
+    <div class="section-header">
+      <span class="section-title">Active Bonds</span>
+      <button class="add-btn" id="addBondBtn">&#xFF0B; Add Bond</button>
+    </div>
+    <div id="bondList"></div>
+    <div class="section-header" id="inactiveSectionHeader" style="display:none;margin-top:8px;">
+      <span class="section-title" style="color:var(--text3);">Inactive / Sold</span>
+    </div>
+    <div id="inactiveBondList"></div>
+  </div>
+
+  <!-- POOLS -->
+  <div class="page" id="pagePools">
+    <div class="summary-strip" style="background:linear-gradient(135deg,#1c1428,#241830);border-color:#3a2a4a;">
+      <div class="summary-label">Total Corpus (All Pools)</div>
+      <div class="summary-value" id="poolTotalCorpus">&#x20B9;0</div>
+      <div class="summary-sub" id="poolTotalSub">0 pools</div>
+      <div class="summary-grid">
+        <div class="summary-chip"><div class="chip-label">Deployed</div><div class="chip-val blue" id="poolTotalDeployed">&#x20B9;0</div></div>
+        <div class="summary-chip"><div class="chip-label">Idle</div><div class="chip-val gold" id="poolTotalIdle">&#x20B9;0</div></div>
+        <div class="summary-chip"><div class="chip-label">Interest Earned</div><div class="chip-val green" id="poolTotalInterest">&#x20B9;0</div></div>
+        <div class="summary-chip"><div class="chip-label">Total Principle</div><div class="chip-val gold" id="poolEffectiveCorpus">&#x20B9;0</div></div>
+      </div>
+    </div>
+    <div class="section-header">
+      <span class="section-title">Money Pools</span>
+      <button class="add-btn purple" onclick="showAddPool()">&#xFF0B; Add Pool</button>
+    </div>
+    <div id="poolList"></div>
+  </div>
+
+  <!-- BOND DETAIL -->
+  <div class="page" id="pageDetail">
+    <div class="back-row" id="bondDetailBack">
+      <div class="back-arrow">&#x2190;</div><span class="back-label">All Bonds</span>
+    </div>
+    <div id="detailContent"></div>
+  </div>
+
+  <!-- POOL DETAIL -->
+  <div class="page" id="pagePoolDetail">
+    <div class="back-row" onclick="showPools()">
+      <div class="back-arrow">&#x2190;</div><span class="back-label">All Pools</span>
+    </div>
+    <div id="poolDetailContent"></div>
+  </div>
+
+  <!-- ADD BOND -->
+  <div class="page" id="pageAddBond">
+    <div class="back-row" onclick="navBack()">
+      <div class="back-arrow">&#x2190;</div><span class="back-label">Cancel</span>
+    </div>
+    <div class="form-card">
+      <div class="form-title" id="bondFormTitle">New Bond</div>
+      <div class="form-section">Bond Details</div>
+      <div class="form-group"><label class="form-label">Bond / Issuer Name *</label><input class="form-input" id="f_name" type="text" placeholder="e.g. Tata Capital NCD Series 5"/></div>
+      <div class="form-group"><label class="form-label">Platform</label><input class="form-input" id="f_platform" type="text" placeholder="e.g. Wint Wealth, Jiraaf"/></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Purchase Date *</label><input class="form-input" id="f_date" type="date"/></div>
+        <div class="form-group"><label class="form-label">Maturity Date</label><input class="form-input" id="f_maturity" type="date"/></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Bond Price (&#x20B9;) *</label><input class="form-input" id="f_price" type="number" placeholder="10040" oninput="updateFundingTotal()"/></div>
+        <div class="form-group"><label class="form-label">Units</label><input class="form-input" id="f_units" type="number" placeholder="1" value="1" oninput="updateFundingTotal()"/></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">YTM (%) *</label><input class="form-input" id="f_ytm" type="number" step="0.01" placeholder="10.5"/></div>
+        <div class="form-group"><label class="form-label">Coupon Rate (%)</label><input class="form-input" id="f_coupon" type="number" step="0.01" placeholder="same as YTM"/></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Face Value (&#x20B9;)</label><input class="form-input" id="f_face" type="number" placeholder="1000"/></div>
+        <div class="form-group"><label class="form-label">ISIN</label><input class="form-input" id="f_isin" type="text" placeholder="INE..."/></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Interest Payout Frequency *</label>
+        <select class="form-input" id="f_freq">
+          <option value="monthly">Monthly</option>
+          <option value="quarterly">Quarterly</option>
+          <option value="halfyearly">Half-Yearly</option>
+          <option value="annual">Annual</option>
+          <option value="atmaturity">At Maturity (Cumulative)</option>
+          <option value="custom">Custom Period</option>
+        </select>
+      </div>
+      <div class="form-group" id="f_customFreqGroup" style="display:none;">
+        <label class="form-label">Payout every how many months?</label>
+        <input class="form-input" id="f_customFreq" type="number" placeholder="e.g. 18"/>
+      </div>
+      <div class="form-group"><label class="form-label">Notes</label><input class="form-input" id="f_notes" type="text" placeholder="Optional remarks..."/></div>
+      <div class="form-section">Funded From (Money Pools)</div>
+      <div class="form-hint" style="margin-bottom:10px;">Specify which pool(s) fund this bond. Total must equal Price x Units.</div>
+      <div id="fundingRows"></div>
+      <button class="add-funding-btn" onclick="addFundingRow()">&#xFF0B; Add Pool Contribution</button>
+      <div class="funding-total-row">
+        <span class="funding-total-label">Total allocated</span>
+        <span class="funding-total-val" id="fundingTotalVal">&#x20B9;0 / &#x20B9;0</span>
+      </div>
+      <button class="submit-btn" id="bondSubmitBtn" onclick="saveBond()">Add Bond</button>
+    </div>
+  </div>
+
+  <!-- ADD POOL -->
+  <div class="page" id="pageAddPool">
+    <div class="back-row" onclick="showPools()">
+      <div class="back-arrow">&#x2190;</div><span class="back-label">Cancel</span>
+    </div>
+    <div class="form-card">
+      <div class="form-title" id="poolFormTitle">New Money Pool</div>
+      <div class="form-group"><label class="form-label">Pool Name *</label><input class="form-input" id="p_name" type="text" placeholder="e.g. Wife's Savings, Bonus 2025"/></div>
+      <div class="form-group"><label class="form-label">Initial Corpus (&#x20B9;) *</label><input class="form-input" id="p_corpus" type="number" placeholder="200000"/><div class="form-hint">Total amount in this pool</div></div>
+      <div class="form-group"><label class="form-label">Notes</label><input class="form-input" id="p_notes" type="text" placeholder="Optional..."/></div>
+      <button class="submit-btn purple" id="poolSubmitBtn" onclick="savePool()">Create Pool</button>
+    </div>
+  </div>
+
+  <!-- SUMMARY -->
+  <div class="page" id="pageSummary">
+    <div id="summaryContent"></div>
+  </div>
+
+  <!-- STATISTICS -->
+  <div class="page" id="pageStatistics">
+    <div id="statisticsContent"></div>
+  </div>
+
+  <div id="navbar">
+    <button class="nav-item active" id="nav0" onclick="switchNav(0)"><span class="nav-icon">&#x1F3E0;</span><span>Bonds</span></button>
+    <button class="nav-item" id="nav1" onclick="switchNav(1)"><span class="nav-icon">&#x1F4BC;</span><span>Pools</span></button>
+    <button class="nav-item" id="nav2" onclick="switchNav(2)"><span class="nav-icon">&#x1F4CB;</span><span>Summary</span></button>
+    <button class="nav-item" id="nav3" onclick="switchNav(3)"><span class="nav-icon">&#x1F4CA;</span><span>Stats</span></button>
+  </div>
+</div>
+
+<!-- INTEREST MODAL -->
+<div class="modal-overlay hidden" id="interestModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Record Interest Payment</div>
+    <div class="modal-sub" id="interestModalSub"></div>
+    <div class="form-group"><label class="form-label">Payment Date *</label><input class="form-input" id="l_date" type="date"/></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Gross Amount (&#x20B9;) *</label><input class="form-input" id="l_gross" type="number" step="0.01" placeholder="0.00"/></div>
+      <div class="form-group"><label class="form-label">TDS Deducted (&#x20B9;)</label><input class="form-input" id="l_tds" type="number" step="0.01" placeholder="0.00"/><div class="form-hint">Net = Gross - TDS</div></div>
+    </div>
+    <div class="form-group"><label class="form-label">Period / Note</label><input class="form-input" id="l_note" type="text" placeholder="e.g. Q1 FY26"/></div>
+    <button class="submit-btn green" onclick="saveInterestEntry()">Save Payment</button>
+    <button class="cancel-btn" onclick="closeModal('interestModal')">Cancel</button>
+  </div>
+</div>
+
+<!-- SOLD MODAL -->
+<div class="modal-overlay hidden" id="soldModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Record Bond Sale</div>
+    <div class="modal-sub" id="soldModalSub"></div>
+    <div class="form-group"><label class="form-label">Sale Date *</label><input class="form-input" id="s_date" type="date"/></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Sale Proceeds (&#x20B9;) *</label><input class="form-input" id="s_proceeds" type="number" step="0.01" placeholder="0.00" oninput="computeSaleGain()"/><div class="form-hint">Total amount received</div></div>
+      <div class="form-group"><label class="form-label">TDS on Sale (&#x20B9;)</label><input class="form-input" id="s_tds" type="number" step="0.01" placeholder="0.00" oninput="computeSaleGain()"/></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Original Investment (&#x20B9;)</label>
+      <input class="form-input" id="s_invested" type="text" readonly style="color:var(--text3);"/>
+      <div class="form-hint">Price x Units at purchase (auto-filled)</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Capital Gain / Loss (&#x20B9;)</label>
+      <input class="form-input" id="s_gain" type="text" readonly style="font-family:'DM Mono',monospace;"/>
+      <div class="form-hint">Net Proceeds minus Original Investment (auto-computed)</div>
+    </div>
+    <div class="form-group"><label class="form-label">Notes</label><input class="form-input" id="s_note" type="text" placeholder="e.g. Premature exit, secondary market sale"/></div>
+    <button class="submit-btn red" onclick="saveSoldEntry()">Mark as Sold</button>
+    <button class="cancel-btn" onclick="closeModal('soldModal')">Cancel</button>
+  </div>
+</div>
+
+<!-- TAX REBATE MODAL -->
+<div class="modal-overlay hidden" id="rebateModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Record Tax Rebate</div>
+    <div class="modal-sub" id="rebateModalSub">After filing ITR, record the refund received against TDS already paid on this bond's interest.</div>
+    <div class="tax-rebate-box">
+      <div class="tax-rebate-box-title">&#x2139;&#xFE0F; How this works</div>
+      <div class="tax-rebate-box-body">
+        TDS is deducted at source (10% for residents). When you file your ITR, if your actual tax liability is lower than TDS paid, you get a refund. Record that refund here against this bond so your net income is accurately tracked.
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">ITR Filing Year</label><input class="form-input" id="r_year" type="text" placeholder="e.g. AY 2025-26"/></div>
+    <div class="form-group"><label class="form-label">Rebate / Refund Received (&#x20B9;) *</label><input class="form-input" id="r_amount" type="number" step="0.01" placeholder="0.00"/><div class="form-hint">Amount credited to your bank after ITR filing</div></div>
+    <div class="form-group"><label class="form-label">TDS Paid on This Bond (reference)</label><input class="form-input" id="r_tds_ref" type="number" step="0.01" placeholder="auto-filled" readonly style="color:var(--text3)"/></div>
+    <div class="form-group"><label class="form-label">Notes</label><input class="form-input" id="r_note" type="text" placeholder="e.g. Refund received 15 Aug 2025"/></div>
+    <button class="submit-btn" onclick="saveRebateEntry()">Save Rebate</button>
+    <button class="cancel-btn" onclick="closeModal('rebateModal')">Cancel</button>
+  </div>
+</div>
+
+<!-- EDIT FUNDING MODAL -->
+<div class="modal-overlay hidden" id="editFundingModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Edit Pool Contributions</div>
+    <div class="modal-sub" id="editFundingModalSub"></div>
+    <div id="editFundingRows"></div>
+    <button class="add-funding-btn" onclick="addEditFundingRow()">&#xFF0B; Add Pool</button>
+    <div class="funding-total-row">
+      <span class="funding-total-label">Total allocated</span>
+      <span class="funding-total-val" id="editFundingTotalVal">&#x20B9;0 / &#x20B9;0</span>
+    </div>
+    <button class="submit-btn purple" style="margin-top:12px;" onclick="saveEditFunding()">Save Contributions</button>
+    <button class="cancel-btn" onclick="closeModal('editFundingModal')">Cancel</button>
+  </div>
+</div>
+
+<!-- MONTH DETAIL MODAL -->
+<div class="modal-overlay hidden" id="monthDetailModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header-row">
+      <div class="modal-title" id="monthDetailTitle" style="margin-bottom:0;">--</div>
+      <button class="modal-close-x" onclick="closeModal('monthDetailModal')">&#x2715;</button>
+    </div>
+    <div class="modal-sub">Full amounts for the month</div>
+    <div id="monthDetailBody"></div>
+  </div>
+</div>
+
+<!-- PWA Install Banner -->
+<div id="installBanner">
+  <div class="ib-icon">📈</div>
+  <div class="ib-text">
+    <div class="ib-title">Install BondVault</div>
+    <div class="ib-sub">Add to home screen &mdash; works offline</div>
+  </div>
+  <div class="ib-actions">
+    <button class="ib-install" onclick="triggerInstall()">Install</button>
+    <button class="ib-dismiss" onclick="dismissInstall()">&#x2715;</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// === CONSTANTS ===
+const FILE_MAGIC   = 'BONDVAULT_V3';
+const KEY_SALT     = 'BondVault_v3_key_salt';
+const VERIFY_SALT  = 'BondVault_v3_verify_salt';
+
+// === FIREBASE CLOUD SYNC CONFIG ===
+// 1. Host this file on an https:// origin (e.g. GitHub Pages) — Google Sign-In popups will NOT work on file:// or plain http.
+// 2. Create a free Firebase project at https://console.firebase.google.com (Spark plan — no credit card needed),
+//    enable Authentication → Sign-in method → Google, and create a Firestore Database.
+// 3. Project settings → General → Your apps → Add app (Web) → copy the config values below.
+// 4. Add your hosted URL under Authentication → Settings → Authorized domains.
+const FIREBASE_CONFIG = {
+  apiKey:            'AIzaSyCL2tdLSCom-3VzS4MCGlP56BVplUZTp4I',
+  authDomain:        'bondtracker-8877c.firebaseapp.com',
+  projectId:         'bondtracker-8877c'
+};
+let firebaseApp = null;
+let firebaseAuth = null;
+let firebaseDb = null;
+let cloudConnected = false;
+let cloudUser = null;
+
+// === STATE ===
+let vaultData = {pools:[],bonds:[],created:new Date().toISOString()};
+let fileHandle = null;
+let pinInput = '';
+let currentNav = 0;
+let currentBondId = null;
+let currentLedgerBondId = null;
+let currentPoolId = null;
+let editingPoolId = null;
+let fundingRows = [];
+let addBondOrigin = 0;
+let editingBondId = null;
+// PIN state
+let activePin        = '';   // PIN in use for the open vault
+let pendingPin       = '';   // PIN entered on startup screen before file is selected
+let pendingNewPin    = '';   // stored during PIN-change set→confirm flow
+let pinMode          = 'enter'; // 'enter' | 'set' | 'confirm'
+let changingPin      = false;
+let pinAttempts      = 0;
+let pinLocked        = false;
+let pinLockTimer     = null;
+
+// === CRYPTO ===
+async function deriveKey(pin){
+  const e=new TextEncoder();
+  const km=await crypto.subtle.importKey('raw',e.encode(pin+KEY_SALT),'PBKDF2',false,['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2',salt:e.encode(KEY_SALT),iterations:100000,hash:'SHA-256'},km,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+}
+async function computeVerifier(pin){
+  const data=new TextEncoder().encode(pin+VERIFY_SALT);
+  const hash=await crypto.subtle.digest('SHA-256',data);
+  return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+async function encryptData(data,pin){
+  const key=await deriveKey(pin);
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,new TextEncoder().encode(JSON.stringify(data)));
+  const buf=new Uint8Array(12+ct.byteLength);
+  buf.set(iv,0);buf.set(new Uint8Array(ct),12);
+  return btoa(String.fromCharCode(...buf));
+}
+async function decryptData(fileContent,pin){
+  const nl=fileContent.indexOf('\n');
+  const nl2=fileContent.indexOf('\n',nl+1);
+  if(nl<0||nl2<0) throw new Error('Bad format');
+  if(fileContent.slice(0,nl)!==FILE_MAGIC) throw new Error('Unknown format');
+  const storedVerifier=fileContent.slice(nl+1,nl2);
+  const blob=fileContent.slice(nl2+1);
+  const verifier=await computeVerifier(pin);
+  if(verifier!==storedVerifier) throw new Error('Wrong PIN');
+  const buf=Uint8Array.from(atob(blob),c=>c.charCodeAt(0));
+  const key=await deriveKey(pin);
+  const dec=await crypto.subtle.decrypt({name:'AES-GCM',iv:buf.slice(0,12)},key,buf.slice(12));
+  return JSON.parse(new TextDecoder().decode(dec));
+}
+
+// === PIN SCREEN ===
+function showPinScreen(mode,hint){
+  pinMode=mode; pinInput=''; updatePinDots();
+  document.getElementById('pinHint').textContent=hint;
+  document.getElementById('pinError').textContent='';
+  // Back/Cancel only relevant when changing PIN from inside the app
+  document.getElementById('pinBackBtn').style.display=changingPin?'block':'none';
+  document.getElementById('screenPin').classList.remove('hidden');
+}
+function hidePinScreen(){document.getElementById('screenPin').classList.add('hidden');}
+function pinPress(n){
+  if(pinLocked)return;
+  if(pinInput.length>=6)return;
+  pinInput+=n; updatePinDots();
+  if(pinInput.length===6) setTimeout(handlePinComplete,150);
+}
+function pinDel(){if(pinLocked)return;pinInput=pinInput.slice(0,-1);updatePinDots();}
+function updatePinDots(){for(let i=0;i<6;i++)document.getElementById('d'+i).classList.toggle('filled',i<pinInput.length);}
+function pinErr(msg){document.getElementById('pinError').textContent=msg;pinInput='';updatePinDots();}
+function pinBack(){
+  if(changingPin){
+    changingPin=false; pendingNewPin=''; pinInput='';
+    hidePinScreen();
+  }
+  // No other back cases: PIN screen is the app entry point
+}
+function handlePinLockout(){
+  pinAttempts++;
+  if(pinAttempts>=5){
+    pinLocked=true; let rem=30;
+    document.getElementById('pinError').textContent='Too many attempts. Wait '+rem+'s';
+    pinLockTimer=setInterval(()=>{
+      rem--;
+      if(rem<=0){clearInterval(pinLockTimer);pinLockTimer=null;pinLocked=false;pinAttempts=0;document.getElementById('pinError').textContent='';}
+      else{document.getElementById('pinError').textContent='Too many attempts. Wait '+rem+'s';}
+    },1000);
+  }
+}
+async function handlePinComplete(){
+  if(pinMode==='enter'){
+    if(fileHandle){
+      // Post-lock: vault file is remembered — validate PIN and re-open directly
+      await validateAndOpen();
+    } else {
+      // Startup: no file yet — store PIN and show file selection screen
+      pendingPin=pinInput;
+      hidePinScreen();
+      document.getElementById('screenFile').classList.remove('hidden');
+    }
+  } else if(pinMode==='set'){
+    // PIN-change flow only
+    pendingNewPin=pinInput; pinInput=''; updatePinDots();
+    pinMode='confirm';
+    document.getElementById('pinHint').textContent='Confirm your new PIN';
+    document.getElementById('pinError').textContent='';
+  } else if(pinMode==='confirm'){
+    // PIN-change confirm only
+    if(pinInput!==pendingNewPin){
+      pendingNewPin=''; pinMode='set';
+      pinErr('PINs do not match. Try again.');
+      setTimeout(()=>{
+        document.getElementById('pinHint').textContent='Choose a new 6-digit PIN';
+        document.getElementById('pinError').textContent='';
+      },1800);
+    } else {
+      activePin=pendingNewPin; pendingNewPin='';
+      await finalizePinChange();
+    }
+  }
+}
+async function validateAndOpen(){
+  // Called post-lock when fileHandle is already known
+  setSyncing('Unlocking...');
+  try{
+    const content=await(await fileHandle.getFile()).text();
+    vaultData=await decryptData(content,pinInput);
+    activePin=pinInput; pinAttempts=0;
+    hidePinScreen();
+    launchApp(); setSynced();
+  }catch(e){
+    setSynced();
+    if(e.message==='Wrong PIN'){pinErr('Incorrect PIN. Try again.');handlePinLockout();}
+    else{pinErr('Could not read file.');}
+  }
+}
+
+// === FILE SCREEN ===
+async function pickExistingFile(){
+  if(!window.showOpenFilePicker){showToast('Use Chrome browser');return;}
+  try{
+    const[fh]=await window.showOpenFilePicker({types:[{description:'BondVault File',accept:{'application/octet-stream':['.fVault']}}],multiple:false});
+    const txt=await(await fh.getFile()).text();
+    if(!txt.startsWith(FILE_MAGIC)){showToast('Could not read file.');return;}
+    setSyncing('Opening...');
+    try{
+      vaultData=await decryptData(txt,pendingPin);
+      fileHandle=fh;
+      activePin=pendingPin; pendingPin='';
+      document.getElementById('screenFile').classList.add('hidden');
+      launchApp(); setSynced();
+    }catch(e){
+      setSynced();
+      // Wrong PIN or bad file — go back to PIN screen with error
+      // Keep fh so user doesn't have to re-pick after re-entering PIN
+      fileHandle=fh; pendingPin='';
+      document.getElementById('screenFile').classList.add('hidden');
+      showPinScreen('enter','Enter your PIN');
+      pinErr('Incorrect PIN. Try again.');
+    }
+  }catch(e){if(e.name!=='AbortError')showToast('Cancelled');}
+}
+async function createNewVault(){
+  if(!window.showSaveFilePicker){showToast('Use Chrome browser');return;}
+  try{
+    const fh=await window.showSaveFilePicker({suggestedName:'BondVault.fVault',types:[{description:'BondVault File',accept:{'application/octet-stream':['.fVault']}}]});
+    fileHandle=fh;
+    vaultData={pools:[],bonds:[],created:new Date().toISOString()};
+    activePin=pendingPin; pendingPin='';
+    document.getElementById('screenFile').classList.add('hidden');
+    setSyncing('Creating vault...');
+    try{
+      await writeVault();
+      launchApp(); setSynced(); showToast('Vault created!');
+    }catch(e){
+      setSyncError(); showToast('Failed to create vault');
+      fileHandle=null; activePin='';
+      document.getElementById('screenFile').classList.remove('hidden');
+    }
+  }catch(e){if(e.name!=='AbortError')showToast('Cancelled');}
+}
+
+// === CHANGE PIN ===
+function showChangePinFlow(){
+  changingPin=true; pendingNewPin='';
+  showPinScreen('set','Choose a new 6-digit PIN');
+}
+async function finalizePinChange(){
+  setSyncing('Re-encrypting...');
+  try{
+    await writeVault();
+    hidePinScreen(); changingPin=false;
+    setSynced(); showToast('PIN changed successfully');
+  }catch(e){
+    setSyncError(); changingPin=false;
+    showToast('Failed to change PIN');
+  }
+}
+
+// === APP LIFECYCLE ===
+function launchApp(){
+  document.getElementById('screenPin').classList.add('hidden');
+  document.getElementById('screenFile').classList.add('hidden');
+  document.getElementById('app').style.display='flex';
+  migrateLegacyData();
+  document.getElementById('addBondBtn').onclick=function(){
+    if(!hasFundsAvailable()){
+      showToast(vaultData.pools.length===0?'Create a pool first':'No idle funds available in any pool');
+      return;
+    }
+    addBondOrigin=currentNav;showAddBond();
+  };
+  document.getElementById('bondDetailBack').onclick=function(){showDashboard();};
+  renderDashboard();renderPools();setSynced();
+  updateCloudIcon();
+}
+function lockApp(){
+  pinInput='';updatePinDots();
+  activePin='';pendingPin='';
+  vaultData={pools:[],bonds:[],created:new Date().toISOString()};
+  document.getElementById('app').style.display='none';
+  changingPin=false;pinAttempts=0;pinLocked=false;
+  if(pinLockTimer){clearInterval(pinLockTimer);pinLockTimer=null;}
+  // fileHandle is kept — if present, validateAndOpen() will re-decrypt after PIN entry
+  // PIN screen is always shown first (matches startup flow)
+  showPinScreen('enter','Enter your PIN');
+}
+function migrateLegacyData(){
+  if(!vaultData.pools)vaultData.pools=[];
+  if(!vaultData.bonds)vaultData.bonds=[];
+  vaultData.bonds.forEach(b=>{
+    if(!b.funding)b.funding=[];
+    if(!b.ledger)b.ledger=[];
+    if(!b.status) b.status = b.ledger.some(e=>e.type==='sold') ? 'sold' : 'active';
+  });
+}
+
+// === WRITE / SYNC ===
+async function writeVault(){
+  if(!activePin) return;
+  vaultData.updatedAt=new Date().toISOString();
+  const verifier=await computeVerifier(activePin);
+  const enc=await encryptData(vaultData,activePin);
+  const content=FILE_MAGIC+'\n'+verifier+'\n'+enc;
+  if(fileHandle){
+    const w=await fileHandle.createWritable();
+    await w.write(new Blob([content],{type:'application/octet-stream'}));
+    await w.close();
+  }
+  if(cloudConnected){
+    try{
+      await uploadCloudContent(content);
+    }catch(e){ /* Cloud push failed silently — local save (if any) already succeeded */ }
+  }
+  if(!fileHandle && !cloudConnected) throw new Error('No storage target configured');
+}
+async function autoSync(){
+  setSyncing('Saving...');
+  try{await writeVault();setSynced();}
+  catch(e){setSyncError();showToast('Auto-save failed');}
+}
+function setSyncing(m){document.getElementById('syncDot').className='sync-dot syncing';document.getElementById('syncStatus').textContent=m||'Saving...';}
+function setSynced(){document.getElementById('syncDot').className='sync-dot';document.getElementById('syncStatus').textContent='Synced';}
+function setSyncError(){document.getElementById('syncDot').className='sync-dot error';document.getElementById('syncStatus').textContent='Sync error';}
+
+// === FIREBASE CLOUD SYNC ===
+window.addEventListener('load',function(){
+  if(window.firebase&&FIREBASE_CONFIG.apiKey.indexOf('PASTE_YOUR')===-1){
+    firebaseApp=firebase.initializeApp(FIREBASE_CONFIG);
+    firebaseAuth=firebase.auth();
+    firebaseDb=firebase.firestore();
+    firebaseAuth.onAuthStateChanged(function(user){
+      if(user){cloudUser=user;cloudConnected=true;updateCloudIcon();}
+    });
+  }
+});
+function requestCloudSignIn(){
+  if(!firebaseAuth) return Promise.reject(new Error('Cloud sync not configured'));
+  const provider=new firebase.auth.GoogleAuthProvider();
+  return firebaseAuth.signInWithPopup(provider).then(function(result){
+    cloudUser=result.user;
+    cloudConnected=true;
+    updateCloudIcon();
+    return cloudUser;
+  });
+}
+async function downloadCloudContent(){
+  const snap=await firebaseDb.collection('vaults').doc(cloudUser.uid).get();
+  if(!snap.exists) return null;
+  return snap.data().content||null;
+}
+async function uploadCloudContent(contentStr){
+  await firebaseDb.collection('vaults').doc(cloudUser.uid).set({
+    content:contentStr,
+    updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+  });
+}
+function updateCloudIcon(){
+  const el=document.getElementById('cloudIconBtn');if(!el)return;
+  el.classList.toggle('connected',cloudConnected);
+  el.title=cloudConnected?'Cloud Sync: Connected':'Cloud Sync: Not connected';
+}
+// Entry point from the file-selection screen (works without a local file — ideal for mobile)
+async function continueWithCloudSync(){
+  if(!firebaseAuth){showToast('Cloud sync not configured for this deployment');return;}
+  setSyncing('Connecting to cloud sync...');
+  try{
+    await requestCloudSignIn();
+    const txt=await downloadCloudContent();
+    if(txt){
+      if(!txt.startsWith(FILE_MAGIC)){setSynced();showToast('Cloud vault file is corrupted');return;}
+      try{
+        vaultData=await decryptData(txt,pendingPin);
+        cloudConnected=true;fileHandle=null;
+        activePin=pendingPin;pendingPin='';
+        document.getElementById('screenFile').classList.add('hidden');
+        launchApp();setSynced();showToast('Loaded from cloud sync');
+      }catch(e){
+        setSynced();
+        document.getElementById('screenFile').classList.add('hidden');
+        showPinScreen('enter','Enter your PIN');
+        pinErr('Incorrect PIN. Try again.');
+      }
+    }else{
+      cloudConnected=true;fileHandle=null;
+      vaultData={pools:[],bonds:[],created:new Date().toISOString()};
+      activePin=pendingPin;pendingPin='';
+      document.getElementById('screenFile').classList.add('hidden');
+      await writeVault();
+      launchApp();setSynced();showToast('New vault created in the cloud!');
+    }
+  }catch(e){
+    setSyncError();
+    showToast(e&&e.code==='auth/popup-closed-by-user'?'Cancelled':'Cloud sign-in failed');
+  }
+}
+// Icon button inside the app — link cloud sync to an already-open local vault, or show status
+async function toggleCloudSync(){
+  if(!firebaseAuth){showToast('Cloud sync not configured for this deployment');return;}
+  if(cloudConnected){showToast('Cloud sync is connected & syncing');return;}
+  setSyncing('Connecting to cloud sync...');
+  try{
+    await requestCloudSignIn();
+    const cloudTxt=await downloadCloudContent();
+    if(cloudTxt&&cloudTxt.startsWith(FILE_MAGIC)){
+      try{
+        const cloudData=await decryptData(cloudTxt,activePin);
+        const cloudTime=cloudData.updatedAt||cloudData.created||'';
+        const localTime=vaultData.updatedAt||vaultData.created||'';
+        if(cloudTime>localTime){
+          vaultData=cloudData;
+          renderDashboard();renderPools();
+          showToast('Loaded newer data from cloud sync');
+        }
+      }catch(e){ /* cloud copy uses a different PIN — skip reconcile, keep local data */ }
+    }
+    await autoSync();
+    showToast('Cloud sync connected & synced');
+  }catch(e){
+    setSyncError();
+    showToast('Could not connect cloud sync');
+  }
+}
+
+// NAV
+const NAV_PAGES=['pageDashboard','pagePools','pageSummary','pageStatistics'];
+function switchNav(i){
+  document.getElementById('nav'+currentNav).classList.remove('active');
+  showPage(NAV_PAGES[i]);currentNav=i;
+  document.getElementById('nav'+i).classList.add('active');
+  if(i===0)renderDashboard();
+  if(i===1)renderPools();
+  if(i===2)renderSummary();
+  if(i===3)renderStatistics();
+}
+function showPage(id){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.getElementById(id).classList.add('active');}
+function showDashboard(){switchNav(0);}
+function showPools(){switchNav(1);}
+// back from add-bond goes to wherever user came from
+function navBack(){
+  if(editingBondId){const id=editingBondId;editingBondId=null;showBondDetail(id);return;}
+  switchNav(addBondOrigin);
+}
+
+// HELPERS
+function fmt(n){return '\u20B9'+(parseFloat(n)||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function fmtDate(s){if(!s)return s;const p=String(s).split('-');if(p.length!==3)return s;return p[2]+'/'+p[1]+'/'+p[0];}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
+function freqLabel(b){return{monthly:'Monthly',quarterly:'Quarterly',halfyearly:'Half-Yearly',annual:'Annual',atmaturity:'At Maturity',custom:'Every '+(b.customFreq||'?')+'M'}[b.freq]||b.freq;}
+function uid(){return 'id_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);}
+function closeModal(id){document.getElementById(id).classList.add('hidden');}
+function renderBondCard(b){
+  const inv=parseFloat(b.price)*(parseInt(b.units)||1);
+  const net=(b.ledger||[]).filter(e=>e.type==='interest').reduce((s,e)=>s+parseFloat(e.net||0),0)
+           +(b.ledger||[]).filter(e=>e.type==='rebate').reduce((s,e)=>s+parseFloat(e.amount||0),0);
+  const soldEntry=(b.ledger||[]).find(e=>e.type==='sold');
+  const isSold=b.status==='sold';
+  const pools=(b.funding||[]).map(f=>{const p=vaultData.pools.find(x=>x.id===f.poolId);return p?'<span class="meta-tag" style="color:var(--purple);background:rgba(155,127,232,0.1);">&#x1F4BC; '+p.name+'</span>':''}).join('');
+  const inner=[
+    '<div class="bond-card'+(isSold?' inactive':'')+'" onclick="showBondDetail(\''+b.id+'\')">'  ,
+    '<div class="bond-card-header">',
+      '<div class="bond-name-row">',
+        '<span class="bond-platform'+(isSold?' sold':'')+'">'  ,b.platform||'--','</span>',
+        isSold?'<span class="bond-sold-badge">SOLD '+(soldEntry?fmtDate(soldEntry.date):'')+'</span>':'',
+        '<span class="bond-name">',b.name,'</span>',
+      '</div>',
+      '<span class="bond-ytm-badge'+(isSold?' sold':'')+'">'  ,b.ytm,'% YTM</span>',
+    '</div>',
+    '<div class="bond-meta">',
+      '<span class="meta-tag">&#x1F4C5; ',fmtDate(b.purchaseDate),'</span>',
+      b.maturityDate?'<span class="meta-tag">&#x23F3; '+fmtDate(b.maturityDate)+'</span>':'',
+      '<span class="meta-tag">&#x1F504; ',freqLabel(b),'</span>',
+      pools,
+    '</div>',
+    '<div class="bond-footer">',
+      '<div class="footer-stat"><span class="footer-stat-label">Invested</span><span class="footer-stat-val">',fmt(inv),'</span></div>',
+      '<div class="footer-stat"><span class="footer-stat-label">Net Interest</span><span class="footer-stat-val green">',fmt(net),'</span></div>',
+      isSold&&soldEntry?'<div class="footer-stat"><span class="footer-stat-label">Sold For</span><span class="footer-stat-val orange">'+fmt(soldEntry.netProceeds)+'</span></div>':'<span style="font-size:11px;color:var(--text3);">'+(b.ledger||[]).filter(e=>e.type==='interest').length+' entries</span>',
+    '</div>',
+    '</div>'
+  ].join('');
+  if(isSold)return '<div class="bond-card-wrap">'+inner+'<div class="sold-stamp">SOLD</div></div>';
+  return inner;
+}
+function hasFundsAvailable(){
+  if(!vaultData.pools.length) return false;
+  return vaultData.pools.some(p=>poolStats(p).idle>0);
+}
+function refreshAddBondBtn(){
+  const btn=document.getElementById('addBondBtn');if(!btn)return;
+  btn.classList.toggle('btn-disabled',!hasFundsAvailable());
+}
+
+// POOL STATS
+function poolStats(pool){
+  let deployed=0, interestEarned=0, saleProceeds=0, saleDeployed=0, rebateEarned=0;
+  vaultData.bonds.forEach(b=>{
+    const contrib=(b.funding||[]).find(f=>f.poolId===pool.id);
+    if(!contrib) return;
+    const myAmt=parseFloat(contrib.amount||0);
+    const totalF=(b.funding||[]).reduce((s,f)=>s+parseFloat(f.amount||0),0);
+    const share=totalF>0?myAmt/totalF:0;
+    const isSold=b.status==='sold';
+    // Only active bonds count as deployed
+    if(!isSold) deployed+=myAmt;
+    // For sold bonds: track what was deployed (to subtract from corpus) and what came back
+    if(isSold){
+      saleDeployed+=myAmt; // original amount that left the pool
+      const soldEntry=(b.ledger||[]).find(e=>e.type==='sold');
+      if(soldEntry) saleProceeds+=parseFloat(soldEntry.netProceeds||0)*share;
+    }
+    // Interest and rebates credit to pool regardless of sold status
+    (b.ledger||[]).forEach(e=>{
+      if(e.type==='interest') interestEarned+=parseFloat(e.net||0)*share;
+      if(e.type==='rebate')   rebateEarned+=parseFloat(e.amount||0)*share;
+    });
+  });
+  const initialCorpus=parseFloat(pool.corpus||0);
+  // Effective corpus = initial + interest + rebates + net gain/loss from sales
+  // Only the NET change (saleProceeds - saleDeployed) is added; the principal was
+  // never subtracted from initialCorpus when deployed, so adding full proceeds would double-count it.
+  const effectiveCorpus=initialCorpus + interestEarned + rebateEarned + (saleProceeds - saleDeployed);
+  const capitalGains=saleProceeds - saleDeployed;
+  // Idle = effective corpus - currently deployed (active bonds only)
+  const idle=Math.max(0, effectiveCorpus - deployed);
+  return{
+    deployed,
+    interestEarned,
+    saleProceeds,
+    saleDeployed,
+    capitalGains,
+    rebateEarned,
+    corpus: initialCorpus,
+    effectiveCorpus,
+    idle
+  };
+}
+
+// DASHBOARD
+function renderDashboard(){
+  const bonds=vaultData.bonds;
+  const active=bonds.filter(b=>b.status==='active');
+  const inactive=bonds.filter(b=>b.status==='sold');
+  const tInv=active.reduce((s,b)=>s+parseFloat(b.price)*(parseInt(b.units)||1),0);
+  const tNet=bonds.reduce((s,b)=>s+(b.ledger||[]).filter(e=>e.type==='interest').reduce((ls,e)=>ls+parseFloat(e.net||0),0),0);
+  const tSale=bonds.reduce((s,b)=>s+(b.ledger||[]).filter(e=>e.type==='sold').reduce((ls,e)=>ls+parseFloat(e.netProceeds||0),0),0);
+  const tRebate=bonds.reduce((s,b)=>s+(b.ledger||[]).filter(e=>e.type==='rebate').reduce((ls,e)=>ls+parseFloat(e.amount||0),0),0);
+  const avgYtm=active.length?(active.reduce((s,b)=>s+parseFloat(b.ytm||0),0)/active.length).toFixed(2):'0';
+  document.getElementById('totalInvested').textContent=fmt(tInv);
+  document.getElementById('totalBondsCount').textContent=active.length+' active bond'+(active.length!==1?'s':'');
+  document.getElementById('totalEarned').textContent=fmt(tNet);
+  document.getElementById('avgYtm').textContent=avgYtm+'%';
+  document.getElementById('totalSaleProceeds').textContent=fmt(tSale);
+  document.getElementById('totalRebates').textContent=fmt(tRebate);
+
+  document.getElementById('bondList').innerHTML=active.length
+    ?active.map(renderBondCard).join('')
+    :'<div class="empty-state"><div class="empty-icon">&#x1F4CB;</div><div class="empty-text">No active bonds.<br>Tap + Add Bond to get started.</div></div>';
+
+  const inactiveList=document.getElementById('inactiveBondList');
+  const inactiveHeader=document.getElementById('inactiveSectionHeader');
+  if(inactive.length){inactiveHeader.style.display='flex';inactiveList.innerHTML=inactive.map(renderBondCard).join('');}
+  else{inactiveHeader.style.display='none';inactiveList.innerHTML='';}
+  refreshAddBondBtn();
+}
+
+// BOND DETAIL
+function showBondDetail(id){
+  currentBondId=id;
+  const b=vaultData.bonds.find(x=>x.id===id);if(!b)return;
+  const inv=parseFloat(b.price)*(parseInt(b.units)||1);
+  const ledger=b.ledger||[];
+  const intEntries=ledger.filter(e=>e.type==='interest');
+  const soldEntry=ledger.find(e=>e.type==='sold');
+  const rebateEntries=ledger.filter(e=>e.type==='rebate');
+  const tGross=intEntries.reduce((s,e)=>s+parseFloat(e.gross||0),0);
+  const tTds=intEntries.reduce((s,e)=>s+parseFloat(e.tds||0),0);
+  const tNet=intEntries.reduce((s,e)=>s+parseFloat(e.net||0),0);
+  const tRebate=rebateEntries.reduce((s,e)=>s+parseFloat(e.amount||0),0);
+  const totalFunded=(b.funding||[]).reduce((s,f)=>s+parseFloat(f.amount||0),0);
+  const isSold=b.status==='sold';
+
+  const contribs=(b.funding||[]).length?(b.funding||[]).map(f=>{
+    const p=vaultData.pools.find(x=>x.id===f.poolId);
+    const pct=totalFunded>0?((parseFloat(f.amount)/totalFunded)*100).toFixed(1):0;
+    return '<div class="contrib-row"><span class="contrib-pool-name">&#x1F4BC; '+(p?p.name:'Unknown')+'</span><div class="contrib-right"><span class="contrib-amount">'+fmt(f.amount)+'</span><span class="contrib-pct">'+pct+'% share</span></div></div>';
+  }).join(''):'<div style="font-size:13px;color:var(--text3);padding:8px 0;">No pool linked</div>';
+
+  // render all ledger entries newest first
+  const allRows=ledger.slice().reverse().map((e,ri)=>{
+    const i=ledger.length-1-ri;
+    if(e.type==='interest'){
+      const credits=(b.funding||[]).map(f=>{
+        const p=vaultData.pools.find(x=>x.id===f.poolId);
+        const share=totalFunded>0?parseFloat(f.amount)/totalFunded:0;
+        const credited=(parseFloat(e.net||0)*share).toFixed(2);
+        return p?'<span class="ledger-credit-tag">&#x1F4BC; '+p.name+': '+fmt(credited)+'</span>':'';
+      }).join('');
+      return '<div class="ledger-entry"><div class="ledger-entry-type" style="color:var(--green)">&#x1F4B0; Interest Payment</div>'
+        +'<div class="ledger-date">&#x1F4C5; '+fmtDate(e.date)+(e.note?' &middot; <em style="color:var(--text3)">'+e.note+'</em>':'')+'</div>'
+        +'<div class="ledger-amounts">'
+          +'<div class="ledger-amt"><span class="ledger-amt-label">Gross</span><span class="ledger-amt-val green">'+fmt(e.gross)+'</span></div>'
+          +'<div class="ledger-amt"><span class="ledger-amt-label">TDS</span><span class="ledger-amt-val" style="color:var(--red)">-'+fmt(e.tds)+'</span></div>'
+          +'<div class="ledger-amt"><span class="ledger-amt-label">Net</span><span class="ledger-amt-val yellow">'+fmt(e.net)+'</span></div>'
+        +'</div>'
+        +(credits?'<div class="ledger-pool-credits">'+credits+'</div>':'')
+        +'<button class="ledger-del" onclick="delLedger(\''+id+'\','+i+')">&#x1F5D1;</button>'
+      +'</div>';
+    }
+    if(e.type==='sold'){
+      return '<div class="ledger-entry sold-entry"><div class="ledger-entry-type" style="color:var(--orange)">&#x1F3F7; Bond Sold</div>'
+        +'<div class="ledger-date">&#x1F4C5; '+fmtDate(e.date)+(e.note?' &middot; <em style="color:var(--text3)">'+e.note+'</em>':'')+'</div>'
+        +'<div class="ledger-amounts">'
+          +'<div class="ledger-amt"><span class="ledger-amt-label">Gross Proceeds</span><span class="ledger-amt-val orange">'+fmt(e.proceeds)+'</span></div>'
+          +'<div class="ledger-amt"><span class="ledger-amt-label">TDS on Sale</span><span class="ledger-amt-val" style="color:var(--red)">-'+fmt(e.tds)+'</span></div>'
+          +'<div class="ledger-amt"><span class="ledger-amt-label">Net Proceeds</span><span class="ledger-amt-val yellow">'+fmt(e.netProceeds)+'</span></div>'
+          +(e.gain!=null?'<div class="ledger-amt"><span class="ledger-amt-label">Capital Gain/Loss</span><span class="ledger-amt-val '+(parseFloat(e.gain||0)>=0?'green':'red')+'">'+fmt(e.gain)+'</span></div>':'')
+        +'</div>'
+        +'<button class="ledger-del" onclick="delLedger(\''+id+'\','+i+')">&#x1F5D1;</button>'
+      +'</div>';
+    }
+    if(e.type==='rebate'){
+      return '<div class="ledger-entry rebate-entry"><div class="ledger-entry-type" style="color:var(--blue)">&#x1F4C4; Tax Rebate ('+e.year+')</div>'
+        +'<div class="ledger-date">&#x1F4C5; Recorded '+(e.recordedOn?fmtDate(e.recordedOn):'--')+(e.note?' &middot; <em style="color:var(--text3)">'+e.note+'</em>':'')+'</div>'
+        +'<div class="ledger-amounts">'
+          +'<div class="ledger-amt"><span class="ledger-amt-label">Rebate / Refund</span><span class="ledger-amt-val" style="color:var(--blue)">'+fmt(e.amount)+'</span></div>'
+          +'<div class="ledger-amt"><span class="ledger-amt-label">TDS Ref (this bond)</span><span class="ledger-amt-val">'+fmt(e.tdsRef)+'</span></div>'
+        +'</div>'
+        +'<button class="ledger-del" onclick="delLedger(\''+id+'\','+i+')">&#x1F5D1;</button>'
+      +'</div>';
+    }
+    return '';
+  }).join('');
+
+  // action buttons
+  const alreadySold=isSold||b.ledger.some(e=>e.type==='sold');
+  const actionRow='<div class="action-row">'
+      +'<button class="action-btn interest" onclick="openInterestModal(\''+id+'\')">&#x1F4B0; Interest</button>'
+      +'<button class="action-btn sold" '+(alreadySold?'disabled style="opacity:0.35;cursor:not-allowed;"':'onclick="openSoldModal(\''+id+'\')"')+'>&#x1F3F7; Mark Sold</button>'
+      +'<button class="action-btn rebate" onclick="openRebateModal(\''+id+'\')">&#x1F4C4; Rebate</button>'
+    +'</div>';
+
+  document.getElementById('detailContent').innerHTML=
+    '<div class="detail-hero'+(isSold?' sold-hero':'')+'">'
+      +'<div class="detail-platform">'+(b.platform||'--')+(isSold?' &nbsp;<span style="color:var(--orange);font-size:10px;">SOLD</span>':'')+'</div>'
+      +'<div class="detail-name">'+b.name+'</div>'
+      +'<button class="add-btn muted" style="font-size:11px;padding:6px 12px;margin-bottom:8px;" onclick="editBond(\''+id+'\')">&#x270F; Edit Bond</button>'
+      +'<div class="detail-stats">'
+        +'<div class="detail-stat"><div class="detail-stat-label">Bond Price</div><div class="detail-stat-val">'+fmt(b.price)+'</div></div>'
+        +'<div class="detail-stat"><div class="detail-stat-label">Units</div><div class="detail-stat-val">'+(b.units||1)+'</div></div>'
+        +'<div class="detail-stat"><div class="detail-stat-label">YTM</div><div class="detail-stat-val gold">'+b.ytm+'%</div></div>'
+        +'<div class="detail-stat"><div class="detail-stat-label">Coupon Rate</div><div class="detail-stat-val gold">'+(b.coupon||b.ytm)+'%</div></div>'
+        +'<div class="detail-stat"><div class="detail-stat-label">Purchase Date</div><div class="detail-stat-val">'+fmtDate(b.purchaseDate)+'</div></div>'
+        +'<div class="detail-stat"><div class="detail-stat-label">Maturity</div><div class="detail-stat-val">'+(b.maturityDate?fmtDate(b.maturityDate):'--')+'</div></div>'
+        +'<div class="detail-stat"><div class="detail-stat-label">Frequency</div><div class="detail-stat-val">'+freqLabel(b)+'</div></div>'
+        +'<div class="detail-stat"><div class="detail-stat-label">Total Invested</div><div class="detail-stat-val">'+fmt(inv)+'</div></div>'
+        +(b.isin?'<div class="detail-stat" style="grid-column:1/-1"><div class="detail-stat-label">ISIN</div><div class="detail-stat-val" style="font-size:12px">'+b.isin+'</div></div>':'')
+      +'</div>'
+      +(b.notes?'<div style="margin-top:10px;font-size:12px;color:var(--text2)">&#x1F4DD; '+b.notes+'</div>':'')
+    +'</div>'
+
+    +'<div class="ledger-header" style="margin-bottom:8px;"><span class="ledger-title">Pool Contributions</span><button class="add-btn muted" style="font-size:11px;padding:6px 12px;" onclick="openEditFunding(\''+id+'\')">&#x270F; Edit</button></div>'
+    +contribs
+
+    +'<div class="ledger-summary">'
+      +'<div class="ls-item"><span class="ls-label">Gross Interest</span><span class="ls-val green">'+fmt(tGross)+'</span></div>'
+      +'<div class="ls-item"><span class="ls-label">TDS Paid</span><span class="ls-val red">-'+fmt(tTds)+'</span></div>'
+      +'<div class="ls-item"><span class="ls-label">Net Interest</span><span class="ls-val gold">'+fmt(tNet)+'</span></div>'
+      +'<div class="ls-item"><span class="ls-label">Tax Rebates</span><span class="ls-val blue">'+fmt(tRebate)+'</span></div>'
+      +(isSold&&soldEntry
+        ?'<div class="ls-item"><span class="ls-label">Sale Proceeds</span><span class="ls-val orange">'+fmt(soldEntry.netProceeds)+'</span></div>'
+          +'<div class="ls-item"><span class="ls-label">Capital Gain/Loss</span><span class="ls-val '+(parseFloat(soldEntry.gain||0)>=0?'green':'red')+'">'+fmt(soldEntry.gain)+'</span></div>'
+        :'')
+    +'</div>'
+
+    +actionRow
+
+    +'<div class="ledger-header"><span class="ledger-title">Full History</span></div>'
+    +(allRows||'<div class="empty-state"><div class="empty-icon">&#x1F4EB;</div><div class="empty-text">No entries yet.</div></div>')
+
+    +'<button class="danger-btn" onclick="delBond(\''+id+'\')">&#x1F5D1; Delete This Bond</button>';
+
+  showPage('pageDetail');
+}
+
+// POOLS
+function renderPools(){
+  const pools=vaultData.pools;
+  let tCorpus=0,tDeployed=0,tIdle=0,tInterest=0,tRebate=0,tEffective=0;
+  pools.forEach(p=>{
+    const s=poolStats(p);
+    tCorpus+=s.corpus;
+    tDeployed+=s.deployed;
+    tIdle+=s.idle;
+    tInterest+=s.interestEarned;
+    tRebate+=s.rebateEarned;
+    tEffective+=s.effectiveCorpus;
+  });
+  document.getElementById('poolTotalCorpus').textContent=fmt(tEffective);
+  document.getElementById('poolTotalSub').textContent=pools.length+' pool'+(pools.length!==1?'s':'');
+  document.getElementById('poolTotalDeployed').textContent=fmt(tDeployed);
+  document.getElementById('poolTotalIdle').textContent=fmt(tIdle);
+  document.getElementById('poolTotalInterest').textContent=fmt(tInterest+tRebate);
+  document.getElementById('poolEffectiveCorpus').textContent=fmt(tCorpus);
+  const list=document.getElementById('poolList');
+  if(!pools.length){list.innerHTML='<div class="empty-state"><div class="empty-icon">&#x1F4BC;</div><div class="empty-text">No pools yet.<br>Tap + Add Pool to create one.</div></div>';return;}
+  list.innerHTML=pools.map(p=>{
+    const s=poolStats(p);
+    // Progress bar: deployed as % of effective corpus (what's actually available)
+    const pct=s.effectiveCorpus>0?Math.min(100,(s.deployed/s.effectiveCorpus)*100):0;
+    return '<div class="pool-card" onclick="showPoolDetail(\''+p.id+'\')"><div class="pool-card-header"><div class="pool-name-col"><span class="pool-badge">Pool</span><span class="pool-name">'+p.name+'</span></div><span class="pool-corpus-badge">'+fmt(s.effectiveCorpus)+'</span></div>'
+      +'<div class="pool-bar-wrap"><div class="pool-bar-bg"><div class="pool-bar-fill" style="width:'+pct+'%"></div></div><div class="pool-bar-labels"><span class="pool-bar-label">Deployed '+pct.toFixed(0)+'%</span><span class="pool-bar-label">Idle '+fmt(s.idle)+'</span></div></div>'
+      +'<div class="pool-footer"><div class="pool-stat"><span class="pool-stat-label">Deployed</span><span class="pool-stat-val blue">'+fmt(s.deployed)+'</span></div><div class="pool-stat"><span class="pool-stat-label">Interest Earned</span><span class="pool-stat-val green">'+fmt(s.interestEarned+s.rebateEarned)+'</span></div><div class="pool-stat"><span class="pool-stat-label">Capital Gains</span><span class="pool-stat-val '+(s.capitalGains>0?'green':s.capitalGains<0?'red':'')+'">'+(s.capitalGains>=0?'+':'')+fmt(s.capitalGains)+'</span></div><div class="pool-stat"><span class="pool-stat-label">Effective Corpus</span><span class="pool-stat-val gold">'+fmt(s.effectiveCorpus)+'</span></div></div>'
+    +'</div>';
+  }).join('');
+}
+
+function showPoolDetail(id){
+  currentPoolId=id;
+  const p=vaultData.pools.find(x=>x.id===id);if(!p)return;
+  const s=poolStats(p);
+  // Progress bar: deployed as % of effective corpus
+  const pct=s.effectiveCorpus>0?Math.min(100,(s.deployed/s.effectiveCorpus)*100):0;
+  const linkedBonds=vaultData.bonds.filter(b=>(b.funding||[]).some(f=>f.poolId===id));
+  const bondRows=linkedBonds.length?linkedBonds.map(b=>{
+    const contrib=(b.funding||[]).find(f=>f.poolId===id);
+    const myAmt=parseFloat(contrib?contrib.amount:0);
+    const totalF=(b.funding||[]).reduce((s,f)=>s+parseFloat(f.amount||0),0);
+    const share=totalF>0?myAmt/totalF:0;
+    const myInterest=(b.ledger||[]).filter(e=>e.type==='interest').reduce((s,e)=>s+parseFloat(e.net||0)*share,0);
+    const isSold=b.status==='sold';
+    const soldEntry=(b.ledger||[]).find(e=>e.type==='sold');
+    const myProceeds=isSold&&soldEntry?parseFloat(soldEntry.netProceeds||0)*share:0;
+    const myGain=isSold&&soldEntry?parseFloat(soldEntry.gain||0)*share:0;
+    return '<div class="pool-bond-row" onclick="showBondDetail(\''+b.id+'\')">'
+      +'<div class="pool-bond-name">'+b.name+(isSold?' <span style="font-size:10px;color:var(--orange)">[SOLD]</span>':'')+'</div>'
+      +'<div class="pool-bond-meta"><span class="pool-bond-invested">'+fmt(myAmt)+' deployed</span><span class="pool-bond-interest">+'+fmt(myInterest)+' interest</span></div>'
+      +(isSold?'<div class="pool-bond-meta" style="margin-top:4px;"><span style="font-size:12px;color:var(--orange);">'+fmt(myProceeds)+' returned</span><span style="font-size:12px;color:'+(myGain>=0?'var(--green)':'var(--red)')+';">'+(myGain>=0?'+':'')+fmt(myGain)+' gain/loss</span></div>':'')
+    +'</div>';
+  }).join(''):'<div class="empty-state"><div class="empty-icon">&#x1F517;</div><div class="empty-text">No bonds linked yet.</div></div>';
+
+  document.getElementById('poolDetailContent').innerHTML=
+    '<div class="pool-detail-hero">'
+      +'<div class="detail-platform">Money Pool</div>'
+      +'<div class="detail-name">'+p.name+'</div>'
+      +'<div class="detail-stats">'
+        +'<div class="detail-stat"><div class="detail-stat-label">Initial Corpus</div><div class="detail-stat-val">'+fmt(s.corpus)+'</div></div>'
+        +'<div class="detail-stat"><div class="detail-stat-label">Active Deployed</div><div class="detail-stat-val" style="color:var(--blue)">'+fmt(s.deployed)+'</div></div>'
+        +'<div class="detail-stat"><div class="detail-stat-label">Interest Earned</div><div class="detail-stat-val green">'+fmt(s.interestEarned)+'</div></div>'
+        +'<div class="detail-stat"><div class="detail-stat-label">Tax Rebates</div><div class="detail-stat-val" style="color:var(--blue)">'+fmt(s.rebateEarned)+'</div></div>'
+        +(s.saleProceeds>0
+          ?'<div class="detail-stat"><div class="detail-stat-label">Sale Proceeds Returned</div><div class="detail-stat-val orange">'+fmt(s.saleProceeds)+'</div></div>'
+            +'<div class="detail-stat"><div class="detail-stat-label">Net from Sales</div><div class="detail-stat-val '+(s.saleProceeds-s.saleDeployed>=0?'green':'red')+'">'+fmt(s.saleProceeds-s.saleDeployed)+'</div></div>'
+          :'')
+        +'<div class="detail-stat"><div class="detail-stat-label">Idle Cash</div><div class="detail-stat-val gold">'+fmt(s.idle)+'</div></div>'
+        +'<div class="detail-stat" style="grid-column:1/-1"><div class="detail-stat-label">Effective Corpus (All Returns)</div><div class="detail-stat-val gold">'+fmt(s.effectiveCorpus)+'</div></div>'
+      +'</div>'
+      +'<div class="pool-big-bar"><div class="pool-big-bg"><div class="pool-big-fill" style="width:'+pct+'%"></div></div><div class="pool-big-labels"><span class="pool-big-label">'+pct.toFixed(1)+'% deployed</span><span class="pool-big-label">'+fmt(s.idle)+' idle</span></div></div>'
+      +(p.notes?'<div style="margin-top:10px;font-size:12px;color:var(--text2)">&#x1F4DD; '+p.notes+'</div>':'')
+    +'</div>'
+    +'<div class="section-header"><span class="section-title">Linked Bonds</span><button class="add-btn muted" style="font-size:11px;padding:6px 12px;" onclick="editPool(\''+id+'\')">&#x270F; Edit Pool</button></div>'
+    +bondRows
+    +'<button class="danger-btn" onclick="delPool(\''+id+'\')">&#x1F5D1; Delete This Pool</button>';
+  showPage('pagePoolDetail');
+}
+
+// ADD / EDIT POOL
+function showAddPool(){
+  editingPoolId=null;
+  document.getElementById('poolFormTitle').textContent='New Money Pool';
+  document.getElementById('poolSubmitBtn').textContent='Create Pool';
+  document.getElementById('p_name').value='';
+  document.getElementById('p_corpus').value='';
+  document.getElementById('p_notes').value='';
+  showPage('pageAddPool');
+}
+function editPool(id){
+  const p=vaultData.pools.find(x=>x.id===id);if(!p)return;
+  editingPoolId=id;
+  document.getElementById('poolFormTitle').textContent='Edit Pool';
+  document.getElementById('poolSubmitBtn').textContent='Save Changes';
+  document.getElementById('p_name').value=p.name;
+  document.getElementById('p_corpus').value=p.corpus;
+  document.getElementById('p_notes').value=p.notes||'';
+  showPage('pageAddPool');
+}
+async function savePool(){
+  const name=document.getElementById('p_name').value.trim();
+  const corpus=parseFloat(document.getElementById('p_corpus').value);
+  if(!name||!corpus){showToast('Name and corpus required');return;}
+  if(editingPoolId){
+    const p=vaultData.pools.find(x=>x.id===editingPoolId);
+    p.name=name;p.corpus=corpus;p.notes=document.getElementById('p_notes').value.trim();
+    await autoSync();showPoolDetail(editingPoolId);showToast('Pool updated');
+  }else{
+    vaultData.pools.push({id:uid(),name,corpus,notes:document.getElementById('p_notes').value.trim(),created:new Date().toISOString()});
+    await autoSync();showPools();showToast('Pool created');
+  }
+}
+async function delPool(id){
+  const linked=vaultData.bonds.some(b=>(b.funding||[]).some(f=>f.poolId===id));
+  if(linked){showToast('Remove this pool from all bonds first');return;}
+  if(!confirm('Delete this pool?'))return;
+  vaultData.pools=vaultData.pools.filter(p=>p.id!==id);
+  await autoSync();showPools();showToast('Pool deleted');
+}
+
+// ADD BOND FORM
+document.getElementById('f_freq').addEventListener('change',function(){
+  document.getElementById('f_customFreqGroup').style.display=this.value==='custom'?'block':'none';
+});
+function showAddBond(){
+  editingBondId=null;
+  document.getElementById('bondFormTitle').textContent='New Bond';
+  document.getElementById('bondSubmitBtn').textContent='Add Bond';
+  document.getElementById('f_date').value=new Date().toISOString().split('T')[0];
+  fundingRows=[];
+  ['f_name','f_platform','f_maturity','f_price','f_ytm','f_coupon','f_face','f_isin','f_notes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('f_units').value='1';
+  document.getElementById('f_freq').value='monthly';
+  document.getElementById('f_customFreqGroup').style.display='none';
+  renderFundingRows();
+  showPage('pageAddBond');
+}
+function editBond(id){
+  const b=vaultData.bonds.find(x=>x.id===id);if(!b)return;
+  editingBondId=id;
+  document.getElementById('f_name').value=b.name||'';
+  document.getElementById('f_platform').value=b.platform||'';
+  document.getElementById('f_date').value=b.purchaseDate||'';
+  document.getElementById('f_maturity').value=b.maturityDate||'';
+  document.getElementById('f_price').value=b.price||'';
+  document.getElementById('f_units').value=b.units||1;
+  document.getElementById('f_ytm').value=b.ytm||'';
+  document.getElementById('f_coupon').value=b.coupon||'';
+  document.getElementById('f_face').value=b.face||'';
+  document.getElementById('f_isin').value=b.isin||'';
+  document.getElementById('f_notes').value=b.notes||'';
+  document.getElementById('f_freq').value=b.freq||'monthly';
+  document.getElementById('f_customFreq').value=b.customFreq||'';
+  document.getElementById('f_customFreqGroup').style.display=b.freq==='custom'?'block':'none';
+  fundingRows=(b.funding||[]).map(f=>({rowId:uid(),poolId:f.poolId,amount:f.amount}));
+  renderFundingRows();
+  document.getElementById('bondFormTitle').textContent='Edit Bond';
+  document.getElementById('bondSubmitBtn').textContent='Save Changes';
+  showPage('pageAddBond');
+}
+function addFundingRow(){
+  if(!vaultData.pools.length){showToast('Create a pool first');return;}
+  fundingRows.push({rowId:uid(),poolId:vaultData.pools[0].id,amount:''});
+  renderFundingRows();
+}
+function renderFundingRows(){
+  const container=document.getElementById('fundingRows');
+  if(!fundingRows.length){container.innerHTML='<div style="font-size:13px;color:var(--text3);padding:8px 0 4px;">No pool linked -- tap below to add.</div>';updateFundingTotal();return;}
+  const price=parseFloat(document.getElementById('f_price').value)||0;
+  const units=parseInt(document.getElementById('f_units').value)||1;
+  const total=price*units;
+  container.innerHTML=fundingRows.map((r,i)=>{
+    const opts=vaultData.pools.map(p=>'<option value="'+p.id+'"'+(p.id===r.poolId?' selected':'')+'>'+p.name+'</option>').join('');
+    const pct=total>0&&r.amount?((parseFloat(r.amount)/total)*100).toFixed(1):'';
+    // Pool select on its own row; amount + remove on a second row.
+    // Amount uses onblur (not oninput) so keyboard stays open while typing.
+    return '<div class="funding-row" id="fr_'+i+'">'
+      +'<div class="funding-row-top">'
+        +'<select class="funding-pool-select" onchange="frPoolChange('+i+',this.value)">'+opts+'</select>'
+      +'</div>'
+      +'<div class="funding-row-bottom">'
+        +'<input class="funding-amount-input" type="number" inputmode="decimal" placeholder="Enter amount" value="'+(r.amount||'')+'" id="fra_'+i+'" onblur="frAmtBlur('+i+',this.value)" oninput="frAmtUpdate('+i+',this.value)"/>'
+        +'<button class="funding-remove" onclick="removeFundingRow('+i+')">&#x2715;</button>'
+      +'</div>'
+      +(pct?'<div class="funding-pct">'+pct+'% of investment</div>':'')
+    +'</div>';
+  }).join('');
+  updateFundingTotal();
+}
+// Pool dropdown change — re-render is fine (no keyboard open)
+function frPoolChange(i,val){fundingRows[i].poolId=val;renderFundingRows();}
+// While typing: only update data, never re-render DOM (keeps keyboard open)
+function frAmtUpdate(i,val){fundingRows[i].amount=val;updateFundingTotal();}
+// On blur (user leaves field): update + refresh pct display
+function frAmtBlur(i,val){fundingRows[i].amount=val;renderFundingRows();}
+function fundingRowChange(i,key,val){fundingRows[i][key]=val;renderFundingRows();}
+function removeFundingRow(i){fundingRows.splice(i,1);renderFundingRows();}
+function updateFundingTotal(){
+  const price=parseFloat(document.getElementById('f_price').value)||0;
+  const units=parseInt(document.getElementById('f_units').value)||1;
+  const total=price*units;
+  const allocated=fundingRows.reduce((s,r)=>s+parseFloat(r.amount||0),0);
+  const el=document.getElementById('fundingTotalVal');if(!el)return;
+  el.textContent=fmt(allocated)+' / '+fmt(total);
+  el.className='funding-total-val'+(total>0&&Math.abs(allocated-total)<0.01?' match':allocated>total?' over':'');
+}
+async function saveBond(){
+  const name=document.getElementById('f_name').value.trim();
+  const price=parseFloat(document.getElementById('f_price').value);
+  const ytm=parseFloat(document.getElementById('f_ytm').value);
+  const date=document.getElementById('f_date').value;
+  if(!name||!price||!ytm||!date){showToast('Fill required fields (*)');return;}
+  const total=price*(parseInt(document.getElementById('f_units').value)||1);
+  const allocated=fundingRows.reduce((s,r)=>s+parseFloat(r.amount||0),0);
+  if(fundingRows.length>0&&Math.abs(allocated-total)>0.5){showToast('Pool allocations must equal total investment');return;}
+  const fields={
+    name,
+    platform:document.getElementById('f_platform').value.trim(),
+    purchaseDate:date,
+    maturityDate:document.getElementById('f_maturity').value,
+    price,units:parseInt(document.getElementById('f_units').value)||1,
+    ytm,coupon:parseFloat(document.getElementById('f_coupon').value)||ytm,
+    freq:document.getElementById('f_freq').value,
+    customFreq:document.getElementById('f_customFreq').value,
+    face:parseFloat(document.getElementById('f_face').value)||1000,
+    isin:document.getElementById('f_isin').value.trim(),
+    notes:document.getElementById('f_notes').value.trim(),
+    funding:fundingRows.map(r=>({poolId:r.poolId,amount:parseFloat(r.amount||0)}))
+  };
+  if(editingBondId){
+    const b=vaultData.bonds.find(x=>x.id===editingBondId);
+    if(!b){editingBondId=null;showToast('Bond not found');return;}
+    Object.assign(b,fields);
+    const id=editingBondId;
+    editingBondId=null;
+    await autoSync();showBondDetail(id);showToast('Bond updated');
+  } else {
+    vaultData.bonds.push({id:uid(),...fields,status:'active',ledger:[],addedOn:new Date().toISOString()});
+    await autoSync();navBack();showToast('Bond added!');
+  }
+}
+async function delBond(id){
+  if(!confirm('Delete this bond and all its records?'))return;
+  vaultData.bonds=vaultData.bonds.filter(b=>b.id!==id);
+  await autoSync();showDashboard();showToast('Bond deleted');
+}
+
+// INTEREST MODAL
+function openInterestModal(bondId){
+  currentLedgerBondId=bondId;
+  const b=vaultData.bonds.find(x=>x.id===bondId);
+  document.getElementById('interestModalSub').textContent=b?b.name:'';
+  document.getElementById('l_date').value=new Date().toISOString().split('T')[0];
+  document.getElementById('l_gross').value='';
+  document.getElementById('l_tds').value='';
+  document.getElementById('l_note').value='';
+  document.getElementById('interestModal').classList.remove('hidden');
+}
+async function saveInterestEntry(){
+  const date=document.getElementById('l_date').value;
+  const gross=parseFloat(document.getElementById('l_gross').value)||0;
+  const tds=parseFloat(document.getElementById('l_tds').value)||0;
+  const note=document.getElementById('l_note').value.trim();
+  if(!date||!gross){showToast('Date and gross amount required');return;}
+  const b=vaultData.bonds.find(x=>x.id===currentLedgerBondId);if(!b)return;
+  b.ledger.push({type:'interest',date,gross,tds,net:parseFloat((gross-tds).toFixed(2)),note});
+  b.ledger.sort((a,bb)=>a.date.localeCompare(bb.date));
+  closeModal('interestModal');showBondDetail(currentLedgerBondId);
+  await autoSync();showToast('Interest recorded & pools updated');
+}
+
+// SOLD MODAL
+function openSoldModal(bondId){
+  currentLedgerBondId=bondId;
+  const b=vaultData.bonds.find(x=>x.id===bondId);
+  if(!b)return;
+  if(b.ledger.some(e=>e.type==='sold')){showToast('This bond is already marked as sold');return;}
+  const invested=b?parseFloat(b.price)*(parseInt(b.units)||1):0;
+  document.getElementById('soldModalSub').textContent=b?b.name:'';
+  document.getElementById('s_date').value=new Date().toISOString().split('T')[0];
+  document.getElementById('s_proceeds').value='';
+  document.getElementById('s_tds').value='';
+  document.getElementById('s_invested').value=invested.toFixed(2);
+  document.getElementById('s_gain').value='';
+  document.getElementById('s_gain').style.color='';
+  document.getElementById('s_note').value='';
+  document.getElementById('soldModal').classList.remove('hidden');
+}
+function computeSaleGain(){
+  const proceeds=parseFloat(document.getElementById('s_proceeds').value)||0;
+  const tds=parseFloat(document.getElementById('s_tds').value)||0;
+  const invested=parseFloat(document.getElementById('s_invested').value)||0;
+  const net=proceeds-tds;
+  const gain=parseFloat((net-invested).toFixed(2));
+  const el=document.getElementById('s_gain');
+  if(proceeds>0){
+    el.value=(gain>=0?'+':'')+gain.toFixed(2);
+    el.style.color=gain>=0?'var(--green)':'var(--red)';
+  } else {
+    el.value='';el.style.color='';
+  }
+}
+async function saveSoldEntry(){
+  const date=document.getElementById('s_date').value;
+  const proceeds=parseFloat(document.getElementById('s_proceeds').value)||0;
+  const tds=parseFloat(document.getElementById('s_tds').value)||0;
+  const note=document.getElementById('s_note').value.trim();
+  if(!date||!proceeds){showToast('Date and sale proceeds required');return;}
+  const b=vaultData.bonds.find(x=>x.id===currentLedgerBondId);if(!b)return;
+  // Guard: prevent duplicate sold entries
+  if(b.ledger.some(e=>e.type==='sold')){showToast('Bond already has a sale entry');closeModal('soldModal');return;}
+  // Disable submit button immediately to prevent double-tap
+  const submitBtn=document.querySelector('#soldModal .submit-btn');
+  if(submitBtn){submitBtn.disabled=true;submitBtn.textContent='Saving...';}
+  const invested=parseFloat(b.price)*(parseInt(b.units)||1);
+  const netProceeds=parseFloat((proceeds-tds).toFixed(2));
+  const gain=parseFloat((netProceeds-invested).toFixed(2));
+  b.ledger.push({type:'sold',date,proceeds,tds,netProceeds,gain,invested,note});
+  b.ledger.sort((a,bb)=>a.date.localeCompare(bb.date));
+  b.status='sold';
+  // Close modal BEFORE re-rendering pages
+  closeModal('soldModal');
+  // Refresh both detail and dashboard so bond moves to inactive
+  showBondDetail(currentLedgerBondId);
+  renderDashboard();
+  await autoSync();
+  showToast('Bond marked as sold & moved to Inactive');
+}
+
+// TAX REBATE MODAL
+function openRebateModal(bondId){
+  currentLedgerBondId=bondId;
+  const b=vaultData.bonds.find(x=>x.id===bondId);
+  document.getElementById('rebateModalSub').textContent=b?'Bond: '+b.name:'';
+  const tdsTotal=(b?b.ledger.filter(e=>e.type==='interest').reduce((s,e)=>s+parseFloat(e.tds||0),0):0);
+  document.getElementById('r_year').value='';
+  document.getElementById('r_amount').value='';
+  document.getElementById('r_tds_ref').value=tdsTotal.toFixed(2);
+  document.getElementById('r_note').value='';
+  document.getElementById('rebateModal').classList.remove('hidden');
+}
+async function saveRebateEntry(){
+  const amount=parseFloat(document.getElementById('r_amount').value)||0;
+  const year=document.getElementById('r_year').value.trim();
+  const note=document.getElementById('r_note').value.trim();
+  const tdsRef=parseFloat(document.getElementById('r_tds_ref').value)||0;
+  if(!amount){showToast('Enter rebate amount');return;}
+  const b=vaultData.bonds.find(x=>x.id===currentLedgerBondId);if(!b)return;
+  b.ledger.push({type:'rebate',year:year||'--',amount,tdsRef,note,recordedOn:new Date().toISOString().split('T')[0]});
+  b.ledger.sort((a,bb)=>a.date?a.date.localeCompare(bb.date||''):0);
+  closeModal('rebateModal');showBondDetail(currentLedgerBondId);
+  await autoSync();showToast('Tax rebate recorded & pool credited');
+}
+async function delLedger(bondId,idx){
+  if(!confirm('Delete this entry?'))return;
+  const b=vaultData.bonds.find(x=>x.id===bondId);
+  const entry=b.ledger[idx];
+  b.ledger.splice(idx,1);
+  // if deleting a sold entry, reactivate the bond
+  if(entry&&entry.type==='sold'){b.status='active';}
+  showBondDetail(bondId);
+  await autoSync();showToast('Entry deleted');
+}
+
+// SUMMARY STATE
+let summarySubTab='categories';
+let summaryFilters={platform:'',pool:'',status:'all',from:'',to:''};
+let acrossTimeYear=new Date().getFullYear();
+let statsFromDate='';
+let statsToDate='';
+
+// SUMMARY TAB
+function renderSummary(){
+  const el=document.getElementById('summaryContent');if(!el)return;
+  renderSummaryContent(summarySubTab);
+}
+function switchSummarySubTab(tab){
+  summarySubTab=tab;
+  renderSummaryContent(tab);
+}
+function setSummaryFilter(key,val){
+  summaryFilters[key]=val;
+  renderSummaryContent('categories');
+}
+function clearSummaryFilters(){
+  summaryFilters={platform:'',pool:'',status:'all',from:'',to:''};
+  renderSummaryContent('categories');
+}
+function changeAcrossTimeYear(delta){
+  acrossTimeYear+=delta;
+  renderSummaryContent('acrosstime');
+}
+function renderSummaryContent(tab){
+  summarySubTab=tab;
+  const el=document.getElementById('summaryContent');if(!el)return;
+  const subBar='<div class="sub-tab-bar">'
+    +'<button class="sub-tab-btn'+(tab==='categories'?' active':'')+'" onclick="switchSummarySubTab(\'categories\')">&#x1F3F7; Categories</button>'
+    +'<button class="sub-tab-btn'+(tab==='acrosstime'?' active':'')+'" onclick="switchSummarySubTab(\'acrosstime\')">&#x1F4C5; Across Time</button>'
+    +'</div>';
+  el.innerHTML=subBar+(tab==='categories'?buildCategoriesView():buildAcrossTimeView());
+}
+function buildCategoriesView(){
+  const platforms=[...new Set(vaultData.bonds.map(b=>b.platform||'').filter(p=>p))];
+  const platOpts='<option value="">All Platforms</option>'+platforms.map(p=>'<option value="'+p+'"'+(summaryFilters.platform===p?' selected':'')+'>'+p+'</option>').join('');
+  const poolOpts='<option value="">All Pools</option>'+vaultData.pools.map(p=>'<option value="'+p.id+'"'+(summaryFilters.pool===p.id?' selected':'')+'>'+p.name+'</option>').join('');
+  const sSel=s=>'filter-status-btn'+(summaryFilters.status===s?' active':'');
+  const filterBar='<div class="filter-bar">'
+    +'<div class="filter-row">'
+      +'<div class="filter-group"><span class="filter-label">Platform</span><select class="filter-select" onchange="setSummaryFilter(\'platform\',this.value)">'+platOpts+'</select></div>'
+      +'<div class="filter-group"><span class="filter-label">Pool</span><select class="filter-select" onchange="setSummaryFilter(\'pool\',this.value)">'+poolOpts+'</select></div>'
+    +'</div>'
+    +'<div class="filter-status-row">'
+      +'<button class="'+sSel('all')+'" onclick="setSummaryFilter(\'status\',\'all\')">All</button>'
+      +'<button class="'+sSel('active')+'" onclick="setSummaryFilter(\'status\',\'active\')">Active</button>'
+      +'<button class="'+sSel('sold')+'" onclick="setSummaryFilter(\'status\',\'sold\')">Sold</button>'
+    +'</div>'
+    +'<div class="filter-row">'
+      +'<div class="filter-group"><span class="filter-label">From Date</span><input class="filter-input" type="date" value="'+summaryFilters.from+'" onchange="setSummaryFilter(\'from\',this.value)"/></div>'
+      +'<div class="filter-group"><span class="filter-label">To Date</span><input class="filter-input" type="date" value="'+summaryFilters.to+'" onchange="setSummaryFilter(\'to\',this.value)"/></div>'
+    +'</div>'
+    +'<button class="clear-filter-btn" onclick="clearSummaryFilters()">&#x2715; Clear Filters</button>'
+  +'</div>';
+  let bonds=vaultData.bonds.slice().sort((a,b)=>b.purchaseDate.localeCompare(a.purchaseDate));
+  if(summaryFilters.platform) bonds=bonds.filter(b=>(b.platform||'')===summaryFilters.platform);
+  if(summaryFilters.pool) bonds=bonds.filter(b=>(b.funding||[]).some(f=>f.poolId===summaryFilters.pool));
+  if(summaryFilters.status==='active') bonds=bonds.filter(b=>b.status==='active');
+  if(summaryFilters.status==='sold') bonds=bonds.filter(b=>b.status==='sold');
+  if(summaryFilters.from) bonds=bonds.filter(b=>b.purchaseDate>=summaryFilters.from);
+  if(summaryFilters.to) bonds=bonds.filter(b=>b.purchaseDate<=summaryFilters.to);
+  const bondCards=bonds.length
+    ?bonds.map(renderBondCard).join('')
+    :'<div class="empty-state"><div class="empty-icon">&#x1F50D;</div><div class="empty-text">No bonds match the filters.</div></div>';
+  const hdr='<div class="section-header"><span class="section-title">'+bonds.length+' Bond'+(bonds.length!==1?'s':'')+'</span></div>';
+  return filterBar+hdr+bondCards;
+}
+function buildAcrossTimeView(){
+  const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const yearNav='<div class="year-nav">'
+    +'<button class="year-nav-btn" onclick="changeAcrossTimeYear(-1)">&#x2190;</button>'
+    +'<span class="year-label">'+acrossTimeYear+'</span>'
+    +'<button class="year-nav-btn" onclick="changeAcrossTimeYear(1)">&#x2192;</button>'
+    +'</div>';
+  let cells='';
+  for(let m=0;m<12;m++){
+    let principal=0,interest=0,tds=0;
+    vaultData.bonds.forEach(b=>{
+      if(b.purchaseDate){
+        const d=new Date(b.purchaseDate);
+        if(d.getFullYear()===acrossTimeYear&&d.getMonth()===m)
+          principal+=parseFloat(b.price)*(parseInt(b.units)||1);
+      }
+      (b.ledger||[]).filter(e=>e.type==='interest').forEach(e=>{
+        if(!e.date)return;
+        const d=new Date(e.date);
+        if(d.getFullYear()===acrossTimeYear&&d.getMonth()===m){
+          interest+=parseFloat(e.net||0);
+          tds+=parseFloat(e.tds||0);
+        }
+      });
+    });
+    const hasAct=principal>0||interest>0||tds>0;
+    cells+='<div class="cal-cell'+(hasAct?' has-activity':'')+'" onclick="showMonthDetail(\''+MONTHS[m]+'\','+acrossTimeYear+','+principal.toFixed(2)+','+interest.toFixed(2)+','+tds.toFixed(2)+')">'
+      +'<div class="cal-month">'+MONTHS[m]+'</div>'
+      +'<div class="cal-row"><span class="cal-lbl">Invested</span><span class="cal-val inv">'+fmtShort(principal)+'</span></div>'
+      +'<div class="cal-row"><span class="cal-lbl">Interest</span><span class="cal-val int">'+fmtShort(interest)+'</span></div>'
+      +'<div class="cal-row"><span class="cal-lbl">TDS</span><span class="cal-val tds">'+fmtShort(tds)+'</span></div>'
+    +'</div>';
+  }
+  return yearNav+'<div class="cal-grid">'+cells+'</div>';
+}
+function showMonthDetail(month,year,principal,interest,tds){
+  document.getElementById('monthDetailTitle').textContent=month+' '+year;
+  document.getElementById('monthDetailBody').innerHTML=
+    '<div class="month-detail-row"><span class="month-detail-label">Invested</span><span class="month-detail-val" style="color:var(--blue)">'+fmt(principal)+'</span></div>'
+    +'<div class="month-detail-row"><span class="month-detail-label">Interest</span><span class="month-detail-val" style="color:var(--green)">'+fmt(interest)+'</span></div>'
+    +'<div class="month-detail-row"><span class="month-detail-label">TDS</span><span class="month-detail-val" style="color:var(--red)">'+fmt(tds)+'</span></div>';
+  document.getElementById('monthDetailModal').classList.remove('hidden');
+}
+
+// STATISTICS TAB
+function renderStatistics(){
+  const el=document.getElementById('statisticsContent');if(!el)return;
+  el.innerHTML=buildStatisticsView();
+}
+function buildStatisticsView(){
+  const dateFilter='<div class="filter-bar">'
+    +'<div class="filter-row">'
+      +'<div class="filter-group"><span class="filter-label">From Date</span><input class="filter-input" type="date" value="'+statsFromDate+'" onchange="statsFromDate=this.value;renderStatistics()"/></div>'
+      +'<div class="filter-group"><span class="filter-label">To Date</span><input class="filter-input" type="date" value="'+statsToDate+'" onchange="statsToDate=this.value;renderStatistics()"/></div>'
+    +'</div>'
+    +'<button class="clear-filter-btn" onclick="statsFromDate=\'\';statsToDate=\'\';renderStatistics()">&#x2715; Clear</button>'
+  +'</div>';
+  if(!vaultData.pools.length) return dateFilter+'<div class="empty-state"><div class="empty-icon">&#x1F4CA;</div><div class="empty-text">No pools yet.</div></div>';
+  const poolData=vaultData.pools.map(p=>{
+    let principal=0,interestEarned=0,saleProceeds=0,saleDeployed=0,rebateEarned=0;
+    vaultData.bonds.filter(b=>{
+      const inRange=(!statsFromDate||b.purchaseDate>=statsFromDate)&&(!statsToDate||b.purchaseDate<=statsToDate);
+      return inRange&&(b.funding||[]).some(f=>f.poolId===p.id);
+    }).forEach(b=>{
+      const contrib=(b.funding||[]).find(f=>f.poolId===p.id);if(!contrib)return;
+      const myAmt=parseFloat(contrib.amount||0);
+      const totalF=(b.funding||[]).reduce((s,f)=>s+parseFloat(f.amount||0),0);
+      const share=totalF>0?myAmt/totalF:0;
+      const isSold=b.status==='sold';
+      principal+=myAmt;
+      if(isSold){saleDeployed+=myAmt;const se=(b.ledger||[]).find(e=>e.type==='sold');if(se)saleProceeds+=parseFloat(se.netProceeds||0)*share;}
+      (b.ledger||[]).forEach(e=>{
+        if(e.type==='interest') interestEarned+=parseFloat(e.net||0)*share;
+        if(e.type==='rebate') rebateEarned+=parseFloat(e.amount||0)*share;
+      });
+    });
+    const effectiveCorpus=principal+interestEarned+rebateEarned+(saleProceeds-saleDeployed);
+    return{name:p.name,principal,effectiveCorpus};
+  });
+  if(!poolData.some(d=>d.effectiveCorpus>0||d.principal>0))
+    return dateFilter+'<div class="empty-state"><div class="empty-icon">&#x1F4CA;</div><div class="empty-text">No investments in the selected date range.</div></div>';
+  return dateFilter+buildBarChart(poolData);
+}
+function buildBarChart(poolData){
+  const fmtFull=n=>(parseFloat(n)||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const W=300,H=250,ML=46,MR=8,MT=16,MB=86;
+  const cW=W-ML-MR,cH=H-MT-MB;
+  const maxVal=Math.max(...poolData.map(d=>Math.max(d.effectiveCorpus,0)),1);
+  const n=poolData.length;
+  const gap=8;
+  const barW=Math.max(18,Math.floor((cW-gap*(n+1))/n));
+  let defs='<defs>',bars='',yLines='',yLabels='';
+  const ticks=4;
+  for(let i=0;i<=ticks;i++){
+    const v=maxVal*i/ticks;
+    const y=(MT+cH-(v/maxVal)*cH).toFixed(1);
+    yLines+='<line x1="'+ML+'" y1="'+y+'" x2="'+(ML+cW)+'" y2="'+y+'" stroke="#2a3045" stroke-width="0.7"/>';
+    yLabels+='<text x="'+(ML-4)+'" y="'+(parseFloat(y)+3).toFixed(1)+'" text-anchor="end" fill="#5c6278" font-size="8">'+fmtShort(v)+'</text>';
+  }
+  poolData.forEach((d,i)=>{
+    const x=ML+gap*(i+1)+barW*i;
+    const eff=Math.max(d.effectiveCorpus,0);
+    const effH=Math.max(2,(eff/maxVal)*cH);
+    const barY=(MT+cH-effH).toFixed(1);
+    const hasGain=eff>d.principal+0.5;
+    const gradId='bg'+i;
+    if(hasGain){
+      const gainPct=((eff-d.principal)/eff*100).toFixed(1);
+      defs+='<linearGradient id="'+gradId+'" x1="0" y1="0" x2="0" y2="1">'
+        +'<stop offset="0%" stop-color="#4caf82"/>'
+        +'<stop offset="'+gainPct+'%" stop-color="#4caf82"/>'
+        +'<stop offset="'+gainPct+'%" stop-color="#5b8dee"/>'
+        +'<stop offset="100%" stop-color="#5b8dee"/>'
+        +'</linearGradient>';
+      bars+='<rect x="'+x+'" y="'+barY+'" width="'+barW+'" height="'+effH.toFixed(1)+'" fill="url(#'+gradId+')" rx="3"/>';
+    } else {
+      bars+='<rect x="'+x+'" y="'+barY+'" width="'+barW+'" height="'+effH.toFixed(1)+'" fill="#5b8dee" rx="3"/>';
+    }
+    // X-axis label: full pool name, rotated -90° so it hangs downward below the axis
+    const barCX=(x+barW/2).toFixed(1);
+    const labelY=(MT+cH+3).toFixed(1);
+    bars+='<text x="'+barCX+'" y="'+labelY+'" text-anchor="end"'
+      +' transform="rotate(-90,'+barCX+','+labelY+')"'
+      +' fill="#9aa0b8" font-size="8">'+d.name+'</text>';
+    // Value above bar: full 2-decimal en-IN, horizontal
+    const valY=(parseFloat(barY)-4).toFixed(1);
+    bars+='<text x="'+barCX+'" y="'+valY+'" text-anchor="middle"'
+      +' fill="#e8c97a" font-size="7">'+fmtFull(eff)+'</text>';
+  });
+  defs+='</defs>';
+  const axes='<line x1="'+ML+'" y1="'+MT+'" x2="'+ML+'" y2="'+(MT+cH)+'" stroke="#2a3045" stroke-width="1"/>'
+    +'<line x1="'+ML+'" y1="'+(MT+cH)+'" x2="'+(ML+cW)+'" y2="'+(MT+cH)+'" stroke="#2a3045" stroke-width="1"/>';
+  const svg='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto;display:block;">'+defs+yLines+axes+yLabels+bars+'</svg>';
+  const legend='<div class="chart-legend">'
+    +'<div class="legend-item"><div class="legend-dot" style="background:#5b8dee;"></div><span>Principal</span></div>'
+    +'<div class="legend-item"><div class="legend-dot" style="background:#4caf82;"></div><span>Gains (Interest + Capital)</span></div>'
+    +'</div>';
+  return '<div class="chart-wrap"><div class="chart-title">Corpus vs Principal by Pool</div>'+svg+legend+'</div>';
+}
+function fmtShort(n){
+  if(n>=10000000) return (n/10000000).toFixed(1)+'Cr';
+  if(n>=100000) return (n/100000).toFixed(1)+'L';
+  if(n>=1000) return (n/1000).toFixed(0)+'K';
+  return (n||0).toFixed(0);
+}
+
+// EDIT FUNDING MODAL
+let editFundingRows = [];
+let editFundingBondId = null;
+
+function openEditFunding(bondId){
+  editFundingBondId=bondId;
+  const b=vaultData.bonds.find(x=>x.id===bondId);if(!b)return;
+  document.getElementById('editFundingModalSub').textContent=b.name;
+  // clone current funding into edit rows
+  editFundingRows=(b.funding||[]).map(f=>({rowId:uid(),poolId:f.poolId,amount:f.amount}));
+  renderEditFundingRows();
+  document.getElementById('editFundingModal').classList.remove('hidden');
+}
+function renderEditFundingRows(){
+  const b=vaultData.bonds.find(x=>x.id===editFundingBondId);if(!b)return;
+  const total=parseFloat(b.price)*(parseInt(b.units)||1);
+  const container=document.getElementById('editFundingRows');
+  if(!editFundingRows.length){container.innerHTML='<div style="font-size:13px;color:var(--text3);padding:8px 0 4px;">No pool linked.</div>';updateEditFundingTotal();return;}
+  container.innerHTML=editFundingRows.map((r,i)=>{
+    const opts=vaultData.pools.map(p=>'<option value="'+p.id+'"'+(p.id===r.poolId?' selected':'')+'>'+p.name+'</option>').join('');
+    const pct=total>0&&r.amount?((parseFloat(r.amount)/total)*100).toFixed(1):'';
+    return '<div class="funding-row" id="efr_'+i+'">'
+      +'<div class="funding-row-top">'
+        +'<select class="funding-pool-select" onchange="efrPoolChange('+i+',this.value)">'+opts+'</select>'
+      +'</div>'
+      +'<div class="funding-row-bottom">'
+        +'<input class="funding-amount-input" type="number" inputmode="decimal" placeholder="Enter amount" value="'+(r.amount||'')+'" id="efra_'+i+'" onblur="efrAmtBlur('+i+',this.value)" oninput="efrAmtUpdate('+i+',this.value)"/>'
+        +'<button class="funding-remove" onclick="removeEditFundingRow('+i+')">&#x2715;</button>'
+      +'</div>'
+      +(pct?'<div class="funding-pct">'+pct+'% of investment</div>':'')
+    +'</div>';
+  }).join('');
+  updateEditFundingTotal();
+}
+function efrPoolChange(i,val){editFundingRows[i].poolId=val;renderEditFundingRows();}
+function efrAmtUpdate(i,val){editFundingRows[i].amount=val;updateEditFundingTotal();}
+function efrAmtBlur(i,val){editFundingRows[i].amount=val;renderEditFundingRows();}
+function removeEditFundingRow(i){editFundingRows.splice(i,1);renderEditFundingRows();}
+function addEditFundingRow(){
+  if(!vaultData.pools.length){showToast('Create a pool first');return;}
+  editFundingRows.push({rowId:uid(),poolId:vaultData.pools[0].id,amount:''});
+  renderEditFundingRows();
+}
+function updateEditFundingTotal(){
+  const b=vaultData.bonds.find(x=>x.id===editFundingBondId);if(!b)return;
+  const total=parseFloat(b.price)*(parseInt(b.units)||1);
+  const allocated=editFundingRows.reduce((s,r)=>s+parseFloat(r.amount||0),0);
+  const el=document.getElementById('editFundingTotalVal');if(!el)return;
+  el.textContent=fmt(allocated)+' / '+fmt(total);
+  el.className='funding-total-val'+(total>0&&Math.abs(allocated-total)<0.01?' match':allocated>total?' over':'');
+}
+async function saveEditFunding(){
+  const b=vaultData.bonds.find(x=>x.id===editFundingBondId);if(!b)return;
+  const total=parseFloat(b.price)*(parseInt(b.units)||1);
+  const allocated=editFundingRows.reduce((s,r)=>s+parseFloat(r.amount||0),0);
+  if(editFundingRows.length>0&&Math.abs(allocated-total)>0.5){showToast('Pool allocations must equal total investment');return;}
+  b.funding=editFundingRows.map(r=>({poolId:r.poolId,amount:parseFloat(r.amount||0)}));
+  closeModal('editFundingModal');
+  showBondDetail(editFundingBondId);
+  await autoSync();showToast('Pool contributions updated');
+}
+
+// close modals on backdrop tap
+['interestModal','soldModal','rebateModal','editFundingModal','monthDetailModal'].forEach(id=>{
+  document.getElementById(id).addEventListener('click',function(e){if(e.target===this)closeModal(id);});
+});
+
+// === PWA — SERVICE WORKER ===
+if('serviceWorker' in navigator){
+  let _swRefreshing=false;
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{
+    if(!_swRefreshing){_swRefreshing=true;window.location.reload();}
+  });
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('./sw.js').then(reg=>{
+      reg.addEventListener('updatefound',()=>{
+        const nw=reg.installing;
+        nw.addEventListener('statechange',()=>{
+          if(nw.state==='installed'&&navigator.serviceWorker.controller){
+            nw.postMessage({type:'SKIP_WAITING'});
+          }
+        });
+      });
+    }).catch(err=>console.warn('SW failed:',err));
+  });
+}
+
+// === PWA — INSTALL PROMPT ===
+let _deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();
+  _deferredPrompt=e;
+  setTimeout(()=>{
+    if(!localStorage.getItem('pwa_dismissed')){
+      document.getElementById('installBanner').classList.add('show');
+    }
+  },2500);
+});
+window.addEventListener('appinstalled',()=>{
+  document.getElementById('installBanner').classList.remove('show');
+  _deferredPrompt=null;
+  showToast('BondVault installed!');
+});
+function triggerInstall(){
+  if(!_deferredPrompt){
+    showToast('Tap ⋮ → Add to Home screen');
+    document.getElementById('installBanner').classList.remove('show');
+    return;
+  }
+  _deferredPrompt.prompt();
+  _deferredPrompt.userChoice.then(()=>{
+    _deferredPrompt=null;
+    document.getElementById('installBanner').classList.remove('show');
+  });
+}
+function dismissInstall(){
+  document.getElementById('installBanner').classList.remove('show');
+  localStorage.setItem('pwa_dismissed','1');
+}
+</script>
+</body>
+</html>
