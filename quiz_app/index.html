@@ -526,7 +526,7 @@
     </div>
     <div class="quiz-nav">
         <button class="btn secondary" id="quiz-prev-btn" onclick="prevQuestion()" style="flex:0 0 48px;padding:0">←</button>
-        <button class="btn secondary" id="quiz-check-btn" onclick="lockShortAnswer()" style="display:none">Check ✓</button>
+        <button class="btn secondary" id="quiz-check-btn" style="display:none">Check ✓</button>
         <button class="btn" id="quiz-next-btn" onclick="nextQuestion()">Next →</button>
     </div>
 </div>
@@ -1550,23 +1550,12 @@ function selectOption(optIndex) {
         // Don't lock — user can change their mind until pressing Next
         renderOptions(q, idx, false);
     } else {
-        // Multiple — toggle
+        // Multiple — toggle (no lock; user can change selections until pressing Next, same as single-choice)
         let arr = Array.isArray(quizState.answers[idx]) ? [...quizState.answers[idx]] : [];
         if (arr.includes(optIndex)) arr = arr.filter(i=>i!==optIndex);
         else arr.push(optIndex);
         quizState.answers[idx] = arr;
         renderOptions(q, idx, false);
-
-        // Show check button when at least one selected
-        const checkBtn = document.getElementById('quiz-check-btn');
-        const nextBtn  = document.getElementById('quiz-next-btn');
-        if (arr.length > 0) {
-            checkBtn.style.display = 'block';
-            nextBtn.style.display  = 'none';
-        } else {
-            checkBtn.style.display = 'none';
-            nextBtn.style.display  = 'block';
-        }
     }
 }
 
@@ -1583,21 +1572,8 @@ function lockShortAnswer() {
     renderQuestion();
 }
 
-// Lock Multiple answer (check button)
-// Repurpose checkBtn for multiple too
 document.getElementById('quiz-check-btn').addEventListener('click', function() {
-    const idx = quizState.current;
-    const q   = quizState.questions[idx];
-    if (q.type === 'multiple') {
-        const arr = quizState.answers[idx];
-        if (!arr || arr.length === 0) { showToast('Select at least one option!'); return; }
-        quizState.locked[idx] = true;
-        renderOptions(q, idx, true);
-        this.style.display = 'none';
-        document.getElementById('quiz-next-btn').style.display = 'block';
-    } else if (q.type === 'short') {
-        lockShortAnswer();
-    }
+    lockShortAnswer();
 });
 
 // ─────────────────────────────────────────────
