@@ -1006,10 +1006,16 @@ window.addEventListener('load', function() {
         firebase.initializeApp(FIREBASE_CONFIG);
         firebaseAuth = firebase.auth();
         firebaseDb = firebase.firestore();
-        firebaseAuth.onAuthStateChanged(function(user) {
+        firebaseAuth.onAuthStateChanged(async function(user) {
+            const wasConnected = cloudConnected;
             cloudUser = user || null;
             cloudConnected = !!user;
             updateCloudUI();
+            // Restore data automatically whenever a remembered cloud session is found
+            // (e.g. app reopened, or a new device is already signed in) — not just on manual sign-in.
+            if (user && !wasConnected) {
+                await syncWithCloudOnSignIn();
+            }
         });
     }
 });
@@ -1043,7 +1049,7 @@ async function uploadDBToCloud() {
             content: JSON.stringify(DB),
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
-    } catch(e) { /* silent — local save (if any) already succeeded */ }
+    } catch(e) { showToast('⚠️ Cloud save failed: ' + (e.code||e.message||'unknown error')); }
 }
 
 async function syncWithCloudOnSignIn() {
@@ -1057,11 +1063,12 @@ async function syncWithCloudOnSignIn() {
                 if (DB.streak === undefined) DB.streak = 0;
                 if (DB.lastTakenDate === undefined) DB.lastTakenDate = null;
                 renderHome(); updateQuizSelects();
+                if (document.getElementById('screen-backup').classList.contains('active')) renderBackupScreen();
             }
         } else {
             await uploadDBToCloud();
         }
-    } catch(e) { showToast('⚠️ Could not sync with cloud'); }
+    } catch(e) { showToast('⚠️ Could not sync with cloud: ' + (e.code||e.message||'unknown error')); }
 }
 
 function updateCloudUI() {
