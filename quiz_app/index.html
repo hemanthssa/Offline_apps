@@ -1511,9 +1511,11 @@ function renderQuestion() {
 }
 
 // Render MCQ / Multiple options — ONLY purple for selected, no green/red
+function optionLetter(i) {
+    return String.fromCharCode(65 + i); // 0→A, 1→B, ... 25→Z
+}
 function renderOptions(q, idx, isLocked) {
     const list = document.getElementById('options-list');
-    const letters = ['A','B','C','D','E','F'];
     const cur = quizState.answers[idx];
 
     list.innerHTML = q.options.map((opt, i) => {
@@ -1529,7 +1531,7 @@ function renderOptions(q, idx, isLocked) {
         const onclick = isLocked ? '' : `selectOption(${i})`;
 
         return `<div class="${cls}" onclick="${onclick}">
-            <div class="option-letter">${letters[i]}</div>
+            <div class="option-letter">${optionLetter(i)}</div>
             <div class="option-text">${opt}</div>
         </div>`;
     }).join('');
@@ -1858,10 +1860,9 @@ function initOptionRows() {
 }
 function addOptionRow() { optionRows.push({text:'',correct:false}); renderOptionRows(); }
 function renderOptionRows() {
-    const letters = ['A','B','C','D','E','F','G','H'];
     document.getElementById('q-options-container').innerHTML = optionRows.map((row,i)=>`
         <div class="option-row">
-            <input type="text" class="form-input" value="${row.text}" placeholder="Option ${letters[i]}" oninput="optionRows[${i}].text=this.value">
+            <input type="text" class="form-input" value="${row.text}" placeholder="Option ${optionLetter(i)}" oninput="optionRows[${i}].text=this.value">
             <div class="correct-toggle ${row.correct?'correct':''}" onclick="toggleCorrect(${i})">${row.correct?'✅':'☐'}</div>
             ${optionRows.length>2?`<div class="remove-option" onclick="removeOption(${i})">🗑</div>`:''}
         </div>`).join('');
@@ -2583,7 +2584,6 @@ function generatePDF() {
     const questions = DB.questions.filter(q => q.quizId == quizId);
     if (!questions.length) { showToast('No questions in this quiz!'); return; }
     const showAnswers = document.getElementById('print-show-answers').checked;
-    const letters = ['A','B','C','D','E','F'];
     const today = new Date().toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' });
 
     let html = '<div class="pa-header">' +
@@ -2605,7 +2605,7 @@ function generatePDF() {
             (q.options || []).forEach((opt, oi) => {
                 const isCorrect = (q.correctIndices || []).includes(oi);
                 const cls = (showAnswers && isCorrect) ? ' correct' : '';
-                html += '<div class="pa-option' + cls + '">' + letters[oi] + '. ' + opt + '</div>';
+                html += '<div class="pa-option' + cls + '">' + optionLetter(oi) + '. ' + opt + '</div>';
             });
         } else {
             if (showAnswers && q.acceptedAnswers && q.acceptedAnswers.length) {
