@@ -10,6 +10,9 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="QuizApp">
     <link rel="apple-touch-icon" href="icon-192.png">
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         :root {
@@ -657,6 +660,14 @@
                 <button class="backup-option-btn" onclick="switchToNewFile()"><span class="bop-icon">✨</span><div><div class="bop-title">Create New File</div><div class="bop-desc">Start fresh with a new .json file</div></div></button>
             </div>
         </div>
+        <!-- CLOUD SYNC -->
+        <div class="backup-section">
+            <div class="backup-section-header"><span class="backup-section-icon">☁️</span><div><div class="backup-section-title">Cloud Sync</div><div class="backup-section-desc">Sync quizzes &amp; progress across devices</div></div></div>
+            <div class="backup-section-body">
+                <div id="cloud-sync-banner" class="info-banner info"><span>☁️</span><p id="cloud-sync-status">Not connected</p></div>
+                <button class="backup-option-btn" id="cloud-sync-btn" onclick="signInToCloud()"><span class="bop-icon">🔐</span><div><div class="bop-title">Sign In with Google</div><div class="bop-desc">Sync this device's data to the cloud</div></div></button>
+            </div>
+        </div>
         <div class="backup-hero">
             <span class="backup-icon">💾</span>
             <h2>Backup Your Quizzes</h2>
@@ -759,6 +770,7 @@
         <div style="display:flex;flex-direction:column;gap:10px">
             <button class="btn" onclick="openExistingFile()">📂 Open Existing Data File</button>
             <button class="btn secondary" onclick="createNewFile()">✨ Create New Data File</button>
+            <button class="btn secondary" onclick="continueWithCloudSync()">☁️ Continue with Cloud Sync</button>
             <button class="btn secondary" style="color:var(--warning);border-color:rgba(243,156,18,0.4)" onclick="skipFile()">⚠️ Skip (Data won't be saved)</button>
         </div>
     </div>
@@ -967,7 +979,112 @@
 let DB = { quizzes:[], questions:[], history:[], streak:0, lastTakenDate:null };
 let fileHandle = null;
 
+// ─────────────────────────────────────────────
+// FIREBASE CLOUD SYNC
+// ─────────────────────────────────────────────
+// 1. Create a free Firebase project at https://console.firebase.google.com (Spark plan — no credit card needed).
+//    Use a NEW/separate project for this app (do not reuse another app's project).
+// 2. Authentication → Sign-in method → enable Google.
+// 3. Build → Firestore Database → Create database.
+// 4. Firestore → Rules → allow each user to read/write only their own document:
+//      match /quizData/{uid} { allow read, write: if request.auth != null && request.auth.uid == uid; }
+// 5. Project settings → General → Your apps → Add app (Web) → copy the config values below.
+// 6. Authentication → Settings → Authorized domains → add the https:// domain this file is hosted on
+//    (Google Sign-In popups do not work on file:// or plain http://).
+const FIREBASE_CONFIG = {
+    apiKey:     'AIzaSyA7oltm-6_EiuJsp84o_mlg_62HpZyf6Tk',
+    authDomain: 'revisionquiz-caccb.firebaseapp.com',
+    projectId:  'revisionquiz-caccb'
+};
+let firebaseAuth = null;
+let firebaseDb = null;
+let cloudUser = null;
+let cloudConnected = false;
+
+window.addEventListener('load', function() {
+    if (window.firebase && FIREBASE_CONFIG.apiKey.indexOf('PASTE_YOUR') === -1) {
+        firebase.initializeApp(FIREBASE_CONFIG);
+        firebaseAuth = firebase.auth();
+        firebaseDb = firebase.firestore();
+        firebaseAuth.onAuthStateChanged(function(user) {
+            cloudUser = user || null;
+            cloudConnected = !!user;
+            updateCloudUI();
+        });
+    }
+});
+
+async function signInToCloud() {
+    if (!firebaseAuth) { showToast('⚠️ Cloud sync not configured yet'); return; }
+    try {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        const result = await firebaseAuth.signInWithPopup(provider);
+        cloudUser = result.user; cloudConnected = true;
+        await syncWithCloudOnSignIn();
+        updateCloudUI();
+        showToast('✅ Cloud sync connected');
+    } catch(e) {
+        if (e.code !== 'auth/popup-closed-by-user') showToast('❌ Cloud sign-in failed');
+    }
+}
+
+async function signOutOfCloud() {
+    if (!firebaseAuth) return;
+    await firebaseAuth.signOut();
+    cloudUser = null; cloudConnected = false;
+    updateCloudUI();
+    showToast('☁️ Signed out of cloud sync');
+}
+
+async function uploadDBToCloud() {
+    if (!cloudConnected || !firebaseDb || !cloudUser) return;
+    try {
+        await firebaseDb.collection('quizData').doc(cloudUser.uid).set({
+            content: JSON.stringify(DB),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+    } catch(e) { /* silent — local save (if any) already succeeded */ }
+}
+
+async function syncWithCloudOnSignIn() {
+    try {
+        const snap = await firebaseDb.collection('quizData').doc(cloudUser.uid).get();
+        if (snap.exists && snap.data().content) {
+            const cloudDB = JSON.parse(snap.data().content);
+            if (!fileHandle && (!DB.updatedAt || (cloudDB.updatedAt||'') > DB.updatedAt)) {
+                DB = cloudDB;
+                if (!DB.history)             DB.history = [];
+                if (DB.streak === undefined) DB.streak = 0;
+                if (DB.lastTakenDate === undefined) DB.lastTakenDate = null;
+                renderHome(); updateQuizSelects();
+            }
+        } else {
+            await uploadDBToCloud();
+        }
+    } catch(e) { showToast('⚠️ Could not sync with cloud'); }
+}
+
+function updateCloudUI() {
+    const banner = document.getElementById('cloud-sync-banner');
+    if (!banner) return;
+    const statusEl = document.getElementById('cloud-sync-status');
+    const btn = document.getElementById('cloud-sync-btn');
+    if (cloudConnected) {
+        banner.className = 'info-banner success';
+        statusEl.innerHTML = `Connected as <strong>${cloudUser.displayName || cloudUser.email}</strong>`;
+        btn.innerHTML = `<span class="bop-icon">🔓</span><div><div class="bop-title">Sign Out of Cloud Sync</div><div class="bop-desc">Stop syncing this device</div></div>`;
+        btn.onclick = signOutOfCloud;
+    } else {
+        banner.className = 'info-banner info';
+        statusEl.innerHTML = `<strong>Not connected</strong> — sign in to sync across devices.`;
+        btn.innerHTML = `<span class="bop-icon">🔐</span><div><div class="bop-title">Sign In with Google</div><div class="bop-desc">Sync this device's data to the cloud</div></div>`;
+        btn.onclick = signInToCloud;
+    }
+}
+
 async function saveDB() {
+    DB.updatedAt = new Date().toISOString();
+    if (cloudConnected) uploadDBToCloud();
     if (!fileHandle) return;
     try {
         const writable = await fileHandle.createWritable();
@@ -1024,6 +1141,14 @@ function skipFile() {
     closeModal('session-start-modal');
     renderHome(); updateQuizSelects();
     showToast("⚠️ No file selected — data won't persist.");
+}
+
+async function continueWithCloudSync() {
+    if (!firebaseAuth) { showToast('⚠️ Cloud sync not configured yet — add your Firebase config first'); return; }
+    fileHandle = null;
+    closeModal('session-start-modal');
+    await signInToCloud();
+    renderHome(); updateQuizSelects();
 }
 
 function initApp() {
@@ -1933,6 +2058,7 @@ function renderBackupScreen() {
         nameEl.innerHTML = `<strong>No file connected</strong> — changes won't be saved to disk.`;
         banner.className = 'info-banner warning';
     }
+    updateCloudUI();
 }
 
 async function switchToExistingFile() {
@@ -2522,12 +2648,9 @@ if (window.speechSynthesis) {
     loadVoices();
 }
 
-// ─────────────────────────────────────────────
-// SERVICE WORKER REGISTRATION
-// ─────────────────────────────────────────────
-// ─────────────────────────────────────────────
-// SERVICE WORKER + PWA INSTALL
-// ─────────────────────────────────────────────
+// ═══════════════════════════════════════════════
+// PWA — INSTALL PROMPT
+// ═══════════════════════════════════════════════
 let _deferredPrompt = null;
 
 window.addEventListener('beforeinstallprompt', e => {
@@ -2564,6 +2687,9 @@ function dismissInstall() {
     localStorage.setItem('quiz_pwa_dismissed', '1');
 }
 
+// ═══════════════════════════════════════════════
+// PWA — SERVICE WORKER
+// ═══════════════════════════════════════════════
 if ('serviceWorker' in navigator) {
     let _swRefreshing = false;
     navigator.serviceWorker.addEventListener('controllerchange', () => {
