@@ -96,6 +96,7 @@
         .remove-option { background:var(--card); border:1.5px solid var(--border); border-radius:10px; width:44px; height:44px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:18px; color:var(--danger); flex-shrink:0; }
         .add-option-btn { background:transparent; border:1.5px dashed var(--border); border-radius:12px; padding:12px; color:var(--text-muted); font-size:14px; cursor:pointer; text-align:center; transition:all 0.2s; }
         .add-option-btn:active { border-color:var(--primary); color:var(--primary); }
+        .option-img-btn { background:var(--card); background-size:cover; background-position:center; border:1.5px solid var(--border); border-radius:10px; width:44px; height:44px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:18px; flex-shrink:0; }
 
         /* BUTTONS */
         .btn { background:var(--primary); color:white; border:none; border-radius:14px; padding:16px 24px; font-size:16px; font-weight:600; cursor:pointer; width:100%; transition:all 0.2s; font-family:inherit; }
@@ -147,6 +148,7 @@
         .badge-mcq { background:rgba(108,99,255,0.2); color:var(--primary); }
         .badge-multiple { background:rgba(168,85,247,0.2); color:#A855F7; }
         .badge-short { background:rgba(46,204,113,0.2); color:var(--success); }
+        .badge-match { background:rgba(243,156,18,0.2); color:var(--warning); }
         .question-content { padding:20px; }
         .question-text { font-size:18px; font-weight:600; line-height:1.5; margin-bottom:6px; }
         .question-hint { font-size:12px; color:var(--text-muted); margin-bottom:20px; }
@@ -178,6 +180,32 @@
         .short-answer-input { background:var(--card); border:1.5px solid var(--border); border-radius:14px; padding:16px; color:var(--text); font-size:16px; font-family:inherit; width:100%; margin-bottom:16px; transition:border-color 0.2s; }
         .short-answer-input:focus { outline:none; border-color:var(--primary); }
         .short-answer-input.answered { border-color:var(--primary); }
+
+        /* MATCH THE FOLLOWING — creation form pair rows */
+        .match-pair-row { display:flex; gap:8px; align-items:center; }
+        .match-pair-row .form-input { flex:1; }
+        .match-pair-num { width:28px; height:28px; border-radius:8px; background:var(--border); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:12px; flex-shrink:0; }
+        .match-pair-arrow { color:var(--text-muted); font-size:14px; flex-shrink:0; }
+
+        /* MATCH THE FOLLOWING — quiz taking (tap-to-connect) */
+        .match-container { margin-bottom:24px; }
+        .match-progress { font-size:12px; color:var(--text-muted); margin-bottom:12px; text-align:center; }
+        .match-left-list { display:flex; flex-direction:column; gap:10px; margin-bottom:20px; }
+        .match-left-row { background:var(--card); border:1.5px solid var(--border); border-radius:14px; padding:12px 14px; display:flex; align-items:center; gap:12px; cursor:pointer; transition:all 0.2s; }
+        .match-left-row.active { border-color:var(--primary); background:rgba(108,99,255,0.1); }
+        .match-left-row.filled { border-color:var(--success); }
+        .match-left-num { width:26px; height:26px; border-radius:50%; background:var(--border); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:12px; flex-shrink:0; }
+        .match-left-row.filled .match-left-num { background:var(--success); color:white; }
+        .match-left-text { flex:1; font-size:14px; }
+        .match-left-slot { flex:1; min-width:0; font-size:13px; color:var(--text-muted); border:1.5px dashed var(--border); border-radius:10px; padding:8px 10px; text-align:center; }
+        .match-left-row.filled .match-left-slot { border-style:solid; border-color:var(--success); color:var(--text); background:rgba(46,204,113,0.1); display:flex; align-items:center; justify-content:space-between; gap:8px; }
+        .match-clear-btn { color:var(--danger); font-size:16px; flex-shrink:0; line-height:1; }
+        .match-right-label { font-size:12px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px; }
+        .match-right-pool { display:flex; flex-wrap:wrap; gap:10px; }
+        .match-chip { background:var(--card2); border:1.5px solid var(--border); border-radius:20px; padding:10px 16px; font-size:13px; cursor:pointer; transition:all 0.2s; }
+        .match-chip:active { transform:scale(0.95); }
+        .match-chip.used { opacity:0.3; pointer-events:none; }
+        .match-chip.awaiting { border-color:var(--primary); box-shadow:0 0 0 2px rgba(108,99,255,0.25); }
 
         /* Unanswered warning */
         .must-answer-hint { background:rgba(243,156,18,0.1); border:1px solid rgba(243,156,18,0.3); border-radius:10px; padding:10px 14px; font-size:13px; color:var(--warning); text-align:center; display:none; margin-bottom:12px; }
@@ -232,6 +260,7 @@
         .q-type-dot.mcq { background:var(--primary); }
         .q-type-dot.multiple { background:#A855F7; }
         .q-type-dot.short { background:var(--success); }
+        .q-type-dot.match { background:var(--warning); }
         .question-manage-text { flex:1; font-size:14px; font-weight:500; }
         .question-manage-meta { font-size:12px; color:var(--text-muted); margin-bottom:8px; }
         .question-manage-actions { display:flex; gap:8px; }
@@ -427,6 +456,9 @@
             .pa-option.correct::before { content:'\2713  '; }
             .pa-short-line { border-bottom:1px solid #bbb; margin:10px 0; height:20px; }
             .pa-answer-box { font-size:12px; color:#1a6e35; font-style:italic; margin-top:6px; padding:6px 8px; border:1px dashed #aaa; border-radius:4px; font-family:Arial,sans-serif; }
+            .pa-match-row { display:flex; gap:16px; font-size:13px; padding:3px 0 3px 8px; font-family:Arial,sans-serif; }
+            .pa-match-left { flex:1; }
+            .pa-match-right { flex:1; color:#1a6e35; }
             @page { margin:20mm 18mm; }
         }
     </style>
@@ -514,6 +546,7 @@
         <span class="q-type-badge" id="q-type-badge">MCQ</span>
     </div>
     <div class="question-content">
+        <img id="question-image" style="display:none;max-width:100%;border-radius:14px;margin-bottom:14px;" />
         <div class="question-text" id="question-text"></div>
         <button class="speak-btn" id="speak-btn" onclick="toggleSpeak()">🔊 Read aloud</button>
         <div class="question-hint" id="question-hint"></div>
@@ -521,6 +554,8 @@
         <div class="must-answer-hint" id="must-answer-hint">⚠️ Please answer this question to continue</div>
         <!-- MCQ / Multiple options -->
         <div class="options-list" id="options-list"></div>
+        <!-- Match the following -->
+        <div class="match-container" id="match-container" style="display:none"></div>
         <!-- Short answer input -->
         <input type="text" class="short-answer-input" id="short-answer-input" placeholder="Type your answer here..." style="display:none" />
     </div>
@@ -616,11 +651,21 @@
                 <div class="radio-option selected" onclick="selectQType('mcq',this)"><div class="radio-dot"></div><span class="radio-label">📝 Multiple Choice (Single Answer)</span></div>
                 <div class="radio-option" onclick="selectQType('multiple',this)"><div class="radio-dot"></div><span class="radio-label">☑️ Multiple Answer (Select All That Apply)</span></div>
                 <div class="radio-option" onclick="selectQType('short',this)"><div class="radio-dot"></div><span class="radio-label">✍️ Short Answer (Type Answer)</span></div>
+                <div class="radio-option" onclick="selectQType('match',this)"><div class="radio-dot"></div><span class="radio-label">🔗 Match the Following</span></div>
             </div>
         </div>
         <div class="form-group">
             <label>Question Text *</label>
             <textarea class="form-textarea" id="q-text" placeholder="Enter your question here..."></textarea>
+        </div>
+        <div class="form-group" id="q-image-group" style="display:none">
+            <label>Question Image (optional) <span style="color:var(--text-muted);font-weight:400;text-transform:none;font-size:12px">(local file mode only)</span></label>
+            <div id="q-image-preview-wrap" style="display:none;position:relative;margin-bottom:10px">
+                <img id="q-image-preview" style="max-width:100%;border-radius:12px;display:block" />
+                <div onclick="removeQuestionImage()" style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.6);color:white;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:13px;">🗑 Remove</div>
+            </div>
+            <input type="file" accept="image/*" id="q-image-input" style="display:none" onchange="handleQuestionImagePick(event)">
+            <button type="button" class="add-option-btn" id="q-image-add-btn" onclick="document.getElementById('q-image-input').click()">🖼️ Add Image</button>
         </div>
         <div class="form-group" id="q-options-group">
             <label>Answer Options * <span style="color:var(--text-muted);font-weight:400;text-transform:none;font-size:12px">(tap ✓ to mark correct)</span></label>
@@ -630,6 +675,11 @@
         <div class="form-group" id="q-short-answers-group" style="display:none">
             <label>Accepted Answers * <span style="color:var(--text-muted);font-weight:400;text-transform:none;font-size:12px">(one per line)</span></label>
             <textarea class="form-textarea" id="q-short-answers" placeholder="Answer 1&#10;Answer 2&#10;Alternative spelling..."></textarea>
+        </div>
+        <div class="form-group" id="q-match-group" style="display:none">
+            <label>Match Pairs * <span style="color:var(--text-muted);font-weight:400;text-transform:none;font-size:12px">(left order is fixed; right side is shuffled for the player)</span></label>
+            <div class="options-container" id="q-match-container"></div>
+            <button class="add-option-btn" onclick="addMatchPair()">+ Add Pair</button>
         </div>
         <button class="btn" onclick="saveQuestion()">Save Question ✓</button>
     </div>
@@ -1045,8 +1095,11 @@ async function signOutOfCloud() {
 async function uploadDBToCloud() {
     if (!cloudConnected || !firebaseDb || !cloudUser) return;
     try {
+        // Questions containing any image (question image or option images) never enter the cloud at all —
+        // they exist only in the local file, keeping the Firestore doc small and images fully private to local mode.
+        const cloudSafeDB = { ...DB, questions: DB.questions.filter(q => !q.image && !(q.optionImages && q.optionImages.some(img => img))) };
         await firebaseDb.collection('quizData').doc(cloudUser.uid).set({
-            content: JSON.stringify(DB),
+            content: JSON.stringify(cloudSafeDB),
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
     } catch(e) { showToast('⚠️ Cloud save failed: ' + (e.code||e.message||'unknown error')); }
@@ -1318,6 +1371,10 @@ function shuffle(arr) {
 
 // Shuffle answer options while keeping correctIndices in sync
 function shuffleQuestionOptions(q) {
+    if (q.type==='match') {
+        if (!q.pairs || !q.pairs.length) return q;
+        return { ...q, matchRightOrder: shuffle(q.pairs.map((_,i)=>i)) };
+    }
     if (q.type==='short' || !q.options || q.options.length===0) return q;
     const idxs = shuffle(q.options.map((_,i)=>i));
     return {
@@ -1464,13 +1521,17 @@ function renderQuestion() {
     const badge = document.getElementById('q-type-badge');
     if (q.type==='mcq')      { badge.textContent='Single Choice';   badge.className='q-type-badge badge-mcq'; }
     else if (q.type==='multiple') { badge.textContent='Multiple Answer'; badge.className='q-type-badge badge-multiple'; }
+    else if (q.type==='match')    { badge.textContent='Match the Following'; badge.className='q-type-badge badge-match'; }
     else                     { badge.textContent='Short Answer';    badge.className='q-type-badge badge-short'; }
 
     // Question text & hint
     document.getElementById('question-text').textContent = q.question;
+    const qImg = document.getElementById('question-image');
+    if (q.image) { qImg.src = q.image; qImg.style.display = 'block'; } else { qImg.style.display = 'none'; }
     document.getElementById('question-hint').textContent =
         q.type==='mcq'      ? 'Select one answer' :
         q.type==='multiple' ? 'Select all that apply' :
+        q.type==='match'    ? 'Tap an item on the left, then tap its match on the right' :
                               'Type your answer below';
 
     // Hide must-answer warning on render
@@ -1479,12 +1540,14 @@ function renderQuestion() {
     // ── Short Answer ──────────────────────────────────────
     const shortInput = document.getElementById('short-answer-input');
     const optionsList = document.getElementById('options-list');
+    const matchContainer = document.getElementById('match-container');
     const checkBtn  = document.getElementById('quiz-check-btn');
     const nextBtn   = document.getElementById('quiz-next-btn');
     const prevBtn   = document.getElementById('quiz-prev-btn');
 
     if (q.type==='short') {
         optionsList.style.display = 'none';
+        matchContainer.style.display = 'none';
         shortInput.style.display  = 'block';
         shortInput.value    = quizState.answers[idx] || '';
         shortInput.disabled = isLocked;
@@ -1492,9 +1555,20 @@ function renderQuestion() {
         checkBtn.style.display = 'none';
         nextBtn.style.display  = 'block';
     }
+    // ── Match the Following ────────────────────────────────
+    else if (q.type==='match') {
+        shortInput.style.display  = 'none';
+        optionsList.style.display = 'none';
+        matchContainer.style.display = 'block';
+        checkBtn.style.display    = 'none';
+        nextBtn.style.display     = 'block';
+        matchActiveLeftIndex = null;
+        renderMatchQuestion(q, idx, isLocked);
+    }
     // ── MCQ / Multiple ────────────────────────────────────
     else {
         shortInput.style.display  = 'none';
+        matchContainer.style.display = 'none';
         optionsList.style.display = 'flex';
         checkBtn.style.display    = 'none';   // never shown for MCQ/multiple
         nextBtn.style.display     = 'block';
@@ -1532,9 +1606,92 @@ function renderOptions(q, idx, isLocked) {
 
         return `<div class="${cls}" onclick="${onclick}">
             <div class="option-letter">${optionLetter(i)}</div>
-            <div class="option-text">${opt}</div>
+            <div class="option-text">${(q.optionImages && q.optionImages[i]) ? `<img src="${q.optionImages[i]}" style="max-width:100%;border-radius:10px;display:block;margin-bottom:6px">` : ''}${opt}</div>
         </div>`;
     }).join('');
+}
+
+// ─────────────────────────────────────────────
+// MATCH THE FOLLOWING (tap-to-connect)
+// ─────────────────────────────────────────────
+let matchActiveLeftIndex = null;
+
+function renderMatchQuestion(q, idx, isLocked) {
+    const container = document.getElementById('match-container');
+    let ans = quizState.answers[idx];
+    if (!Array.isArray(ans)) ans = new Array(q.pairs.length).fill(null);
+
+    const matchedCount = ans.filter(v => v !== null).length;
+    const total = q.pairs.length;
+
+    const leftHtml = q.pairs.map((p, i) => {
+        const matched = ans[i];
+        const isFilled = matched !== null;
+        const isActive = !isLocked && matchActiveLeftIndex === i;
+        const cls = 'match-left-row' + (isFilled ? ' filled' : '') + (isActive ? ' active' : '');
+        const rowClick = (isLocked || isFilled) ? '' : `onclick="matchSelectLeft(${i})"`;
+        const slotInner = isFilled
+            ? `<span>${q.pairs[matched].right}</span>${isLocked ? '' : `<span class="match-clear-btn" onclick="event.stopPropagation();matchClearLeft(${i})">✕</span>`}`
+            : (isActive ? 'Tap a match below…' : 'Tap to match');
+        return `<div class="${cls}" ${rowClick}>
+            <div class="match-left-num">${i+1}</div>
+            <div class="match-left-text">${p.left}</div>
+            <div class="match-left-slot">${slotInner}</div>
+        </div>`;
+    }).join('');
+
+    const order = q.matchRightOrder || q.pairs.map((_, i) => i);
+    const usedSet = new Set(ans.filter(v => v !== null));
+    const rightHtml = order.map(pairIdx => {
+        const used = usedSet.has(pairIdx);
+        const cls = 'match-chip' + (used ? ' used' : '') + (!isLocked && !used && matchActiveLeftIndex !== null ? ' awaiting' : '');
+        const chipClick = (isLocked || used) ? '' : `onclick="matchSelectRight(${pairIdx})"`;
+        return `<div class="${cls}" ${chipClick}>${q.pairs[pairIdx].right}</div>`;
+    }).join('');
+
+    container.innerHTML = `
+        <div class="match-progress">${matchedCount}/${total} matched</div>
+        <div class="match-left-list">${leftHtml}</div>
+        <div class="match-right-label">Tap the matching answer</div>
+        <div class="match-right-pool">${rightHtml}</div>
+    `;
+}
+
+function matchSelectLeft(i) {
+    const idx = quizState.current;
+    if (quizState.locked[idx]) return;
+    const q = quizState.questions[idx];
+    let ans = quizState.answers[idx];
+    if (!Array.isArray(ans)) ans = new Array(q.pairs.length).fill(null);
+    if (ans[i] !== null) return; // already filled — use the ✕ to clear it first
+    matchActiveLeftIndex = (matchActiveLeftIndex === i) ? null : i;
+    quizState.answers[idx] = ans;
+    renderMatchQuestion(q, idx, false);
+}
+
+function matchSelectRight(pairIdx) {
+    const idx = quizState.current;
+    if (quizState.locked[idx]) return;
+    if (matchActiveLeftIndex === null) { showToast('Tap an item on the left first'); return; }
+    const q = quizState.questions[idx];
+    let ans = quizState.answers[idx];
+    if (!Array.isArray(ans)) ans = new Array(q.pairs.length).fill(null);
+    ans[matchActiveLeftIndex] = pairIdx;
+    quizState.answers[idx] = ans;
+    matchActiveLeftIndex = null;
+    document.getElementById('must-answer-hint').classList.remove('show');
+    renderMatchQuestion(q, idx, false);
+}
+
+function matchClearLeft(i) {
+    const idx = quizState.current;
+    if (quizState.locked[idx]) return;
+    const q = quizState.questions[idx];
+    const ans = quizState.answers[idx];
+    if (!Array.isArray(ans)) return;
+    ans[i] = null;
+    if (matchActiveLeftIndex === i) matchActiveLeftIndex = null;
+    renderMatchQuestion(q, idx, false);
 }
 
 // ─────────────────────────────────────────────
@@ -1616,6 +1773,15 @@ function nextQuestion() {
             quizState.answers[idx] = val;
             quizState.locked[idx]  = true;
         }
+        // Match: every left row must be matched
+        if (q.type === 'match') {
+            const arr = quizState.answers[idx];
+            if (!Array.isArray(arr) || arr.some(v => v === null)) {
+                document.getElementById('must-answer-hint').classList.add('show');
+                return;
+            }
+            quizState.locked[idx] = true;
+        }
     }
 
     if (idx >= total-1) {
@@ -1645,6 +1811,10 @@ function isAnswerCorrect(idx) {
     if (q.type==='multiple') {
         if (!ans||!ans.length) return false;
         return [...ans].sort().join(',') === [...q.correctIndices].sort().join(',');
+    }
+    if (q.type==='match') {
+        if (!Array.isArray(ans) || ans.length !== q.pairs.length) return false;
+        return ans.every((v,i) => v === i);
     }
     // Short — exact, case-insensitive
     return q.acceptedAnswers.some(a => a.trim().toLowerCase() === (ans||'').trim().toLowerCase());
@@ -1728,6 +1898,13 @@ function renderResults(questions, correct, wrong, skipped, results) {
                 : Array.isArray(ua) ? ua.map(x=>q.options[x]).join(', ')
                 : q.options[ua];
             const correctText = q.correctIndices.map(x=>q.options[x]).join(', ');
+            yourHtml = `<div class="result-answer your-answer ${r.correct?'correct':''}"><div class="result-answer-label">Your Answer</div>${userText}</div>`;
+            if (!r.correct) correctHtml = `<div class="result-answer correct-ans"><div class="result-answer-label">Correct Answer</div>${correctText}</div>`;
+        } else if (q.type==='match') {
+            const ua = r.userAnswer;
+            const userText = r.skipped ? 'Skipped'
+                : q.pairs.map((p,pi) => `${p.left} → ${(Array.isArray(ua) && ua[pi]!==null && ua[pi]!==undefined) ? q.pairs[ua[pi]].right : '—'}`).join('<br>');
+            const correctText = q.pairs.map(p=>`${p.left} → ${p.right}`).join('<br>');
             yourHtml = `<div class="result-answer your-answer ${r.correct?'correct':''}"><div class="result-answer-label">Your Answer</div>${userText}</div>`;
             if (!r.correct) correctHtml = `<div class="result-answer correct-ans"><div class="result-answer-label">Correct Answer</div>${correctText}</div>`;
         } else {
@@ -1817,6 +1994,7 @@ let addQuestionReturnScreen = 'screen-home';
 function showAddQuestion(quizId=null) {
     editingQuestionId = null;
     currentQType = 'mcq';
+    currentQuestionImage = null;
     document.getElementById('add-q-title').textContent = 'Add Question';
     document.getElementById('q-text').value = '';
     document.getElementById('q-short-answers').value = '';
@@ -1824,6 +2002,7 @@ function showAddQuestion(quizId=null) {
     document.getElementById('q-quiz-select').value = quizId||'';
     document.querySelectorAll('#q-type-radio .radio-option').forEach((el,i)=>el.classList.toggle('selected',i===0));
     showQTypeUI('mcq'); initOptionRows();
+    updateQuestionImageUI();
     addQuestionReturnScreen = document.querySelector('.screen.active')?.id||'screen-home';
     showScreen('screen-add-question');
 }
@@ -1848,21 +2027,97 @@ function selectQType(type, el) {
 }
 
 function showQTypeUI(type) {
-    document.getElementById('q-options-group').style.display    = type==='short'?'none':'flex';
+    document.getElementById('q-options-group').style.display    = (type==='short'||type==='match')?'none':'flex';
     document.getElementById('q-short-answers-group').style.display = type==='short'?'flex':'none';
-    if (type!=='short') initOptionRows();
+    document.getElementById('q-match-group').style.display = type==='match'?'flex':'none';
+    if (type==='match') initMatchPairs();
+    else if (type!=='short') initOptionRows();
 }
 
 let optionRows = [];
-function initOptionRows() {
-    optionRows = [{text:'',correct:false},{text:'',correct:false},{text:'',correct:false},{text:'',correct:false}];
+let matchPairs = [];
+let currentQuestionImage = null;
+
+function compressImageFile(file, maxDim=1000, quality=0.72) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => {
+            const img = new Image();
+            img.onload = () => {
+                let w = img.width, h = img.height;
+                if (w > maxDim || h > maxDim) {
+                    if (w > h) { h = Math.round(h * maxDim / w); w = maxDim; }
+                    else { w = Math.round(w * maxDim / h); h = maxDim; }
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = w; canvas.height = h;
+                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                resolve(canvas.toDataURL('image/jpeg', quality));
+            };
+            img.onerror = () => reject(new Error('Could not load image'));
+            img.src = e.target.result;
+        };
+        reader.onerror = () => reject(new Error('Could not read file'));
+        reader.readAsDataURL(file);
+    });
+}
+
+function updateQuestionImageUI() {
+    const group = document.getElementById('q-image-group');
+    group.style.display = fileHandle ? 'block' : 'none';
+    const wrap = document.getElementById('q-image-preview-wrap');
+    const addBtn = document.getElementById('q-image-add-btn');
+    if (currentQuestionImage) {
+        document.getElementById('q-image-preview').src = currentQuestionImage;
+        wrap.style.display = 'block';
+        addBtn.style.display = 'none';
+    } else {
+        wrap.style.display = 'none';
+        addBtn.style.display = 'block';
+    }
+}
+
+async function handleQuestionImagePick(event) {
+    const file = event.target.files[0];
+    event.target.value = '';
+    if (!file) return;
+    try {
+        currentQuestionImage = await compressImageFile(file);
+        updateQuestionImageUI();
+    } catch(e) { showToast('❌ Could not process image'); }
+}
+
+function removeQuestionImage() {
+    currentQuestionImage = null;
+    updateQuestionImageUI();
+}
+
+async function handleOptionImagePick(event, i) {
+    const file = event.target.files[0];
+    event.target.value = '';
+    if (!file) return;
+    try {
+        optionRows[i].image = await compressImageFile(file, 800, 0.7);
+        renderOptionRows();
+    } catch(e) { showToast('❌ Could not process image'); }
+}
+
+function removeOptionImage(i) {
+    optionRows[i].image = null;
     renderOptionRows();
 }
-function addOptionRow() { optionRows.push({text:'',correct:false}); renderOptionRows(); }
+
+function initOptionRows() {
+    optionRows = [{text:'',correct:false,image:null},{text:'',correct:false,image:null},{text:'',correct:false,image:null},{text:'',correct:false,image:null}];
+    renderOptionRows();
+}
+function addOptionRow() { optionRows.push({text:'',correct:false,image:null}); renderOptionRows(); }
 function renderOptionRows() {
+    const localImagesEnabled = !!fileHandle;
     document.getElementById('q-options-container').innerHTML = optionRows.map((row,i)=>`
         <div class="option-row">
             <input type="text" class="form-input" value="${row.text}" placeholder="Option ${optionLetter(i)}" oninput="optionRows[${i}].text=this.value">
+            ${localImagesEnabled ? `<div class="option-img-btn" style="${row.image?`background-image:url('${row.image}')`:''}" onclick="${row.image?`removeOptionImage(${i})`:`document.getElementById('opt-img-input-${i}').click()`}" title="${row.image?'Remove image':'Add image'}">${row.image?'':'📷'}</div><input type="file" accept="image/*" id="opt-img-input-${i}" style="display:none" onchange="handleOptionImagePick(event, ${i})">` : ''}
             <div class="correct-toggle ${row.correct?'correct':''}" onclick="toggleCorrect(${i})">${row.correct?'✅':'☐'}</div>
             ${optionRows.length>2?`<div class="remove-option" onclick="removeOption(${i})">🗑</div>`:''}
         </div>`).join('');
@@ -1874,6 +2129,23 @@ function toggleCorrect(i) {
 }
 function removeOption(i) { optionRows.splice(i,1); renderOptionRows(); }
 
+function initMatchPairs() {
+    matchPairs = [{left:'',right:''},{left:'',right:''},{left:'',right:''}];
+    renderMatchPairRows();
+}
+function addMatchPair() { matchPairs.push({left:'',right:''}); renderMatchPairRows(); }
+function removeMatchPair(i) { matchPairs.splice(i,1); renderMatchPairRows(); }
+function renderMatchPairRows() {
+    document.getElementById('q-match-container').innerHTML = matchPairs.map((p,i)=>`
+        <div class="match-pair-row">
+            <div class="match-pair-num">${i+1}</div>
+            <input type="text" class="form-input" value="${p.left}" placeholder="Left item ${i+1}" oninput="matchPairs[${i}].left=this.value">
+            <span class="match-pair-arrow">↔</span>
+            <input type="text" class="form-input" value="${p.right}" placeholder="Matching answer ${i+1}" oninput="matchPairs[${i}].right=this.value">
+            ${matchPairs.length>2?`<div class="remove-option" onclick="removeMatchPair(${i})">🗑</div>`:''}
+        </div>`).join('');
+}
+
 function saveQuestion() {
     const quizId = document.getElementById('q-quiz-select').value;
     const qText  = document.getElementById('q-text').value.trim();
@@ -1884,16 +2156,22 @@ function saveQuestion() {
         const raw = document.getElementById('q-short-answers').value.trim();
         if (!raw) { showToast('At least one accepted answer required!'); return; }
         const acceptedAnswers = raw.split('\n').map(a=>a.trim()).filter(a=>a.length>0);
-        saveQuestionToDb({ id:editingQuestionId||genId(), quizId, type:'short', question:qText, acceptedAnswers, createdAt:Date.now() });
+        saveQuestionToDb({ id:editingQuestionId||genId(), quizId, type:'short', question:qText, acceptedAnswers, image: fileHandle ? (currentQuestionImage||undefined) : undefined, createdAt:Date.now() });
+    } else if (currentQType==='match') {
+        const filled = matchPairs.filter(p=>p.left.trim().length>0 && p.right.trim().length>0);
+        if (filled.length<2) { showToast('At least 2 match pairs required!'); return; }
+        const pairs = filled.map(p=>({left:p.left.trim(), right:p.right.trim()}));
+        saveQuestionToDb({ id:editingQuestionId||genId(), quizId, type:'match', question:qText, pairs, image: fileHandle ? (currentQuestionImage||undefined) : undefined, createdAt:Date.now() });
     } else {
         const filled   = optionRows.filter(r=>r.text.trim().length>0);
         const corrects = optionRows.filter(r=>r.correct&&r.text.trim().length>0);
         if (filled.length<2)   { showToast('At least 2 options required!'); return; }
         if (!corrects.length)  { showToast('Mark at least one correct answer!'); return; }
         if (currentQType==='mcq'&&corrects.length>1) { showToast('MCQ can only have ONE correct answer!'); return; }
-        const options=[]; const correctIndices=[]; let offset=0;
-        optionRows.forEach((r,i)=>{ if(!r.text.trim()) { offset++; return; } options.push(r.text.trim()); if(r.correct) correctIndices.push(i-offset); });
-        saveQuestionToDb({ id:editingQuestionId||genId(), quizId, type:currentQType, question:qText, options, correctIndices, createdAt:Date.now() });
+        const options=[]; const correctIndices=[]; const optionImages=[]; let offset=0;
+        optionRows.forEach((r,i)=>{ if(!r.text.trim()) { offset++; return; } options.push(r.text.trim()); optionImages.push(fileHandle ? (r.image||null) : null); if(r.correct) correctIndices.push(i-offset); });
+        const hasOptionImages = fileHandle && optionImages.some(img=>img);
+        saveQuestionToDb({ id:editingQuestionId||genId(), quizId, type:currentQType, question:qText, options, correctIndices, image: fileHandle ? (currentQuestionImage||undefined) : undefined, optionImages: hasOptionImages ? optionImages : undefined, createdAt:Date.now() });
     }
 }
 
@@ -1912,7 +2190,8 @@ function saveQuestionToDb(q) {
         const savedQuizId = document.getElementById('q-quiz-select').value;
         document.getElementById('q-text').value = '';
         document.getElementById('q-short-answers').value = '';
-        if (currentQType !== 'short') initOptionRows();
+        if (currentQType === 'match') initMatchPairs();
+        else if (currentQType !== 'short') initOptionRows();
         updateQuizSelects();
         document.getElementById('q-quiz-select').value = savedQuizId;
         document.getElementById('q-text').focus();
@@ -1925,15 +2204,18 @@ function editQuestion(qId) {
     if (!q) return;
     editingQuestionId = qId;
     currentQType = q.type;
+    currentQuestionImage = q.image || null;
     document.getElementById('add-q-title').textContent = 'Edit Question';
     document.getElementById('q-text').value = q.question;
     updateQuizSelects();
     document.getElementById('q-quiz-select').value = q.quizId;
-    const tm={mcq:0,multiple:1,short:2};
+    const tm={mcq:0,multiple:1,short:2,match:3};
     document.querySelectorAll('#q-type-radio .radio-option').forEach((el,i)=>el.classList.toggle('selected',i===tm[q.type]));
     showQTypeUI(q.type);
     if (q.type==='short') document.getElementById('q-short-answers').value=q.acceptedAnswers.join('\n');
-    else { optionRows=q.options.map((opt,i)=>({text:opt,correct:q.correctIndices.includes(i)})); renderOptionRows(); }
+    else if (q.type==='match') { matchPairs=q.pairs.map(p=>({left:p.left,right:p.right})); renderMatchPairRows(); }
+    else { optionRows=q.options.map((opt,i)=>({text:opt,correct:q.correctIndices.includes(i),image:(q.optionImages&&q.optionImages[i])||null})); renderOptionRows(); }
+    updateQuestionImageUI();
     addQuestionReturnScreen = document.querySelector('.screen.active')?.id||'screen-manage';
     showScreen('screen-add-question');
 }
@@ -1976,7 +2258,7 @@ function renderManageQuestions() {
     const list   = document.getElementById('manage-question-list');
     const qs = filter==='all' ? DB.questions : DB.questions.filter(q=>q.quizId===filter);
     if (!qs.length) { list.innerHTML=`<div class="empty-state"><span class="empty-icon">❓</span><h3>No questions</h3><p>Add questions using the + button</p></div>`; return; }
-    const tl={mcq:'Single Choice',multiple:'Multi Answer',short:'Short Answer'};
+    const tl={mcq:'Single Choice',multiple:'Multi Answer',short:'Short Answer',match:'Match the Following'};
     list.innerHTML = qs.map(q => {
         const quiz=DB.quizzes.find(x=>x.id===q.quizId);
         return `<div class="question-manage-item">
@@ -2595,17 +2877,25 @@ function generatePDF() {
 
     questions.forEach((q, i) => {
         const typeLabel = q.type === 'mcq' ? 'Single correct answer' :
-                          q.type === 'multiple' ? 'Select all that apply' : 'Written answer';
+                          q.type === 'multiple' ? 'Select all that apply' :
+                          q.type === 'match' ? 'Match the following' : 'Written answer';
         const qText = q.question || q.text || '';
         html += '<div class="pa-question">';
         html += '<div class="pa-q-num">Question ' + (i + 1) + '</div>';
         html += '<div class="pa-type-badge">' + typeLabel + '</div>';
         html += '<div class="pa-q-text">' + qText + '</div>';
+        if (q.image) html += '<img src="' + q.image + '" style="max-width:100%;border-radius:8px;margin:8px 0;">';
         if (q.type === 'mcq' || q.type === 'multiple') {
             (q.options || []).forEach((opt, oi) => {
                 const isCorrect = (q.correctIndices || []).includes(oi);
                 const cls = (showAnswers && isCorrect) ? ' correct' : '';
-                html += '<div class="pa-option' + cls + '">' + optionLetter(oi) + '. ' + opt + '</div>';
+                const optImg = (q.optionImages && q.optionImages[oi]) ? '<br><img src="'+q.optionImages[oi]+'" style="max-width:200px;border-radius:6px;margin-top:4px;">' : '';
+                html += '<div class="pa-option' + cls + '">' + optionLetter(oi) + '. ' + opt + optImg + '</div>';
+            });
+        } else if (q.type === 'match') {
+            (q.pairs || []).forEach((p, pi) => {
+                const rightText = showAnswers ? p.right : '__________________';
+                html += '<div class="pa-match-row"><div class="pa-match-left">' + (pi + 1) + '. ' + p.left + '</div><div class="pa-match-right">' + rightText + '</div></div>';
             });
         } else {
             if (showAnswers && q.acceptedAnswers && q.acceptedAnswers.length) {
