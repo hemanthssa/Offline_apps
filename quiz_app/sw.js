@@ -1,5 +1,5 @@
 // Quiz App Service Worker — Full Offline Support
-const CACHE_NAME = 'quizapp-v1';
+const CACHE_NAME = 'quizapp-v2';
 
 const ASSETS = [
   './index.html',
@@ -59,3 +59,4 @@ self.addEventListener('fetch', event => {
     return;
   }
 });
+

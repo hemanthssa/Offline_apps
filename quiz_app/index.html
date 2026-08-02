@@ -715,6 +715,8 @@
             <div class="backup-section-header"><span class="backup-section-icon">☁️</span><div><div class="backup-section-title">Cloud Sync</div><div class="backup-section-desc">Sync quizzes &amp; progress across devices</div></div></div>
             <div class="backup-section-body">
                 <div id="cloud-sync-banner" class="info-banner info"><span>☁️</span><p id="cloud-sync-status">Not connected</p></div>
+                <div id="cloud-paused-banner" class="info-banner warning" style="display:none"><span>⏸️</span><p>Auto-sync is paused while using a local file. Your cloud data is untouched — tap below to push this device's data up manually.</p></div>
+                <button class="backup-option-btn" id="cloud-push-btn" style="display:none" onclick="pushToCloudNow()"><span class="bop-icon">⬆️</span><div><div class="bop-title">Push to Cloud Now</div><div class="bop-desc">Manually upload this device's data</div></div></button>
                 <button class="backup-option-btn" id="cloud-sync-btn" onclick="signInToCloud()"><span class="bop-icon">🔐</span><div><div class="bop-title">Sign In with Google</div><div class="bop-desc">Sync this device's data to the cloud</div></div></button>
             </div>
         </div>
@@ -1050,6 +1052,11 @@ let firebaseAuth = null;
 let firebaseDb = null;
 let cloudUser = null;
 let cloudConnected = false;
+// true while the user is in "local file" mode this session (Create/Open/Switch file, or Skip).
+// Cloud sign-in state is preserved so the Backup screen still shows "Connected", but saveDB()
+// will NOT silently push local changes up and overwrite the cloud copy until the user explicitly
+// re-enables cloud sync (Continue with Cloud Sync / Sign In) or taps "Push to Cloud Now".
+let cloudAutoUploadPaused = false;
 
 window.addEventListener('load', function() {
     if (window.firebase && FIREBASE_CONFIG.apiKey.indexOf('PASTE_YOUR') === -1) {
@@ -1076,6 +1083,7 @@ async function signInToCloud() {
         const provider = new firebase.auth.GoogleAuthProvider();
         const result = await firebaseAuth.signInWithPopup(provider);
         cloudUser = result.user; cloudConnected = true;
+        cloudAutoUploadPaused = false;
         await syncWithCloudOnSignIn();
         updateCloudUI();
         showToast('✅ Cloud sync connected');
@@ -1105,6 +1113,14 @@ async function uploadDBToCloud() {
     } catch(e) { showToast('⚠️ Cloud save failed: ' + (e.code||e.message||'unknown error')); }
 }
 
+// Manual, explicit one-off push — bypasses the auto-upload pause so a local-file session
+// can still be pushed to the cloud on purpose, without ever risking a silent overwrite.
+async function pushToCloudNow() {
+    if (!cloudConnected) { showToast('⚠️ Not connected to cloud — sign in first'); return; }
+    await uploadDBToCloud();
+    showToast('☁️ Pushed to cloud!');
+}
+
 async function syncWithCloudOnSignIn() {
     try {
         const snap = await firebaseDb.collection('quizData').doc(cloudUser.uid).get();
@@ -1118,7 +1134,7 @@ async function syncWithCloudOnSignIn() {
                 renderHome(); updateQuizSelects();
                 if (document.getElementById('screen-backup').classList.contains('active')) renderBackupScreen();
             }
-        } else {
+        } else if (!cloudAutoUploadPaused) {
             await uploadDBToCloud();
         }
     } catch(e) { showToast('⚠️ Could not sync with cloud: ' + (e.code||e.message||'unknown error')); }
@@ -1129,22 +1145,28 @@ function updateCloudUI() {
     if (!banner) return;
     const statusEl = document.getElementById('cloud-sync-status');
     const btn = document.getElementById('cloud-sync-btn');
+    const pausedBanner = document.getElementById('cloud-paused-banner');
+    const pushBtn = document.getElementById('cloud-push-btn');
     if (cloudConnected) {
         banner.className = 'info-banner success';
         statusEl.innerHTML = `Connected as <strong>${cloudUser.displayName || cloudUser.email}</strong>`;
         btn.innerHTML = `<span class="bop-icon">🔓</span><div><div class="bop-title">Sign Out of Cloud Sync</div><div class="bop-desc">Stop syncing this device</div></div>`;
         btn.onclick = signOutOfCloud;
+        if (pausedBanner) pausedBanner.style.display = cloudAutoUploadPaused ? 'flex' : 'none';
+        if (pushBtn) pushBtn.style.display = cloudAutoUploadPaused ? 'flex' : 'none';
     } else {
         banner.className = 'info-banner info';
         statusEl.innerHTML = `<strong>Not connected</strong> — sign in to sync across devices.`;
         btn.innerHTML = `<span class="bop-icon">🔐</span><div><div class="bop-title">Sign In with Google</div><div class="bop-desc">Sync this device's data to the cloud</div></div>`;
         btn.onclick = signInToCloud;
+        if (pausedBanner) pausedBanner.style.display = 'none';
+        if (pushBtn) pushBtn.style.display = 'none';
     }
 }
 
 async function saveDB() {
     DB.updatedAt = new Date().toISOString();
-    if (cloudConnected) uploadDBToCloud();
+    if (cloudConnected && !cloudAutoUploadPaused) uploadDBToCloud();
     if (!fileHandle) return;
     try {
         const writable = await fileHandle.createWritable();
@@ -1170,6 +1192,8 @@ async function openExistingFile() {
         if (DB.streak === undefined)  DB.streak = 0;
         if (DB.lastTakenDate === undefined) DB.lastTakenDate = null;
         fileHandle = handle;
+        cloudAutoUploadPaused = true;
+        updateCloudUI();
         closeModal('session-start-modal');
         renderHome(); updateQuizSelects();
         showToast('✅ Data loaded!');
@@ -1185,8 +1209,10 @@ async function createNewFile() {
             types: [{ description: 'Quiz Data', accept: { 'application/json': ['.json'] } }]
         });
         fileHandle = handle;
+        cloudAutoUploadPaused = true;
         DB = { quizzes:[], questions:[], history:[], streak:0, lastTakenDate:null };
         await saveDB();
+        updateCloudUI();
         closeModal('session-start-modal');
         renderHome(); updateQuizSelects();
         showToast('✅ New data file created!');
@@ -1197,7 +1223,9 @@ async function createNewFile() {
 
 function skipFile() {
     fileHandle = null;
+    cloudAutoUploadPaused = true;
     DB = { quizzes:[], questions:[], history:[], streak:0, lastTakenDate:null };
+    updateCloudUI();
     closeModal('session-start-modal');
     renderHome(); updateQuizSelects();
     showToast("⚠️ No file selected — data won't persist.");
@@ -1206,6 +1234,7 @@ function skipFile() {
 async function continueWithCloudSync() {
     if (!firebaseAuth) { showToast('⚠️ Cloud sync not configured yet — add your Firebase config first'); return; }
     fileHandle = null;
+    cloudAutoUploadPaused = false;
     closeModal('session-start-modal');
     await signInToCloud();
     renderHome(); updateQuizSelects();
@@ -2345,6 +2374,8 @@ async function switchToExistingFile() {
         if (DB.streak === undefined) DB.streak = 0;
         if (DB.lastTakenDate === undefined) DB.lastTakenDate = null;
         fileHandle = handle;
+        cloudAutoUploadPaused = true;
+        updateCloudUI();
         renderHome(); updateQuizSelects(); renderBackupScreen();
         showToast(`✅ Switched to: ${handle.name}`);
     } catch(e) {
@@ -2361,8 +2392,10 @@ async function switchToNewFile() {
             types: [{ description: 'Quiz Data', accept: { 'application/json': ['.json'] } }]
         });
         fileHandle = handle;
+        cloudAutoUploadPaused = true;
         DB = { quizzes:[], questions:[], history:[], streak:0, lastTakenDate:null };
         await saveDB();
+        updateCloudUI();
         renderHome(); updateQuizSelects(); renderBackupScreen();
         showToast(`✅ New file created: ${handle.name}`);
     } catch(e) {
