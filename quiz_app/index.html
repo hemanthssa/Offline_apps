@@ -40,6 +40,8 @@
         .header h2 { font-size: 18px; font-weight: 600; flex: 1; }
         .back-btn { background: var(--border); border: none; color: var(--text); width: 36px; height: 36px; border-radius: 10px; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s; }
         .back-btn:active { background: var(--primary); }
+        .back-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+        .back-btn:disabled:active { background: var(--border); }
 
         /* HOME */
         .home-hero { background: linear-gradient(135deg, var(--primary) 0%, #A855F7 100%); padding: 40px 20px 60px; text-align: center; position: relative; overflow: hidden; }
@@ -258,6 +260,7 @@
         .question-manage-header { display:flex; gap:10px; align-items:flex-start; margin-bottom:10px; }
         .q-type-dot { width:8px; height:8px; border-radius:50%; margin-top:6px; flex-shrink:0; }
         .q-type-dot.mcq { background:var(--primary); }
+        #q-json-btn:disabled { color:var(--text-muted); opacity:0.5; cursor:not-allowed; }
         .q-type-dot.multiple { background:#A855F7; }
         .q-type-dot.short { background:var(--success); }
         .q-type-dot.match { background:var(--warning); }
@@ -642,8 +645,12 @@
     <div class="form-content">
         <div class="form-group">
             <label>Add to Quiz *</label>
-            <select class="form-select" id="q-quiz-select"><option value="">-- Select a Quiz --</option></select>
-            <button type="button" onclick="showCreateQuizModal()" style="background:transparent;border:none;color:var(--primary);font-size:13px;font-weight:600;cursor:pointer;text-align:left;padding:4px 0;font-family:inherit;">＋ Create a new quiz</button>
+            <select class="form-select" id="q-quiz-select" onchange="updateJsonImportBtnState()"><option value="">-- Select a Quiz --</option></select>
+            <div style="display:flex;gap:16px;flex-wrap:wrap">
+                <button type="button" onclick="showCreateQuizModal()" style="background:transparent;border:none;color:var(--primary);font-size:13px;font-weight:600;cursor:pointer;text-align:left;padding:4px 0;font-family:inherit;">＋ Create a new quiz</button>
+                <button type="button" id="q-json-btn" disabled onclick="startJsonImport()" style="background:transparent;border:none;color:var(--primary);font-size:13px;font-weight:600;cursor:pointer;text-align:left;padding:4px 0;font-family:inherit;">📥 Add ques from JSON</button>
+                <input type="file" accept="application/json" id="q-json-input" style="display:none" onchange="handleQuestionsJsonPick(event)">
+            </div>
         </div>
         <div class="form-group">
             <label>Question Type *</label>
@@ -851,6 +858,25 @@
                 <button class="btn" onclick="saveQuiz()">Save Quiz ✓</button>
             </div>
         </div>
+    </div>
+</div>
+
+<!-- JSON IMPORT REVIEW MODAL -->
+<div class="modal-overlay" id="json-review-modal">
+    <div class="modal" style="position:relative">
+        <div class="modal-handle"></div>
+        <div onclick="closeJsonReviewModal()" title="Close" style="position:absolute;top:20px;right:20px;width:32px;height:32px;border-radius:10px;background:var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;line-height:1;">✕</div>
+        <div style="display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:6px">
+            <button type="button" id="json-review-prev" onclick="jsonReviewNav(-1)" class="back-btn" style="width:36px;height:36px;flex-shrink:0">←</button>
+            <div style="text-align:center;flex:1">
+                <div class="modal-title" style="margin-bottom:2px">Review Imported Questions</div>
+                <div style="font-size:12px;color:var(--text-muted)" id="json-review-counter">1 / 1</div>
+            </div>
+            <button type="button" id="json-review-next" onclick="jsonReviewNav(1)" class="back-btn" style="width:36px;height:36px;flex-shrink:0">→</button>
+        </div>
+        <div id="json-review-skip-note" style="display:none;text-align:center;font-size:12px;color:var(--warning);margin-bottom:12px"></div>
+        <div id="json-review-body"></div>
+        <button class="btn" style="margin-top:20px" onclick="uploadJsonReviewQuestions()">Upload ✓</button>
     </div>
 </div>
 
@@ -1169,10 +1195,18 @@ async function saveDB() {
     if (cloudConnected && !cloudAutoUploadPaused) uploadDBToCloud();
     if (!fileHandle) return;
     try {
+        // Only *query* here (no user gesture required) — requestPermission() needs an active
+        // gesture and must be called directly from a click/change handler instead (see
+        // handleQuestionsJsonPick for an example), otherwise it throws a SecurityError.
+        const perm = await fileHandle.queryPermission({ mode: 'readwrite' });
+        if (perm !== 'granted') { showToast('⚠️ File permission not confirmed — please retry the action'); return; }
         const writable = await fileHandle.createWritable();
         await writable.write(JSON.stringify(DB, null, 2));
         await writable.close();
-    } catch(e) { showToast('⚠️ Could not save to file!'); }
+    } catch(e) {
+        console.error('saveDB write failed:', e);
+        showToast('⚠️ Could not save to file! (' + (e.name||'') + ': ' + (e.message||'unknown') + ')');
+    }
 }
 
 async function openExistingFile() {
@@ -1998,6 +2032,7 @@ function saveQuiz() {
         // Auto-select the new quiz in the Add Question dropdown if it's visible
         const qSel = document.getElementById('q-quiz-select');
         if (qSel) qSel.value = newId;
+        updateJsonImportBtnState();
         showToast('Quiz created! ✓');
         return;
     }
@@ -2029,6 +2064,7 @@ function showAddQuestion(quizId=null) {
     document.getElementById('q-short-answers').value = '';
     updateQuizSelects();
     document.getElementById('q-quiz-select').value = quizId||'';
+    updateJsonImportBtnState();
     document.querySelectorAll('#q-type-radio .radio-option').forEach((el,i)=>el.classList.toggle('selected',i===0));
     showQTypeUI('mcq'); initOptionRows();
     updateQuestionImageUI();
@@ -2037,6 +2073,12 @@ function showAddQuestion(quizId=null) {
 }
 
 function cancelAddQuestion() { showScreen(addQuestionReturnScreen||'screen-home'); }
+
+function updateJsonImportBtnState() {
+    const btn = document.getElementById('q-json-btn');
+    if (!btn) return;
+    btn.disabled = !document.getElementById('q-quiz-select').value;
+}
 
 function updateQuizSelects() {
     document.querySelectorAll('#q-quiz-select, #manage-quiz-filter').forEach(sel => {
@@ -2179,7 +2221,8 @@ function saveQuestion() {
     const quizId = document.getElementById('q-quiz-select').value;
     const qText  = document.getElementById('q-text').value.trim();
     if (!quizId) { showToast('Please select a quiz!'); return; }
-    if (!qText)  { showToast('Question text is required!'); return; }
+    const hasQuestionImage = fileHandle && !!currentQuestionImage;
+    if (!qText && !hasQuestionImage) { showToast('Question text is required!'); return; }
 
     if (currentQType==='short') {
         const raw = document.getElementById('q-short-answers').value.trim();
@@ -2192,13 +2235,14 @@ function saveQuestion() {
         const pairs = filled.map(p=>({left:p.left.trim(), right:p.right.trim()}));
         saveQuestionToDb({ id:editingQuestionId||genId(), quizId, type:'match', question:qText, pairs, image: fileHandle ? (currentQuestionImage||undefined) : undefined, createdAt:Date.now() });
     } else {
-        const filled   = optionRows.filter(r=>r.text.trim().length>0);
-        const corrects = optionRows.filter(r=>r.correct&&r.text.trim().length>0);
+        const hasRowImage = r => fileHandle && !!r.image;
+        const filled   = optionRows.filter(r=>r.text.trim().length>0 || hasRowImage(r));
+        const corrects = optionRows.filter(r=>r.correct&&(r.text.trim().length>0 || hasRowImage(r)));
         if (filled.length<2)   { showToast('At least 2 options required!'); return; }
         if (!corrects.length)  { showToast('Mark at least one correct answer!'); return; }
         if (currentQType==='mcq'&&corrects.length>1) { showToast('MCQ can only have ONE correct answer!'); return; }
         const options=[]; const correctIndices=[]; const optionImages=[]; let offset=0;
-        optionRows.forEach((r,i)=>{ if(!r.text.trim()) { offset++; return; } options.push(r.text.trim()); optionImages.push(fileHandle ? (r.image||null) : null); if(r.correct) correctIndices.push(i-offset); });
+        optionRows.forEach((r,i)=>{ if(!r.text.trim() && !hasRowImage(r)) { offset++; return; } options.push(r.text.trim()); optionImages.push(hasRowImage(r) ? r.image : null); if(r.correct) correctIndices.push(i-offset); });
         const hasOptionImages = fileHandle && optionImages.some(img=>img);
         saveQuestionToDb({ id:editingQuestionId||genId(), quizId, type:currentQType, question:qText, options, correctIndices, image: fileHandle ? (currentQuestionImage||undefined) : undefined, optionImages: hasOptionImages ? optionImages : undefined, createdAt:Date.now() });
     }
@@ -2223,6 +2267,7 @@ function saveQuestionToDb(q) {
         else if (currentQType !== 'short') initOptionRows();
         updateQuizSelects();
         document.getElementById('q-quiz-select').value = savedQuizId;
+        updateJsonImportBtnState();
         document.getElementById('q-text').focus();
         window.scrollTo(0, 0);
     }
@@ -2238,6 +2283,7 @@ function editQuestion(qId) {
     document.getElementById('q-text').value = q.question;
     updateQuizSelects();
     document.getElementById('q-quiz-select').value = q.quizId;
+    updateJsonImportBtnState();
     const tm={mcq:0,multiple:1,short:2,match:3};
     document.querySelectorAll('#q-type-radio .radio-option').forEach((el,i)=>el.classList.toggle('selected',i===tm[q.type]));
     showQTypeUI(q.type);
@@ -2253,6 +2299,231 @@ function deleteQuestion(qId) {
     if (!confirm('Delete this question?')) return;
     DB.questions=DB.questions.filter(q=>q.id!==qId);
     saveDB(); renderManageScreen(); showToast('Question deleted');
+}
+
+// ─────────────────────────────────────────────
+// ADD QUESTIONS FROM JSON FILE
+// ─────────────────────────────────────────────
+function validateJsonQuestion(raw) {
+    if (!raw || typeof raw !== 'object') return null;
+    const question = (raw.question||'').toString().trim();
+    if (!question) return null;
+    let type = raw.type;
+    if (!type) type = Array.isArray(raw.pairs) ? 'match' : Array.isArray(raw.acceptedAnswers) ? 'short' : 'mcq';
+    if (!['mcq','multiple','short','match'].includes(type)) return null;
+
+    if (type === 'short') {
+        const acceptedAnswers = Array.isArray(raw.acceptedAnswers) ? raw.acceptedAnswers.map(a=>(a||'').toString().trim()).filter(a=>a.length>0) : [];
+        if (!acceptedAnswers.length) return null;
+        return { type, question, acceptedAnswers };
+    }
+    if (type === 'match') {
+        const pairs = Array.isArray(raw.pairs) ? raw.pairs
+            .map(p=>({ left:(p&&p.left||'').toString().trim(), right:(p&&p.right||'').toString().trim() }))
+            .filter(p=>p.left.length>0 && p.right.length>0) : [];
+        if (pairs.length < 2) return null;
+        return { type, question, pairs };
+    }
+    // mcq / multiple
+    const options = Array.isArray(raw.options) ? raw.options.map(o=>(o||'').toString().trim()) : [];
+    const nonEmptyOptions = options.filter(o=>o.length>0);
+    if (nonEmptyOptions.length < 2) return null;
+    const correctIndices = Array.isArray(raw.correctIndices) ? raw.correctIndices.filter(i=>Number.isInteger(i) && i>=0 && i<options.length) : [];
+    if (!correctIndices.length) return null;
+    if (type === 'mcq' && correctIndices.length !== 1) return null;
+    return { type, question, options, correctIndices };
+}
+
+async function startJsonImport() {
+    // Request write permission here, directly in the button's own click handler — this is the
+    // only point that reliably still has "transient user activation". Once the native file-open
+    // dialog below is shown and closes, that activation is consumed, so requesting permission
+    // later (in the change handler, or inside saveDB) throws a SecurityError instead.
+    if (fileHandle && typeof fileHandle.requestPermission === 'function') {
+        try {
+            const perm = await fileHandle.requestPermission({ mode: 'readwrite' });
+            if (perm !== 'granted') { showToast('⚠️ File write permission denied — reconnect the file in Backup & Restore'); return; }
+        } catch(e) {
+            console.error('JSON import permission request failed:', e);
+            showToast('⚠️ Permission check failed (' + (e.name||'') + ': ' + (e.message||'unknown') + ')');
+            return;
+        }
+    }
+    document.getElementById('q-json-input').click();
+}
+
+async function handleQuestionsJsonPick(event) {
+    const file = event.target.files[0];
+    event.target.value = '';
+    if (!file) return;
+    const quizId = document.getElementById('q-quiz-select').value;
+    if (!quizId) { showToast('Please select a quiz first!'); return; }
+    const reader = new FileReader();
+    reader.onload = () => {
+        let parsed;
+        try { parsed = JSON.parse(reader.result); } catch(e) { showToast('❌ Invalid JSON file!'); return; }
+        const list = Array.isArray(parsed) ? parsed : Array.isArray(parsed.questions) ? parsed.questions : null;
+        if (!list) { showToast('❌ JSON must be an array of questions!'); return; }
+        const staged = [];
+        let skipped = 0;
+        list.forEach(raw => {
+            const q = validateJsonQuestion(raw);
+            if (!q) { skipped++; return; }
+            staged.push(toReviewDraft(q));
+        });
+        if (!staged.length) { showToast(`❌ No valid questions found${skipped?` (${skipped} skipped)`:''}`); return; }
+        jsonReviewQuestions = staged;
+        jsonReviewIndex = 0;
+        jsonReviewQuizId = quizId;
+        jsonReviewSkippedCount = skipped;
+        renderJsonReviewModal();
+        openModal('json-review-modal');
+    };
+    reader.onerror = () => showToast('❌ Could not read file!');
+    reader.readAsText(file);
+}
+
+function escapeHtml(str) {
+    return (str===undefined||str===null?'':str.toString())
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// Convert a validated {type,question,options/correctIndices|acceptedAnswers|pairs} object into an
+// editable draft shape used by the review modal (mirrors the optionRows/matchPairs editing pattern
+// already used on the main Add Question screen).
+function toReviewDraft(q) {
+    if (q.type === 'short') return { type:'short', question:q.question, acceptedAnswersRaw:q.acceptedAnswers.join('\n') };
+    if (q.type === 'match') return { type:'match', question:q.question, pairs:q.pairs.map(p=>({left:p.left,right:p.right})) };
+    return { type:q.type, question:q.question, optionRows:q.options.map((o,i)=>({text:o, correct:q.correctIndices.includes(i)})) };
+}
+
+let jsonReviewQuestions = [];
+let jsonReviewIndex = 0;
+let jsonReviewQuizId = null;
+let jsonReviewSkippedCount = 0;
+
+function renderJsonReviewModal() {
+    const total = jsonReviewQuestions.length;
+    const q = jsonReviewQuestions[jsonReviewIndex];
+    document.getElementById('json-review-counter').textContent = `${jsonReviewIndex+1} / ${total}`;
+    document.getElementById('json-review-prev').disabled = jsonReviewIndex === 0;
+    document.getElementById('json-review-next').disabled = jsonReviewIndex === total-1;
+    const skipNote = document.getElementById('json-review-skip-note');
+    if (jsonReviewSkippedCount > 0) { skipNote.style.display='block'; skipNote.textContent = `⚠️ ${jsonReviewSkippedCount} invalid question(s) from the file were skipped`; }
+    else skipNote.style.display = 'none';
+
+    const typeLabels = { mcq:'📝 Single Choice', multiple:'☑️ Multiple Answer', short:'✍️ Short Answer', match:'🔗 Match the Following' };
+    let body = `
+        <div style="font-size:12px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">${typeLabels[q.type]||q.type}</div>
+        <div class="form-group">
+            <label>Question Text</label>
+            <textarea class="form-textarea" oninput="jsonReviewQuestions[${jsonReviewIndex}].question=this.value">${escapeHtml(q.question)}</textarea>
+        </div>`;
+
+    if (q.type === 'mcq' || q.type === 'multiple') {
+        body += `
+        <div class="form-group">
+            <label>Answer Options <span style="color:var(--text-muted);font-weight:400;text-transform:none;font-size:12px">(tap ✓ to mark correct)</span></label>
+            <div class="options-container">
+                ${q.optionRows.map((row,i)=>`
+                <div class="option-row">
+                    <input type="text" class="form-input" value="${escapeHtml(row.text)}" oninput="jsonReviewQuestions[${jsonReviewIndex}].optionRows[${i}].text=this.value">
+                    <div class="correct-toggle ${row.correct?'correct':''}" onclick="jsonReviewToggleCorrect(${i})">${row.correct?'✅':'☐'}</div>
+                    ${q.optionRows.length>2?`<div class="remove-option" onclick="jsonReviewRemoveOption(${i})">🗑</div>`:''}
+                </div>`).join('')}
+            </div>
+            <button type="button" class="add-option-btn" onclick="jsonReviewAddOption()">+ Add Option</button>
+        </div>`;
+    } else if (q.type === 'short') {
+        body += `
+        <div class="form-group">
+            <label>Accepted Answers <span style="color:var(--text-muted);font-weight:400;text-transform:none;font-size:12px">(one per line)</span></label>
+            <textarea class="form-textarea" oninput="jsonReviewQuestions[${jsonReviewIndex}].acceptedAnswersRaw=this.value">${escapeHtml(q.acceptedAnswersRaw)}</textarea>
+        </div>`;
+    } else if (q.type === 'match') {
+        body += `
+        <div class="form-group">
+            <label>Match Pairs</label>
+            <div class="options-container">
+                ${q.pairs.map((p,i)=>`
+                <div class="match-pair-row">
+                    <div class="match-pair-num">${i+1}</div>
+                    <input type="text" class="form-input" value="${escapeHtml(p.left)}" oninput="jsonReviewQuestions[${jsonReviewIndex}].pairs[${i}].left=this.value">
+                    <span class="match-pair-arrow">↔</span>
+                    <input type="text" class="form-input" value="${escapeHtml(p.right)}" oninput="jsonReviewQuestions[${jsonReviewIndex}].pairs[${i}].right=this.value">
+                    ${q.pairs.length>2?`<div class="remove-option" onclick="jsonReviewRemovePair(${i})">🗑</div>`:''}
+                </div>`).join('')}
+            </div>
+            <button type="button" class="add-option-btn" onclick="jsonReviewAddPair()">+ Add Pair</button>
+        </div>`;
+    }
+    document.getElementById('json-review-body').innerHTML = body;
+}
+
+function jsonReviewNav(delta) {
+    const newIdx = jsonReviewIndex + delta;
+    if (newIdx < 0 || newIdx >= jsonReviewQuestions.length) return;
+    jsonReviewIndex = newIdx;
+    renderJsonReviewModal();
+}
+
+function jsonReviewToggleCorrect(i) {
+    const q = jsonReviewQuestions[jsonReviewIndex];
+    if (q.type === 'mcq') q.optionRows.forEach((r,idx)=>r.correct = idx===i ? !r.correct : false);
+    else q.optionRows[i].correct = !q.optionRows[i].correct;
+    renderJsonReviewModal();
+}
+function jsonReviewAddOption() { jsonReviewQuestions[jsonReviewIndex].optionRows.push({text:'',correct:false}); renderJsonReviewModal(); }
+function jsonReviewRemoveOption(i) { jsonReviewQuestions[jsonReviewIndex].optionRows.splice(i,1); renderJsonReviewModal(); }
+function jsonReviewAddPair() { jsonReviewQuestions[jsonReviewIndex].pairs.push({left:'',right:''}); renderJsonReviewModal(); }
+function jsonReviewRemovePair(i) { jsonReviewQuestions[jsonReviewIndex].pairs.splice(i,1); renderJsonReviewModal(); }
+
+function closeJsonReviewModal() {
+    closeModal('json-review-modal');
+    jsonReviewQuestions = []; jsonReviewIndex = 0; jsonReviewQuizId = null; jsonReviewSkippedCount = 0;
+}
+
+// Re-validates each edited draft (mirrors saveQuestion()'s rules) before it's committed to DB.
+function finalizeReviewQuestion(draft) {
+    const question = (draft.question||'').trim();
+    if (!question) return null;
+    if (draft.type === 'short') {
+        const acceptedAnswers = (draft.acceptedAnswersRaw||'').split('\n').map(a=>a.trim()).filter(a=>a.length>0);
+        if (!acceptedAnswers.length) return null;
+        return { type:'short', question, acceptedAnswers };
+    }
+    if (draft.type === 'match') {
+        const pairs = draft.pairs.map(p=>({left:(p.left||'').trim(), right:(p.right||'').trim()})).filter(p=>p.left.length>0 && p.right.length>0);
+        if (pairs.length < 2) return null;
+        return { type:'match', question, pairs };
+    }
+    const options = []; const correctIndices = [];
+    draft.optionRows.forEach(r=>{
+        const t = (r.text||'').trim();
+        if (!t) return;
+        if (r.correct) correctIndices.push(options.length);
+        options.push(t);
+    });
+    if (options.length < 2 || !correctIndices.length) return null;
+    if (draft.type === 'mcq' && correctIndices.length !== 1) return null;
+    return { type:draft.type, question, options, correctIndices };
+}
+
+function uploadJsonReviewQuestions() {
+    const quizId = jsonReviewQuizId;
+    if (!quizId) { showToast('❌ No quiz selected!'); closeJsonReviewModal(); return; }
+    let added = 0, invalid = 0;
+    jsonReviewQuestions.forEach(draft => {
+        const q = finalizeReviewQuestion(draft);
+        if (!q) { invalid++; return; }
+        DB.questions.push({ id: genId(), quizId, ...q, createdAt: Date.now() });
+        added++;
+    });
+    closeModal('json-review-modal');
+    jsonReviewQuestions = []; jsonReviewIndex = 0; jsonReviewQuizId = null; jsonReviewSkippedCount = 0;
+    if (added) { saveDB(); renderHome(); renderManageScreen(); updateQuizSelects(); document.getElementById('q-quiz-select').value = quizId; }
+    showToast(invalid ? `Imported ${added} question(s), skipped ${invalid} invalid` : `Imported ${added} question(s)! ✓`);
 }
 
 // ─────────────────────────────────────────────
