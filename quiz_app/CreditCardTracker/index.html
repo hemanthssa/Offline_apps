@@ -1,0 +1,1326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0d0f14">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CardTrack">
+<meta name="application-name" content="CardTrack">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>CardTrack</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --surface: #161920;
+    --surface2: #1e222d;
+    --surface3: #252a38;
+    --border: #2e3447;
+    --accent: #e8c97e;
+    --accent2: #f0a070;
+    --text: #e8eaf2;
+    --text2: #8b91a8;
+    --text3: #565e7a;
+    --green: #5bc88a;
+    --red: #e07070;
+    --radius: 18px;
+    --radius-sm: 10px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+    overflow-x: hidden;
+  }
+
+  /* ── Header ── */
+  .header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(13,15,20,0.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .logo {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    color: var(--accent);
+    letter-spacing: 0.5px;
+  }
+  .logo span { color: var(--text2); font-size: 14px; font-family: 'DM Sans', sans-serif; display: block; }
+  .header-actions { display: flex; gap: 10px; }
+  .icon-btn {
+    width: 38px; height: 38px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    transition: background 0.2s;
+  }
+  .icon-btn:active { background: var(--surface3); }
+
+  /* ── Month Selector ── */
+  .month-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px 0;
+    background: rgba(13,15,20,0.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+  .month-btn {
+    width: 34px; height: 34px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+    transition: background 0.15s;
+  }
+  .month-btn:active { background: var(--surface3); }
+  .month-label {
+    flex: 1;
+    text-align: center;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: 0.3px;
+  }
+
+  /* ── Summary Strip ── */
+  .summary {
+    display: flex;
+    gap: 10px;
+    padding: 14px 20px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .summary::-webkit-scrollbar { display: none; }
+  .summary-card {
+    flex: 1;
+    min-width: 100px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .summary-card .s-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.8px; }
+  .summary-card .s-value { font-size: 17px; font-weight: 600; color: var(--text); }
+  .summary-card.paid .s-value { color: var(--green); }
+  .summary-card.due .s-value { color: var(--red); }
+  .summary-card.total .s-value { color: var(--accent); }
+
+  /* ── Main Content ── */
+  .main { padding: 0 16px 100px; }
+
+  .section-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin: 16px 4px 10px;
+  }
+
+  /* ── Card Item ── */
+  .bill-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 10px;
+    overflow: hidden;
+    transition: transform 0.15s, border-color 0.2s;
+  }
+  .bill-card.paid-card { border-color: rgba(91,200,138,0.3); }
+  .bill-card:active { transform: scale(0.98); }
+
+  .bill-row {
+    display: flex;
+    align-items: center;
+    padding: 14px 16px;
+    gap: 14px;
+    cursor: pointer;
+  }
+
+  .card-icon {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+
+  .bill-info { flex: 1; min-width: 0; }
+  .bill-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .bill-bank {
+    font-size: 12px;
+    color: var(--text3);
+    margin-top: 2px;
+  }
+  .bill-amount {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .bill-amount.paid-amount { color: var(--green); text-decoration: line-through; opacity: 0.7; }
+  .bill-due {
+    font-size: 11px;
+    color: var(--text3);
+    text-align: right;
+    margin-top: 2px;
+  }
+  .bill-due.overdue { color: var(--red); }
+
+  /* Custom Checkbox */
+  .check-wrap {
+    width: 26px; height: 26px;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .check-wrap input { display: none; }
+  .check-box {
+    width: 26px; height: 26px;
+    border-radius: 8px;
+    border: 2px solid var(--border);
+    background: var(--surface2);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 14px;
+  }
+  .check-box.checked {
+    background: var(--green);
+    border-color: var(--green);
+    box-shadow: 0 0 12px rgba(91,200,138,0.4);
+  }
+
+  /* Paid badge */
+  .paid-badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 20px;
+    background: rgba(91,200,138,0.15);
+    color: var(--green);
+    border: 1px solid rgba(91,200,138,0.3);
+    margin-left: 8px;
+  }
+
+  /* ── FAB ── */
+  .fab {
+    position: fixed;
+    bottom: 24px;
+    right: 20px;
+    width: 56px; height: 56px;
+    background: var(--accent);
+    border-radius: 18px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px;
+    cursor: pointer;
+    box-shadow: 0 8px 24px rgba(232,201,126,0.35);
+    transition: transform 0.15s, box-shadow 0.15s;
+    z-index: 200;
+    color: #0d0f14;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .fab:active { transform: scale(0.93); box-shadow: 0 4px 12px rgba(232,201,126,0.2); }
+
+  /* ── Modal ── */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 300;
+    align-items: flex-end;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    width: 100%;
+    background: var(--surface);
+    border-radius: 26px 26px 0 0;
+    padding: 20px 20px 40px;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: slideUp 0.28s cubic-bezier(.22,.68,0,1.2);
+  }
+  @keyframes slideUp {
+    from { transform: translateY(100%); opacity: 0; }
+    to   { transform: translateY(0); opacity: 1; }
+  }
+  .modal-handle {
+    width: 40px; height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin: 0 auto 20px;
+  }
+  .modal-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    color: var(--text);
+    margin-bottom: 20px;
+  }
+
+  .form-group { margin-bottom: 16px; }
+  .form-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text3);
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 8px;
+  }
+  .form-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 13px 16px;
+    font-size: 15px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .form-input:focus { border-color: var(--accent); }
+  select.form-input { -webkit-appearance: none; appearance: none; cursor: pointer; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .emoji-grid {
+    display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px;
+  }
+  .emoji-opt {
+    width: 42px; height: 42px;
+    background: var(--surface2);
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .emoji-opt.selected { border-color: var(--accent); background: rgba(232,201,126,0.1); }
+
+  .btn-primary {
+    width: 100%;
+    padding: 15px;
+    background: var(--accent);
+    color: #0d0f14;
+    font-size: 15px;
+    font-weight: 700;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    margin-top: 8px;
+    transition: opacity 0.2s;
+  }
+  .btn-primary:active { opacity: 0.85; }
+  .btn-danger {
+    width: 100%; padding: 13px;
+    background: rgba(224,112,112,0.15);
+    color: var(--red);
+    font-size: 14px;
+    font-weight: 600;
+    border: 1px solid rgba(224,112,112,0.3);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    margin-top: 8px;
+    transition: background 0.2s;
+  }
+  .btn-danger:active { background: rgba(224,112,112,0.25); }
+
+  /* ── History View ── */
+  .view-toggle {
+    display: flex;
+    gap: 8px;
+    padding: 12px 20px 0;
+    background: rgba(13,15,20,0.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+  .toggle-btn {
+    flex: 1;
+    padding: 9px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text2);
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.15s;
+  }
+  .toggle-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #0d0f14;
+  }
+
+  /* History card */
+  .history-month {
+    margin-bottom: 8px;
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .history-header.expanded { border-radius: var(--radius) var(--radius) 0 0; border-bottom: none; }
+  .history-month-label { font-weight: 600; font-size: 15px; }
+  .history-meta { font-size: 12px; color: var(--text3); margin-top: 2px; }
+  .history-total { font-size: 15px; font-weight: 700; color: var(--accent); }
+  .history-chevron { transition: transform 0.2s; font-size: 12px; color: var(--text3); }
+  .history-chevron.open { transform: rotate(180deg); }
+  .history-items {
+    display: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 var(--radius) var(--radius);
+    overflow: hidden;
+  }
+  .history-items.open { display: block; }
+  .history-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    border-top: 1px solid var(--border);
+    gap: 12px;
+  }
+  .history-item-icon { font-size: 18px; }
+  .history-item-name { flex: 1; font-size: 14px; font-weight: 500; }
+  .history-item-amount { font-size: 14px; font-weight: 600; }
+  .history-item-status {
+    font-size: 10px; font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  .status-paid { background: rgba(91,200,138,0.15); color: var(--green); }
+  .status-due  { background: rgba(224,112,112,0.15); color: var(--red); }
+
+  /* empty state */
+  .empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text3);
+  }
+  .empty-icon { font-size: 48px; margin-bottom: 16px; }
+  .empty-text { font-size: 15px; }
+
+  /* progress bar inside summary */
+  .progress-bar-wrap { margin-top: 6px; }
+  .progress-bar {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--green), #7debb0);
+    border-radius: 2px;
+    transition: width 0.4s ease;
+  }
+
+  /* scroll tabs for months */
+  .toast {
+    position: fixed;
+    bottom: 96px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--surface3);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 20px;
+    border-radius: 40px;
+    font-size: 13px;
+    font-weight: 500;
+    z-index: 999;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s;
+    white-space: nowrap;
+  }
+  .toast.show { opacity: 1; }
+
+  /* PWA INSTALL BANNER */
+  #installBanner {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 500;
+    background: var(--surface2); border-top: 1px solid var(--border);
+    padding: 16px 20px env(safe-area-inset-bottom, 14px);
+    display: none; align-items: center; gap: 14px;
+    box-shadow: 0 -8px 28px rgba(0,0,0,0.35);
+    animation: slideUp 0.3s ease;
+  }
+  #installBanner.show { display: flex; }
+  @keyframes slideUp { from { transform: translateY(60px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .ib-icon { font-size: 32px; flex-shrink: 0; }
+  .ib-text { flex: 1; }
+  .ib-title { font-family: 'DM Sans', sans-serif; font-weight: 600; font-size: 15px; color: var(--text); }
+  .ib-sub { font-size: 12.5px; color: var(--text2); margin-top: 2px; }
+  .ib-actions { display: flex; gap: 8px; flex-shrink: 0; }
+  .ib-install { background: var(--accent); color: #0d0f14; border: none; border-radius: 8px; padding: 9px 15px; font-family: 'DM Sans', sans-serif; font-weight: 600; font-size: 13px; cursor: pointer; }
+  .ib-install:active { transform: scale(0.95); }
+  .ib-dismiss { background: transparent; border: 1px solid var(--border); color: var(--text2); border-radius: 8px; padding: 9px 12px; font-size: 13px; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div class="logo">CardTrack <span id="file-status-name" onclick="openFileSettings()" style="cursor:pointer" title="Change data file">Bill Manager</span></div>
+    <div class="header-actions">
+      <div class="icon-btn" onclick="openFileSettings()" title="Change data file">📁</div>
+      <div class="icon-btn" onclick="openCardManager()">⚙️</div>
+    </div>
+  </div>
+</div>
+
+<div class="view-toggle">
+  <button class="toggle-btn active" id="tab-current" onclick="switchTab('current')">Current</button>
+  <button class="toggle-btn" id="tab-history" onclick="switchTab('history')">History</button>
+</div>
+
+<div id="view-current">
+  <div class="month-bar">
+    <div class="month-btn" onclick="changeMonth(-1)">‹</div>
+    <div class="month-label" id="month-label">—</div>
+    <div class="month-btn" onclick="changeMonth(1)">›</div>
+  </div>
+
+  <div class="summary">
+    <div class="summary-card total">
+      <div class="s-label">Total</div>
+      <div class="s-value" id="sum-total">₹0</div>
+    </div>
+    <div class="summary-card paid">
+      <div class="s-label">Paid</div>
+      <div class="s-value" id="sum-paid">₹0</div>
+      <div class="progress-bar-wrap"><div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div></div>
+    </div>
+    <div class="summary-card due">
+      <div class="s-label">Remaining</div>
+      <div class="s-value" id="sum-due">₹0</div>
+    </div>
+  </div>
+
+  <div class="main" id="bills-list"></div>
+</div>
+
+<div id="view-history" style="display:none">
+  <div class="main" id="history-list" style="padding-top:14px"></div>
+</div>
+
+<div class="fab" onclick="openAddBill()">+</div>
+
+<!-- Add/Edit Bill Modal -->
+<div class="modal-overlay" id="modal-bill" onclick="closeIfOverlay(event,'modal-bill')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-bill-title">Add Bill</div>
+
+    <!-- Card selector — shown when adding from FAB -->
+    <div class="form-group" id="bill-card-select-group">
+      <label class="form-label">Credit Card</label>
+      <select class="form-input" id="inp-card-select"></select>
+    </div>
+    <!-- Card display — shown when editing an existing bill -->
+    <div class="form-group" id="bill-card-display-group" style="display:none">
+      <label class="form-label">Credit Card</label>
+      <div class="form-input" id="inp-card-display" style="opacity:0.7;padding:13px 16px"></div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Amount (₹)</label>
+      <input class="form-input" id="inp-amount" type="number" placeholder="0" inputmode="decimal" />
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Month</label>
+        <select class="form-input" id="inp-month"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Year</label>
+        <input class="form-input" id="inp-year" type="number" inputmode="numeric" />
+      </div>
+    </div>
+
+    <button class="btn-primary" onclick="saveBill()">Save</button>
+    <button class="btn-danger" id="btn-delete-bill" onclick="deleteBill()" style="display:none">Delete Bill Entry</button>
+    <button class="btn-danger" style="background:transparent;border-color:var(--border);color:var(--text2);margin-top:6px" onclick="closeModal('modal-bill')">Cancel</button>
+  </div>
+</div>
+
+<!-- Add/Edit Card Modal -->
+<div class="modal-overlay" id="modal-card" onclick="closeIfOverlay(event,'modal-card')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-card-title">Add Card</div>
+    <div class="form-group">
+      <label class="form-label">Card / Bill Name</label>
+      <input class="form-input" id="card-inp-name" placeholder="e.g. HDFC Regalia" />
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Bank</label>
+        <input class="form-input" id="card-inp-bank" placeholder="e.g. HDFC, SBI…" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Due Day (1–31)</label>
+        <input class="form-input" id="card-inp-due" type="number" placeholder="e.g. 15" min="1" max="31" inputmode="numeric" />
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Icon</label>
+      <div class="emoji-grid" id="card-emoji-picker"></div>
+    </div>
+    <button class="btn-primary" onclick="saveCard()">Save Card</button>
+    <button class="btn-danger" id="btn-delete-card" onclick="deleteCard()" style="display:none">Delete Card</button>
+    <button class="btn-danger" style="background:transparent;border-color:var(--border);color:var(--text2);margin-top:6px" onclick="closeModal('modal-card')">Cancel</button>
+  </div>
+</div>
+
+<!-- Card Manager Modal -->
+<div class="modal-overlay" id="modal-cards" onclick="closeIfOverlay(event,'modal-cards')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Manage Cards</div>
+    <div id="card-manager-list"></div>
+    <button class="btn-primary" style="margin-top:12px" onclick="closeModal('modal-cards'); openAddCard()">+ Add New Card</button>
+    <button class="btn-danger" style="background:transparent;border-color:var(--border);color:var(--text2);margin-top:6px" onclick="closeModal('modal-cards')">Close</button>
+  </div>
+</div>
+
+<!-- File Setup / Change Modal -->
+<div class="modal-overlay" id="modal-file">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="file-modal-title">Set Up Data File</div>
+    <p id="file-modal-desc" style="color:var(--text2);font-size:14px;margin-bottom:20px;line-height:1.6;"></p>
+    <button class="btn-primary" id="file-btn-connect" onclick="fileActionConnect()" style="display:none">🔓 Connect to file</button>
+    <button class="btn-primary" id="file-btn-open" onclick="fileActionOpen()">📂 Open existing JSON</button>
+    <button class="btn-primary" id="file-btn-new" onclick="fileActionNew()" style="margin-top:8px;background:var(--surface3);color:var(--text);border:1px solid var(--border)">✨ Create new JSON</button>
+    <button class="btn-danger" id="file-btn-cancel" onclick="closeModal('modal-file')" style="display:none;background:transparent;border-color:var(--border);color:var(--text2);margin-top:6px">Cancel</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- PWA Install Banner -->
+<div id="installBanner">
+  <div class="ib-icon">💳</div>
+  <div class="ib-text">
+    <div class="ib-title">Install CardTrack</div>
+    <div class="ib-sub">Add to home screen — works offline</div>
+  </div>
+  <div class="ib-actions">
+    <button class="ib-install" onclick="triggerInstall()">Install</button>
+    <button class="ib-dismiss" onclick="dismissInstall()">✕</button>
+  </div>
+</div>
+
+<script>
+// ── State ──
+const EMOJIS = ['💳','🏦','💰','🏧','📱','🌟','🎯','✈️','🛍️','⚡','🔵','🟡'];
+const COLORS = ['#3b7fe0','#e0813b','#3bc47f','#a03be0','#e03b3b','#3bcce0','#e0c83b','#e03ba8'];
+
+let state = { cards: [], bills: {} };
+
+let currentDate = new Date();
+let editingBillCardId   = null;
+let editingBillMonthKey = null;
+let editingCardId       = null;
+let selectedEmoji       = EMOJIS[0];
+let currentTab = 'current';
+
+// ── File System Access API ────────────────────────────────────────────────
+let fileHandle = null;
+
+// IndexedDB — persists the FileSystemFileHandle across page reloads
+const IDB = {
+  _db: null,
+  open() {
+    if (this._db) return Promise.resolve(this._db);
+    return new Promise((res, rej) => {
+      const r = indexedDB.open('cardtrack_idb', 1);
+      r.onupgradeneeded = e => e.target.result.createObjectStore('handles');
+      r.onsuccess = e => { this._db = e.target.result; res(this._db); };
+      r.onerror   = e => rej(e);
+    });
+  },
+  async put(key, val) {
+    const db = await this.open();
+    return new Promise((res, rej) => {
+      const tx = db.transaction('handles', 'readwrite');
+      tx.objectStore('handles').put(val, key);
+      tx.oncomplete = res; tx.onerror = rej;
+    });
+  },
+  async get(key) {
+    const db = await this.open();
+    return new Promise((res, rej) => {
+      const tx = db.transaction('handles', 'readonly');
+      const r  = tx.objectStore('handles').get(key);
+      r.onsuccess = e => res(e.target.result ?? null);
+      r.onerror   = rej;
+    });
+  }
+};
+
+async function save() {
+  if (!fileHandle) return;
+  try {
+    const writable = await fileHandle.createWritable();
+    await writable.write(JSON.stringify(state, null, 2));
+    await writable.close();
+  } catch(e) {
+    showToast('⚠ Auto-save failed');
+  }
+}
+
+async function initStorage() {
+  if (!('showOpenFilePicker' in window)) {
+    _showFileModal('unsupported');
+    renderCurrent();
+    return;
+  }
+  try {
+    const handle = await IDB.get('main');
+    if (handle) {
+      fileHandle = handle;
+      const perm = await handle.queryPermission({ mode: 'readwrite' });
+      if (perm === 'granted') {
+        await _connectHandle(handle, false);
+        return;
+      }
+      _showFileModal('reconnect');
+      renderCurrent();
+      return;
+    }
+  } catch(e) {}
+  _showFileModal('fresh');
+  renderCurrent();
+}
+
+async function _connectHandle(handle, showMsg) {
+  try {
+    const file = await handle.getFile();
+    const text = await file.text();
+    state = text.trim() ? JSON.parse(text) : { cards: [], bills: {} };
+  } catch(e) {
+    state = { cards: [], bills: {} };
+  }
+  fileHandle = handle;
+  await IDB.put('main', handle);
+  _setFileStatus(handle.name);
+  closeModal('modal-file');
+  renderCurrent();
+  if (showMsg) showToast('📂 ' + handle.name);
+  await save();
+}
+
+function _showFileModal(mode) {
+  const titleEl   = document.getElementById('file-modal-title');
+  const descEl    = document.getElementById('file-modal-desc');
+  const btnConn   = document.getElementById('file-btn-connect');
+  const btnOpen   = document.getElementById('file-btn-open');
+  const btnNew    = document.getElementById('file-btn-new');
+  const btnCancel = document.getElementById('file-btn-cancel');
+  btnOpen.textContent    = '📂 Open existing JSON';
+  btnConn.style.display  = 'none';
+  btnCancel.style.display = 'none';
+  if (mode === 'fresh') {
+    titleEl.textContent   = 'Set Up Data File';
+    descEl.textContent    = 'CardTrack stores your data in a JSON file on your device. Open an existing file or create a new one to get started.';
+    btnOpen.style.display = '';
+    btnNew.style.display  = '';
+  } else if (mode === 'reconnect') {
+    titleEl.textContent = 'Reconnect to Your Data';
+    descEl.innerHTML    = 'Your data file is <strong style="color:var(--accent)">' + (fileHandle ? fileHandle.name : 'unknown') + '</strong>. Click below to reconnect.';
+    btnConn.style.display = '';
+    btnOpen.textContent   = '📂 Choose different file';
+    btnOpen.style.display = '';
+    btnNew.style.display  = '';
+  } else if (mode === 'change') {
+    titleEl.textContent   = 'Change Data File';
+    descEl.textContent    = 'Switch to a different JSON file or create a new one. Your current data remains in the existing file.';
+    btnOpen.style.display = '';
+    btnNew.style.display  = '';
+    btnCancel.style.display = '';
+  } else if (mode === 'unsupported') {
+    titleEl.textContent   = 'Browser Not Supported';
+    descEl.textContent    = 'File auto-save requires Chrome or Edge (desktop). The app will work this session but data will not be saved automatically.';
+    btnOpen.style.display = 'none';
+    btnNew.style.display  = 'none';
+  }
+  openModal('modal-file');
+}
+
+async function fileActionConnect() {
+  if (!fileHandle) return;
+  const ok = await fileHandle.requestPermission({ mode: 'readwrite' });
+  if (ok === 'granted') await _connectHandle(fileHandle, true);
+  else showToast('⚠ Permission denied');
+}
+
+async function fileActionOpen() {
+  try {
+    const [handle] = await window.showOpenFilePicker({
+      types: [{ description: 'CardTrack JSON', accept: { 'application/json': ['.json'] } }],
+      multiple: false
+    });
+    await _connectHandle(handle, true);
+  } catch(e) {}
+}
+
+async function fileActionNew() {
+  try {
+    const handle = await window.showSaveFilePicker({
+      suggestedName: 'cardtrack_data.json',
+      types: [{ description: 'CardTrack JSON', accept: { 'application/json': ['.json'] } }]
+    });
+    fileHandle = handle;
+    state = { cards: [], bills: {} };
+    await IDB.put('main', handle);
+    await save();
+    _setFileStatus(handle.name);
+    closeModal('modal-file');
+    renderCurrent();
+    showToast('✨ New file created');
+  } catch(e) {}
+}
+
+function openFileSettings() { _showFileModal('change'); }
+
+function _setFileStatus(name) {
+  const el = document.getElementById('file-status-name');
+  if (el) el.textContent = name;
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
+function monthKey(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
+function monthName(d) {
+  return d.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+}
+function fmt(n) { return '₹' + Number(n||0).toLocaleString('en-IN'); }
+
+// ── Tab ──
+function switchTab(tab) {
+  currentTab = tab;
+  document.getElementById('view-current').style.display = tab === 'current' ? '' : 'none';
+  document.getElementById('view-history').style.display = tab === 'history' ? '' : 'none';
+  document.getElementById('tab-current').classList.toggle('active', tab === 'current');
+  document.getElementById('tab-history').classList.toggle('active', tab === 'history');
+  if (tab === 'history') renderHistory();
+}
+
+// ── Month Nav ──
+function changeMonth(dir) {
+  currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + dir, 1);
+  renderCurrent();
+}
+
+// ── Render Current Month ──
+function renderCurrent() {
+  document.getElementById('month-label').textContent = monthName(currentDate);
+  const key = monthKey(currentDate);
+  const bills = state.bills[key] || {};
+  const list = document.getElementById('bills-list');
+
+  if (!state.cards.length) {
+    list.innerHTML = `<div class="empty"><div class="empty-icon">💳</div><div class="empty-text">No cards yet.<br>Tap ⚙️ to add your first card.</div></div>`;
+    updateSummary(0, 0);
+    return;
+  }
+
+  let totalAmt = 0, paidAmt = 0;
+  let unpaidHtml = '', paidHtml = '';
+
+  state.cards.forEach(card => {
+    const entry    = bills[card.id];
+    const hasEntry = entry !== undefined;
+    const amount   = hasEntry ? (entry.amount ?? 0) : null;
+    const paid     = hasEntry ? !!entry.paid : false;
+    if (amount !== null && amount > 0) totalAmt += Number(amount);
+    if (paid && amount !== null && amount > 0) paidAmt += Number(amount);
+
+    const dueText = card.dueDay ? `Due: ${card.dueDay}${ordinal(card.dueDay)} of month` : 'No due date';
+    const today = new Date();
+    const isOverdue = !paid && hasEntry && card.dueDay &&
+      today.getMonth() === currentDate.getMonth() &&
+      today.getFullYear() === currentDate.getFullYear() &&
+      today.getDate() > card.dueDay;
+
+    const amountDisplay = amount !== null
+      ? `<div class="bill-amount ${paid ? 'paid-amount' : ''}">${fmt(amount)}</div>`
+      : `<div class="bill-amount" style="color:var(--text3);font-size:13px">Tap to add</div>`;
+
+    const checkHtml = hasEntry
+      ? `<div class="check-wrap" onclick="event.stopPropagation(); togglePaid('${card.id}')">
+            <div class="check-box ${paid ? 'checked' : ''}">${paid ? '✓' : ''}</div>
+          </div>`
+      : '';
+
+    const html = `
+      <div class="bill-card ${paid ? 'paid-card' : ''}" id="bc-${card.id}">
+        <div class="bill-row" onclick="openEditBill('${card.id}')">
+          <div class="card-icon" style="background:${card.color}22">${card.emoji}</div>
+          <div class="bill-info">
+            <div class="bill-name">${card.name}${paid ? '<span class="paid-badge">PAID</span>' : ''}</div>
+            <div class="bill-bank">${card.bank || ''}</div>
+          </div>
+          <div>
+            ${amountDisplay}
+            <div class="bill-due ${isOverdue ? 'overdue' : ''}">${isOverdue ? '⚠ ' : ''}${dueText}</div>
+          </div>
+          ${checkHtml}
+        </div>
+      </div>`;
+
+    if (paid) paidHtml += html;
+    else unpaidHtml += html;
+  });
+
+  let html = '';
+  if (unpaidHtml) html += `<div class="section-title">Pending</div>${unpaidHtml}`;
+  if (paidHtml)   html += `<div class="section-title">Paid</div>${paidHtml}`;
+  list.innerHTML = html;
+  updateSummary(totalAmt, paidAmt);
+}
+
+function updateSummary(total, paid) {
+  document.getElementById('sum-total').textContent = fmt(total);
+  document.getElementById('sum-paid').textContent  = fmt(paid);
+  document.getElementById('sum-due').textContent   = fmt(total - paid);
+  const pct = total > 0 ? Math.round(paid / total * 100) : 0;
+  document.getElementById('progress-fill').style.width = pct + '%';
+}
+
+function ordinal(n) {
+  const s = ['th','st','nd','rd'];
+  const v = n % 100;
+  return s[(v-20)%10] || s[v] || s[0];
+}
+
+// ── Toggle Paid ──
+function togglePaid(cardId) {
+  const key = monthKey(currentDate);
+  if (!state.bills[key]) state.bills[key] = {};
+  if (!state.bills[key][cardId]) {
+    state.bills[key][cardId] = { amount: 0, paid: false };
+  }
+  const entry = state.bills[key][cardId];
+  entry.paid = !entry.paid;
+  entry.paidDate = entry.paid ? new Date().toISOString() : null;
+  save();
+  renderCurrent();
+  showToast(entry.paid ? '✓ Marked as paid' : 'Marked as unpaid');
+}
+
+// ── Bill helpers ──
+function _populateMonthSelect(selectedIdx) {
+  const months = ['January','February','March','April','May','June',
+                  'July','August','September','October','November','December'];
+  const sel = document.getElementById('inp-month');
+  sel.innerHTML = months.map((m, i) =>
+    `<option value="${i}" ${i === selectedIdx ? 'selected' : ''}>${m}</option>`
+  ).join('');
+}
+
+// ── Add Bill (FAB) — choose card + month/year ──
+function openAddBill() {
+  if (!state.cards.length) {
+    showToast('⚠ Add a card first via ⚙️');
+    return;
+  }
+  editingBillCardId   = null;
+  editingBillMonthKey = null;
+  document.getElementById('modal-bill-title').textContent = 'Add Bill';
+  document.getElementById('bill-card-select-group').style.display = '';
+  document.getElementById('bill-card-display-group').style.display = 'none';
+
+  // Populate card dropdown
+  const sel = document.getElementById('inp-card-select');
+  sel.innerHTML = state.cards.map(c =>
+    `<option value="${c.id}">${c.emoji} ${c.name}${c.bank ? '  (' + c.bank + ')' : ''}</option>`
+  ).join('');
+
+  document.getElementById('inp-amount').value = '';
+  _populateMonthSelect(currentDate.getMonth());
+  document.getElementById('inp-year').value = currentDate.getFullYear();
+  document.getElementById('btn-delete-bill').style.display = 'none';
+  openModal('modal-bill');
+}
+
+// ── Edit Bill — pre-fills from clicked card row ──
+function openEditBill(cardId) {
+  const key  = monthKey(currentDate);
+  const card = state.cards.find(c => c.id === cardId);
+  if (!card) return;
+  const entry    = (state.bills[key] || {})[cardId];
+  const hasEntry = entry !== undefined;
+
+  editingBillCardId   = cardId;
+  editingBillMonthKey = key;
+
+  document.getElementById('modal-bill-title').textContent = hasEntry ? 'Edit Bill' : 'Set Bill Amount';
+  document.getElementById('bill-card-select-group').style.display = 'none';
+  document.getElementById('bill-card-display-group').style.display = '';
+  document.getElementById('inp-card-display').textContent = `${card.emoji}  ${card.name}`;
+  document.getElementById('inp-amount').value = hasEntry ? (entry.amount ?? '') : '';
+  const [yr, mo] = key.split('-');
+  _populateMonthSelect(parseInt(mo) - 1);
+  document.getElementById('inp-year').value = yr;
+  document.getElementById('btn-delete-bill').style.display = hasEntry ? '' : 'none';
+  openModal('modal-bill');
+}
+
+function saveBill() {
+  const amount = parseFloat(document.getElementById('inp-amount').value) || 0;
+  const mo     = parseInt(document.getElementById('inp-month').value);
+  const yr     = parseInt(document.getElementById('inp-year').value) || new Date().getFullYear();
+  const newKey = `${yr}-${String(mo + 1).padStart(2, '0')}`;
+
+  let cardId;
+  if (editingBillCardId) {
+    cardId = editingBillCardId;
+    // If month/year changed, remove old entry first
+    if (editingBillMonthKey && editingBillMonthKey !== newKey && state.bills[editingBillMonthKey]) {
+      delete state.bills[editingBillMonthKey][cardId];
+    }
+  } else {
+    cardId = document.getElementById('inp-card-select').value;
+  }
+  if (!cardId) { showToast('⚠ Select a card'); return; }
+
+  if (!state.bills[newKey]) state.bills[newKey] = {};
+  if (!state.bills[newKey][cardId]) state.bills[newKey][cardId] = { paid: false };
+  state.bills[newKey][cardId].amount = amount;
+
+  // Navigate view to the saved month
+  currentDate = new Date(yr, mo, 1);
+
+  save();
+  closeModal('modal-bill');
+  renderCurrent();
+  showToast(editingBillCardId ? '✓ Updated' : '✓ Bill added');
+}
+
+function deleteBill() {
+  if (!editingBillCardId || !editingBillMonthKey) return;
+  if (!confirm('Delete this bill entry for the selected month?')) return;
+  if (state.bills[editingBillMonthKey]) {
+    delete state.bills[editingBillMonthKey][editingBillCardId];
+    if (!Object.keys(state.bills[editingBillMonthKey]).length) {
+      delete state.bills[editingBillMonthKey];
+    }
+  }
+  save();
+  closeModal('modal-bill');
+  renderCurrent();
+  showToast('Bill entry deleted');
+}
+
+// ── Card Manager ──
+function openCardManager() {
+  const list = document.getElementById('card-manager-list');
+  if (!state.cards.length) {
+    list.innerHTML = '<div style="color:var(--text3);text-align:center;padding:20px">No cards added yet</div>';
+  } else {
+    list.innerHTML = state.cards.map(c => `
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)">
+        <div style="font-size:22px">${c.emoji}</div>
+        <div style="flex:1">
+          <div style="font-weight:600;font-size:14px">${c.name}</div>
+          <div style="font-size:12px;color:var(--text3)">${c.bank||'No bank'} · Due: ${c.dueDay ? c.dueDay+ordinal(c.dueDay) : 'N/A'}</div>
+        </div>
+        <div style="font-size:13px;color:var(--accent);font-weight:600;cursor:pointer" onclick="closeModal('modal-cards');openEditCard('${c.id}')">Edit</div>
+      </div>`).join('');
+  }
+  openModal('modal-cards');
+}
+
+// ── Card CRUD ──
+function buildCardEmojiPicker() {
+  const grid = document.getElementById('card-emoji-picker');
+  grid.innerHTML = EMOJIS.map(e =>
+    `<div class="emoji-opt ${e === selectedEmoji ? 'selected' : ''}" onclick="selectEmoji('${e}')">${e}</div>`
+  ).join('');
+}
+function selectEmoji(e) {
+  selectedEmoji = e;
+  buildCardEmojiPicker();
+}
+
+function openAddCard() {
+  editingCardId  = null;
+  selectedEmoji  = EMOJIS[0];
+  document.getElementById('modal-card-title').textContent = 'Add Card';
+  document.getElementById('card-inp-name').value = '';
+  document.getElementById('card-inp-bank').value = '';
+  document.getElementById('card-inp-due').value  = '';
+  document.getElementById('btn-delete-card').style.display = 'none';
+  buildCardEmojiPicker();
+  openModal('modal-card');
+}
+
+function openEditCard(cardId) {
+  const card = state.cards.find(c => c.id === cardId);
+  if (!card) return;
+  editingCardId = cardId;
+  selectedEmoji = card.emoji || EMOJIS[0];
+  document.getElementById('modal-card-title').textContent = 'Edit Card';
+  document.getElementById('card-inp-name').value = card.name;
+  document.getElementById('card-inp-bank').value = card.bank || '';
+  document.getElementById('card-inp-due').value  = card.dueDay || '';
+  document.getElementById('btn-delete-card').style.display = '';
+  buildCardEmojiPicker();
+  openModal('modal-card');
+}
+
+function saveCard() {
+  const name = document.getElementById('card-inp-name').value.trim();
+  const bank = document.getElementById('card-inp-bank').value.trim();
+  const due  = parseInt(document.getElementById('card-inp-due').value) || 0;
+  if (!name) { showToast('⚠ Enter card name'); return; }
+
+  if (editingCardId) {
+    const card = state.cards.find(c => c.id === editingCardId);
+    card.name  = name;
+    card.bank  = bank;
+    card.emoji = selectedEmoji;
+    card.dueDay = due;
+  } else {
+    const id    = 'c' + Date.now();
+    const color = COLORS[state.cards.length % COLORS.length];
+    state.cards.push({ id, name, bank, emoji: selectedEmoji, color, dueDay: due });
+  }
+  save();
+  closeModal('modal-card');
+  renderCurrent();
+  showToast(editingCardId ? '✓ Card updated' : '✓ Card added');
+}
+
+function deleteCard() {
+  if (!editingCardId) return;
+  if (!confirm('Remove this card? All bill history entries for this card will also be deleted.')) return;
+  // Remove bill entries for this card across all months
+  Object.keys(state.bills).forEach(k => {
+    delete state.bills[k][editingCardId];
+    if (!Object.keys(state.bills[k]).length) delete state.bills[k];
+  });
+  state.cards = state.cards.filter(c => c.id !== editingCardId);
+  save();
+  closeModal('modal-card');
+  renderCurrent();
+  showToast('Card deleted');
+}
+
+// ── History ──
+function renderHistory() {
+  const list = document.getElementById('history-list');
+  const keys = Object.keys(state.bills).sort().reverse();
+  if (!keys.length) {
+    list.innerHTML = '<div class="empty"><div class="empty-icon">📅</div><div class="empty-text">No history yet</div></div>';
+    return;
+  }
+  list.innerHTML = keys.map(key => {
+    const [yr, mo] = key.split('-');
+    const label = new Date(yr, mo-1, 1).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+    const bills = state.bills[key];
+    let total = 0, paidCount = 0, totalCount = 0;
+    let itemsHtml = '';
+    state.cards.forEach(card => {
+      const entry = bills[card.id];
+      if (!entry) return;
+      const amt = entry.amount || 0;
+      total += amt;
+      totalCount++;
+      if (entry.paid) paidCount++;
+      itemsHtml += `
+        <div class="history-item">
+          <div class="history-item-icon">${card.emoji}</div>
+          <div class="history-item-name">${card.name}</div>
+          <div style="text-align:right">
+            <div class="history-item-amount">${fmt(amt)}</div>
+            <span class="history-item-status ${entry.paid ? 'status-paid' : 'status-due'}">${entry.paid ? 'Paid' : 'Due'}</span>
+          </div>
+        </div>`;
+    });
+
+    // Also show orphan entries (cards deleted but history preserved)
+    Object.entries(bills).forEach(([cid, entry]) => {
+      if (!state.cards.find(c => c.id === cid)) {
+        const amt = entry.amount || 0;
+        total += amt; totalCount++;
+        if (entry.paid) paidCount++;
+        itemsHtml += `
+          <div class="history-item">
+            <div class="history-item-icon">💳</div>
+            <div class="history-item-name" style="color:var(--text3)">${cid} (removed)</div>
+            <div style="text-align:right">
+              <div class="history-item-amount">${fmt(amt)}</div>
+              <span class="history-item-status ${entry.paid ? 'status-paid' : 'status-due'}">${entry.paid ? 'Paid' : 'Due'}</span>
+            </div>
+          </div>`;
+      }
+    });
+
+    if (!itemsHtml) return '';
+    return `
+      <div class="history-month">
+        <div class="history-header" id="hh-${key}" onclick="toggleHistory('${key}')">
+          <div>
+            <div class="history-month-label">${label}</div>
+            <div class="history-meta">${paidCount}/${totalCount} paid</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div class="history-total">${fmt(total)}</div>
+            <div class="history-chevron" id="hc-${key}">▼</div>
+          </div>
+        </div>
+        <div class="history-items" id="hi-${key}">${itemsHtml}</div>
+      </div>`;
+  }).join('');
+}
+
+function toggleHistory(key) {
+  const items = document.getElementById('hi-'+key);
+  const chev  = document.getElementById('hc-'+key);
+  const head  = document.getElementById('hh-'+key);
+  const open  = items.classList.toggle('open');
+  chev.classList.toggle('open', open);
+  head.classList.toggle('expanded', open);
+}
+
+// ── Modal helpers ──
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function closeIfOverlay(e, id) { if (e.target.id === id) closeModal(id); }
+
+// ── Toast ──
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// ── Init ──
+initStorage();
+
+// ═══════════════════════════════════════════════
+//  PWA — SERVICE WORKER
+// ═══════════════════════════════════════════════
+if ('serviceWorker' in navigator) {
+  let _swRefreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!_swRefreshing) { _swRefreshing = true; window.location.reload(); }
+  });
+
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').then(reg => {
+      reg.addEventListener('updatefound', () => {
+        const nw = reg.installing;
+        nw.addEventListener('statechange', () => {
+          if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+            nw.postMessage({ type: 'SKIP_WAITING' });
+          }
+        });
+      });
+    }).catch(err => console.warn('SW failed:', err));
+  });
+}
+
+// ═══════════════════════════════════════════════
+//  PWA — INSTALL PROMPT
+// ═══════════════════════════════════════════════
+let _deferredPrompt = null;
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  _deferredPrompt = e;
+  setTimeout(() => {
+    if (!localStorage.getItem('pwa_dismissed')) {
+      document.getElementById('installBanner').classList.add('show');
+    }
+  }, 2500);
+});
+
+window.addEventListener('appinstalled', () => {
+  document.getElementById('installBanner').classList.remove('show');
+  _deferredPrompt = null;
+});
+
+function triggerInstall() {
+  if (!_deferredPrompt) {
+    document.getElementById('installBanner').classList.remove('show');
+    return;
+  }
+  _deferredPrompt.prompt();
+  _deferredPrompt.userChoice.then(() => {
+    _deferredPrompt = null;
+    document.getElementById('installBanner').classList.remove('show');
+  });
+}
+
+function dismissInstall() {
+  document.getElementById('installBanner').classList.remove('show');
+  localStorage.setItem('pwa_dismissed', '1');
+}
+</script>
+</body>
+</html>
