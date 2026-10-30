@@ -321,6 +321,40 @@ h1,h2,h3{font-family:var(--font-display); font-weight:600; margin:0; letter-spac
 .ib-sub{font-size:12px; color:var(--ink-lo); margin-top:2px;}
 .ib-actions{display:flex; align-items:center; gap:8px; flex-shrink:0;}
 .ib-dismiss{background:none; border:none; color:var(--ink-faint); font-size:16px; padding:6px; cursor:pointer;}
+
+/* Settle tab — report export buttons */
+.report-btns{display:flex; flex-direction:column; gap:10px;}
+.report-btn{display:flex; align-items:center; gap:12px; padding:14px; background:var(--card); border:1px solid var(--line); border-radius:var(--radius-sm); cursor:pointer; text-align:left; width:100%;}
+.report-btn:active{transform:scale(0.98);}
+.report-btn .rb-icon{font-size:22px; flex-shrink:0;}
+.report-btn .rb-text{flex:1; min-width:0;}
+.report-btn .rb-title{font-weight:700; font-size:14px; color:var(--ink-hi);}
+.report-btn .rb-sub{font-size:12px; color:var(--ink-lo); margin-top:2px;}
+
+/* Printable PDF report (hidden on screen, shown only via window.print) */
+#report-print{display:none;}
+@media print{
+  body *{visibility:hidden !important;}
+  #report-print{display:block !important; visibility:visible !important; position:absolute; left:0; top:0; width:100%;}
+  #report-print *{visibility:visible !important;}
+}
+.rp-page{font-family:var(--font-body); color:#1A2430; background:#FFFFFF; padding:28px; max-width:760px; margin:0 auto;}
+.rp-header{border-bottom:3px solid #E3B23C; padding-bottom:14px; margin-bottom:20px;}
+.rp-brand{font-family:var(--font-display); font-size:13px; letter-spacing:0.08em; text-transform:uppercase; color:#3FA796; font-weight:700;}
+.rp-title{font-family:var(--font-display); font-size:24px; font-weight:600; margin-top:4px; color:#16222E;}
+.rp-meta{font-size:12px; color:#5C7086; margin-top:4px;}
+.rp-section-title{font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; color:#C4552F; margin:22px 0 10px;}
+.rp-summary-grid{display:flex; gap:14px; flex-wrap:wrap; margin-bottom:6px;}
+.rp-summary-card{flex:1; min-width:140px; border:1px solid #E2E8EF; border-radius:10px; padding:12px 14px;}
+.rp-summary-card .lbl{font-size:10.5px; text-transform:uppercase; letter-spacing:0.05em; color:#5C7086;}
+.rp-summary-card .val{font-family:var(--font-display); font-size:18px; font-weight:600; color:#16222E; margin-top:3px;}
+.rp-table{width:100%; border-collapse:collapse; font-size:12.5px;}
+.rp-table th{text-align:left; font-size:10.5px; text-transform:uppercase; letter-spacing:0.04em; color:#5C7086; border-bottom:1px solid #D7DEE6; padding:6px 8px;}
+.rp-table td{padding:7px 8px; border-bottom:1px solid #EEF1F5; vertical-align:top;}
+.rp-table tr:last-child td{border-bottom:none;}
+.rp-amt{text-align:right; font-weight:700; white-space:nowrap;}
+.rp-pos{color:#1F8A5F;} .rp-neg{color:#C4433A;}
+.rp-note{font-size:11px; color:#5C7086; margin-top:18px; border-top:1px solid #E2E8EF; padding-top:10px;}
 </style>
 </head>
 <body>
@@ -405,6 +439,9 @@ h1,h2,h3{font-family:var(--font-display); font-weight:600; margin:0; letter-spac
       <button class="ib-dismiss" id="btn-install-dismiss">✕</button>
     </div>
   </div>
+
+  <!-- ============ PRINTABLE PDF REPORT (print-only) ============ -->
+  <div id="report-print"></div>
 </div>
 
 <script>
@@ -905,6 +942,7 @@ function renderTripTab(){
   } else if(S.currentTab==="settle"){
     fab.classList.add("hidden");
     content.innerHTML = renderSettleTab(t);
+    bindSettleTab(t);
   }
 }
 $all(".tab-item").forEach(btn=>{
@@ -1594,7 +1632,223 @@ function renderSettleTab(t){
     <div class="section-label" style="margin-top:22px;">Suggested settlement</div>
     ${txnHtml}
     <div class="small-note">Balances reflect what each person has already paid versus their fair share of group expenses — personal expenses aren't split.</div>
+
+    <div class="section-label" style="margin-top:22px;">Export report</div>
+    <div class="report-btns">
+      <div class="report-btn" id="btn-report-overall">
+        <div class="rb-icon">📄</div>
+        <div class="rb-text">
+          <div class="rb-title">Overall trip report</div>
+          <div class="rb-sub">Spend, balances & settlement for everyone — as a PDF</div>
+        </div>
+      </div>
+      <div class="report-btn" id="btn-report-personal">
+        <div class="rb-icon">🧑</div>
+        <div class="rb-text">
+          <div class="rb-title">Personal report</div>
+          <div class="rb-sub">Choose a traveller to export their own spend</div>
+        </div>
+      </div>
+    </div>
   `;
+}
+function bindSettleTab(t){
+  const overallBtn = $("#btn-report-overall");
+  if(!overallBtn) return; // empty-state (fewer than 2 travellers) — no report buttons rendered
+  overallBtn.addEventListener("click", ()=> generateReport(t, null));
+  $("#btn-report-personal").addEventListener("click", ()=> openReportPersonModal(t));
+}
+
+/* ============================================================
+   PDF REPORT GENERATION (print-to-PDF, no external libraries)
+============================================================ */
+function openReportPersonModal(t){
+  renderModal(`
+    <div class="modal-title">Personal report for…</div>
+    <div class="person-select-grid" id="rp-person-grid">
+      ${t.persons.map(p=>`<span class="ps-item" data-person="${p.id}">${esc(p.name)}</span>`).join("")}
+    </div>
+    <div class="btn-row" style="margin-top:18px;"><button class="btn btn-secondary" id="rp-cancel">Cancel</button></div>
+  `);
+  $("#rp-cancel").onclick = closeModal;
+  $all("[data-person]", $("#rp-person-grid")).forEach(el=>{
+    el.addEventListener("click", ()=>{
+      const personId = el.dataset.person;
+      closeModal();
+      generateReport(t, personId);
+    });
+  });
+}
+function categoryBreakdown(t){
+  const totals = {};
+  t.expenses.forEach(e=>{
+    const cat = findCategory(t, e.categoryId);
+    const key = cat ? cat.id : "__none";
+    if(!totals[key]) totals[key] = {name: cat?cat.name:"Uncategorised", emoji: cat?cat.emoji:"💰", amount:0};
+    totals[key].amount += Number(e.amount)||0;
+  });
+  return Object.values(totals).sort((a,b)=>b.amount-a.amount);
+}
+function reportMetaHtml(t, subtitleHtml){
+  const dateStr = t.startDate ? (fmtDate(t.startDate) + (t.endDate? " – "+fmtDate(t.endDate) : "")) : "Dates not set";
+  const now = new Date();
+  const generated = fmtDate(now.toISOString().slice(0,10)) + " " + now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+  return `
+    <div class="rp-header">
+      <div class="rp-brand">🧭 Voyage Ledger</div>
+      <div class="rp-title">${esc(t.name||"Untitled trip")}</div>
+      <div class="rp-meta">${esc(dateStr)} · ${subtitleHtml}</div>
+      <div class="rp-meta">Generated ${generated}</div>
+    </div>
+  `;
+}
+function buildOverallReportHtml(t){
+  const total = tripTotalSpend(t);
+  const balances = computeBalances(t).sort((a,b)=>b.net-a.net);
+  const txns = simplifyDebts(balances);
+  const cats = categoryBreakdown(t);
+  const sorted = [...t.expenses].sort((a,b)=> (a.date||"").localeCompare(b.date||""));
+
+  const summary = `
+    <div class="rp-summary-grid">
+      <div class="rp-summary-card"><div class="lbl">Total group spend</div><div class="val">${fmtMoney(total)}</div></div>
+      <div class="rp-summary-card"><div class="lbl">Travellers</div><div class="val">${t.persons.length}</div></div>
+      <div class="rp-summary-card"><div class="lbl">Expenses logged</div><div class="val">${t.expenses.length}</div></div>
+    </div>
+  `;
+
+  const catTable = cats.length ? `
+    <table class="rp-table">
+      <thead><tr><th>Category</th><th class="rp-amt">Amount</th><th class="rp-amt">% of total</th></tr></thead>
+      <tbody>
+        ${cats.map(c=>`<tr><td>${esc(c.emoji)} ${esc(c.name)}</td><td class="rp-amt">${fmtMoney(c.amount)}</td><td class="rp-amt">${total>0?Math.round(c.amount/total*100):0}%</td></tr>`).join("")}
+      </tbody>
+    </table>` : `<div class="rp-meta">No expenses logged yet.</div>`;
+
+  const balTable = `
+    <table class="rp-table">
+      <thead><tr><th>Traveller</th><th class="rp-amt">Paid</th><th class="rp-amt">Fair share</th><th class="rp-amt">Net balance</th></tr></thead>
+      <tbody>
+        ${balances.map(b=>`<tr><td>${esc(b.name)}</td><td class="rp-amt">${fmtMoney(b.paid)}</td><td class="rp-amt">${fmtMoney(b.owed)}</td><td class="rp-amt ${b.net>0.5?'rp-pos':(b.net<-0.5?'rp-neg':'')}">${b.net>0.5?'+':''}${fmtMoney(b.net)}</td></tr>`).join("")}
+      </tbody>
+    </table>
+  `;
+
+  const settleHtml = txns.length ? `
+    <table class="rp-table">
+      <thead><tr><th>From</th><th>To</th><th class="rp-amt">Amount</th></tr></thead>
+      <tbody>${txns.map(x=>`<tr><td>${esc(x.from)}</td><td>${esc(x.to)}</td><td class="rp-amt">${fmtMoney(x.amount)}</td></tr>`).join("")}</tbody>
+    </table>
+  ` : `<div class="rp-meta">Everyone is settled up — no payments needed.</div>`;
+
+  const expTable = sorted.length ? `
+    <table class="rp-table">
+      <thead><tr><th>Date</th><th>Description</th><th>Type</th><th>Paid by</th><th class="rp-amt">Amount</th></tr></thead>
+      <tbody>
+        ${sorted.map(e=>{
+          const cat = findCategory(t, e.categoryId);
+          const desc = e.note ? esc(e.note) : (cat?esc(cat.name):'Uncategorised');
+          const type = e.type==='personal' ? `Personal · ${esc(personName(t,e.personId))}` : `Group · ${(e.participants||[]).length} people`;
+          return `<tr><td>${fmtDate(e.date)}</td><td>${desc}</td><td>${type}</td><td>${esc(personName(t,e.paidBy))}</td><td class="rp-amt">${fmtMoney(e.amount)}</td></tr>`;
+        }).join("")}
+      </tbody>
+    </table>
+  ` : `<div class="rp-meta">No expenses logged yet.</div>`;
+
+  return `
+    <div class="rp-page">
+      ${reportMetaHtml(t, "Overall trip report")}
+      <div class="rp-section-title">Summary</div>
+      ${summary}
+      <div class="rp-section-title">Spend by category</div>
+      ${catTable}
+      <div class="rp-section-title">Balance per traveller</div>
+      ${balTable}
+      <div class="rp-section-title">Suggested settlement</div>
+      ${settleHtml}
+      <div class="rp-section-title">All expenses</div>
+      ${expTable}
+      <div class="rp-note">Balances reflect what each person has paid versus their fair share of group expenses, based on everything logged so far. Personal expenses aren't split.</div>
+    </div>
+  `;
+}
+function buildPersonalReportHtml(t, personId){
+  const person = t.persons.find(p=>p.id===personId);
+  const name = person ? person.name : "Unknown";
+  const balances = computeBalances(t);
+  const mine = balances.find(b=>b.id===personId) || {paid:0, owed:0, net:0};
+  const txns = simplifyDebts(balances).filter(x=> x.from===name || x.to===name);
+
+  const personalExpenses = t.expenses.filter(e=> e.type==='personal' && e.personId===personId);
+  const personalTotal = personalExpenses.reduce((s,e)=>s+(Number(e.amount)||0),0);
+
+  const myRows = t.expenses.filter(e=>{
+    const participants = (e.participants && e.participants.length) ? e.participants : (e.personId?[e.personId]:[]);
+    return e.paidBy===personId || participants.includes(personId);
+  }).sort((a,b)=> (a.date||"").localeCompare(b.date||""));
+
+  const summary = `
+    <div class="rp-summary-grid">
+      <div class="rp-summary-card"><div class="lbl">Total paid</div><div class="val">${fmtMoney(mine.paid)}</div></div>
+      <div class="rp-summary-card"><div class="lbl">Fair share of group costs</div><div class="val">${fmtMoney(mine.owed)}</div></div>
+      <div class="rp-summary-card"><div class="lbl">Personal spend</div><div class="val">${fmtMoney(personalTotal)}</div></div>
+      <div class="rp-summary-card"><div class="lbl">Net balance</div><div class="val ${mine.net>0.5?'rp-pos':(mine.net<-0.5?'rp-neg':'')}">${mine.net>0.5?'+':''}${fmtMoney(mine.net)}</div></div>
+    </div>
+    <div class="rp-meta">${mine.net>0.5 ? `${esc(name)} should receive ${fmtMoney(mine.net)} overall.` : (mine.net<-0.5 ? `${esc(name)} owes ${fmtMoney(-mine.net)} overall.` : `${esc(name)} is settled up.`)}</div>
+  `;
+
+  const settleHtml = txns.length ? `
+    <table class="rp-table">
+      <thead><tr><th>From</th><th>To</th><th class="rp-amt">Amount</th></tr></thead>
+      <tbody>${txns.map(x=>`<tr><td>${esc(x.from)}</td><td>${esc(x.to)}</td><td class="rp-amt">${fmtMoney(x.amount)}</td></tr>`).join("")}</tbody>
+    </table>
+  ` : `<div class="rp-meta">No pending payments involving ${esc(name)}.</div>`;
+
+  const expTable = myRows.length ? `
+    <table class="rp-table">
+      <thead><tr><th>Date</th><th>Description</th><th>Role</th><th class="rp-amt">Amount</th></tr></thead>
+      <tbody>
+        ${myRows.map(e=>{
+          const cat = findCategory(t, e.categoryId);
+          const desc = e.note ? esc(e.note) : (cat?esc(cat.name):'Uncategorised');
+          const isPayer = e.paidBy===personId;
+          let role, amt;
+          if(e.type==='personal'){
+            role = "Personal expense"; amt = Number(e.amount)||0;
+          } else {
+            const participants = (e.participants && e.participants.length) ? e.participants : [];
+            const share = (e.splitMode==='custom' && e.customSplits) ? (Number(e.customSplits[personId])||0) : (splitEqually(e.amount, participants)[personId] || 0);
+            role = isPayer ? `Paid for group · your share ${fmtMoney(share)}` : `Your share of group cost`;
+            amt = isPayer ? Number(e.amount)||0 : share;
+          }
+          return `<tr><td>${fmtDate(e.date)}</td><td>${desc}</td><td>${role}</td><td class="rp-amt">${fmtMoney(amt)}</td></tr>`;
+        }).join("")}
+      </tbody>
+    </table>
+  ` : `<div class="rp-meta">No expenses logged for ${esc(name)} yet.</div>`;
+
+  return `
+    <div class="rp-page">
+      ${reportMetaHtml(t, "Personal report for " + esc(name))}
+      <div class="rp-section-title">Summary</div>
+      ${summary}
+      <div class="rp-section-title">Settlement involving ${esc(name)}</div>
+      ${settleHtml}
+      <div class="rp-section-title">${esc(name)}'s expenses</div>
+      ${expTable}
+      <div class="rp-note">Fair share reflects an equal (or custom) split of group expenses ${esc(name)} was part of, based on everything logged so far. Personal expenses aren't split with the group.</div>
+    </div>
+  `;
+}
+function generateReport(t, personId){
+  const html = personId ? buildPersonalReportHtml(t, personId) : buildOverallReportHtml(t);
+  $("#report-print").innerHTML = html;
+  const prevTitle = document.title;
+  const who = personId ? (t.persons.find(p=>p.id===personId)||{}).name || "Traveller" : "Overall";
+  document.title = `${(t.name||"Trip").replace(/[^a-z0-9 -]+/gi,"")} - ${who} Report`;
+  const restoreTitle = ()=>{ document.title = prevTitle; window.removeEventListener("afterprint", restoreTitle); };
+  window.addEventListener("afterprint", restoreTitle);
+  setTimeout(()=> window.print(), 60);
 }
 
 /* ============================================================
