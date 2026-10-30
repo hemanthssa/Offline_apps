@@ -1,0 +1,1803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0B1622"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Voyage Ledger"/>
+<meta name="application-name" content="Voyage Ledger"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="apple-touch-icon" href="icon-192.png"/>
+<title>Voyage Ledger</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧭</text></svg>">
+<style>
+:root{
+  --bg:#0B1622;
+  --bg-2:#0E1D2E;
+  --card:#132A40;
+  --card-hi:#1B3A56;
+  --line: rgba(230,238,246,0.09);
+  --line-strong: rgba(230,238,246,0.16);
+  --gold:#E3B23C;
+  --gold-dim: rgba(227,178,60,0.16);
+  --teal:#3FA796;
+  --teal-dim: rgba(63,167,150,0.16);
+  --rust:#C4552F;
+  --rust-dim: rgba(196,85,47,0.18);
+  --ink-hi:#F2EFE6;
+  --ink-lo:#8FA3B8;
+  --ink-faint:#5C7086;
+  --ok:#6FBE8F;
+  --bad:#DA6A5C;
+  --radius: 18px;
+  --radius-sm: 12px;
+  --font-display: 'Fraunces', ui-serif, Georgia, serif;
+  --font-body: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
+html,body{height:100%;}
+body{
+  margin:0;
+  background:
+    radial-gradient(1200px 500px at 50% -10%, rgba(63,167,150,0.12), transparent 60%),
+    radial-gradient(900px 400px at 90% 0%, rgba(227,178,60,0.08), transparent 55%),
+    var(--bg);
+  color:var(--ink-hi);
+  font-family:var(--font-body);
+  min-height:100vh;
+  overflow-x:hidden;
+}
+#app{max-width:520px; margin:0 auto; min-height:100vh; display:flex; flex-direction:column; position:relative;}
+button{font-family:inherit; cursor:pointer;}
+input, select, textarea{font-family:inherit;}
+::selection{background:var(--gold-dim);}
+.hidden{display:none !important;}
+a{color:inherit;}
+
+/* ---------- generic bits ---------- */
+.screen{flex:1; display:flex; flex-direction:column; min-height:100vh;}
+.center-screen{align-items:center; justify-content:center; padding:32px 24px; text-align:center;}
+.eyebrow-mark{
+  width:64px;height:64px;border-radius:20px;
+  background:linear-gradient(155deg, var(--teal-dim), var(--gold-dim));
+  display:flex;align-items:center;justify-content:center;font-size:30px;
+  border:1px solid var(--line-strong); margin-bottom:18px;
+}
+h1,h2,h3{font-family:var(--font-display); font-weight:600; margin:0; letter-spacing:0.2px;}
+.display-title{font-size:30px; line-height:1.15; font-weight:600;}
+.sub{color:var(--ink-lo); font-size:14.5px; line-height:1.5; margin-top:8px;}
+
+.btn{
+  border:none; border-radius:14px; padding:14px 20px; font-size:15.5px; font-weight:700;
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  transition:transform .12s ease, filter .12s ease; width:100%;
+}
+.btn:active{transform:scale(0.98);}
+.btn-primary{background:linear-gradient(135deg,#EFC562,var(--gold)); color:#231604;}
+.btn-secondary{background:var(--card-hi); color:var(--ink-hi); border:1px solid var(--line-strong);}
+.btn-ghost{background:transparent; color:var(--teal); border:1px solid var(--teal-dim);}
+.btn-danger{background:var(--rust-dim); color:#FFD9C8; border:1px solid rgba(196,85,47,0.4);}
+.btn-sm{padding:9px 14px; font-size:13.5px; width:auto;}
+.btn-row{display:flex; gap:10px;}
+.btn-row .btn{flex:1;}
+
+.field{margin-bottom:16px; text-align:left;}
+.field label{display:block; font-size:12.5px; font-weight:700; color:var(--ink-lo); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:7px;}
+.field input[type=text], .field input[type=number], .field input[type=date], .field select, .field textarea{
+  width:100%; background:var(--bg-2); border:1px solid var(--line-strong); color:var(--ink-hi);
+  padding:13px 14px; border-radius:12px; font-size:15.5px; outline:none;
+}
+.field input:focus, .field select:focus, .field textarea:focus{border-color:var(--teal);}
+.field textarea{resize:vertical; min-height:64px;}
+.hint{font-size:12px; color:var(--ink-faint); margin-top:6px;}
+
+/* ---------- pin screen ---------- */
+.pin-dots{display:flex; gap:14px; margin:22px 0 28px;}
+.pin-dot{width:16px;height:16px;border-radius:50%; border:2px solid var(--line-strong); transition: all .15s ease;}
+.pin-dot.filled{background:var(--gold); border-color:var(--gold); box-shadow:0 0 0 5px var(--gold-dim);}
+.pin-dot.err{background:var(--bad); border-color:var(--bad); box-shadow:0 0 0 5px rgba(218,106,92,0.25);}
+.keypad{display:grid; grid-template-columns:repeat(3,1fr); gap:12px; width:100%; max-width:280px;}
+.key{
+  aspect-ratio:1; border-radius:50%; background:var(--card); border:1px solid var(--line);
+  font-size:22px; font-weight:700; color:var(--ink-hi); display:flex;align-items:center;justify-content:center;
+}
+.key:active{background:var(--card-hi);}
+.key.func{font-size:14px; color:var(--ink-lo); font-weight:600;}
+.shake{animation:shake .4s;}
+@keyframes shake{10%,90%{transform:translateX(-2px)}20%,80%{transform:translateX(4px)}30%,50%,70%{transform:translateX(-8px)}40%,60%{transform:translateX(8px)}}
+
+/* ---------- top bar ---------- */
+.topbar{
+  position:sticky; top:0; z-index:20; padding:calc(14px + var(--safe-top)) 18px 14px;
+  background:rgba(11,22,34,0.86); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--line); display:flex; align-items:center; gap:12px;
+}
+.topbar .tb-title{flex:1; min-width:0;}
+.topbar h2{font-size:19px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.topbar .tb-sub{font-size:12px; color:var(--ink-lo); margin-top:1px;}
+.icon-btn{
+  width:38px;height:38px; border-radius:12px; background:var(--card); border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center; font-size:17px; flex-shrink:0; color:var(--ink-hi);
+}
+.icon-btn:active{background:var(--card-hi);}
+
+.content{flex:1; padding:16px 16px calc(96px + var(--safe-bottom));}
+
+/* ---------- home / trip cards ---------- */
+.section-label{font-size:12.5px; font-weight:800; text-transform:uppercase; letter-spacing:0.08em; color:var(--ink-faint); margin:6px 2px 12px;}
+.trip-card{
+  position:relative; background:linear-gradient(160deg,var(--card),var(--bg-2)); border:1px solid var(--line);
+  border-radius:var(--radius); padding:18px 18px 16px; margin-bottom:16px; overflow:hidden;
+}
+.trip-card::after{
+  content:""; position:absolute; right:-10px; top:50%; width:20px; height:20px; border-radius:50%;
+  background:var(--bg); transform:translateY(-50%); box-shadow:0 0 0 1px var(--line);
+}
+.trip-card::before{
+  content:""; position:absolute; left:-10px; top:50%; width:20px; height:20px; border-radius:50%;
+  background:var(--bg); transform:translateY(-50%); box-shadow:0 0 0 1px var(--line);
+}
+.tc-stamp{
+  position:absolute; top:50%; left:50%; z-index:2;
+  width:104px; height:104px; border-radius:50%;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;
+  border:3px solid rgba(111,190,143,0.8);
+  box-shadow:0 0 0 3px rgba(111,190,143,0.14), inset 0 0 10px rgba(111,190,143,0.12);
+  background:rgba(111,190,143,0.08); color:rgba(111,190,143,0.92);
+  font-family:var(--font-display); text-transform:uppercase;
+  transform:translate(-50%,-50%) rotate(45deg); pointer-events:none;
+}
+.tc-stamp::before{
+  content:""; position:absolute; inset:7px; border-radius:50%;
+  border:1.5px dashed rgba(111,190,143,0.55);
+}
+.tc-stamp-stars{font-size:8px; letter-spacing:3px; opacity:0.85;}
+.tc-stamp-main{font-size:18px; font-weight:800; letter-spacing:0.09em; line-height:1;}
+.tc-stamp-sub{font-size:7px; letter-spacing:2px; opacity:0.8; white-space:nowrap;}
+.tc-top{display:flex; justify-content:space-between; align-items:flex-start; gap:10px;}
+.tc-dest{font-family:var(--font-display); font-size:22px; font-weight:600;}
+.tc-dates{font-size:12.5px; color:var(--gold); font-weight:700; margin-top:3px;}
+.tc-divider{border:none; border-top:1.5px dashed var(--line-strong); margin:14px 0;}
+.tc-bottom{display:flex; justify-content:space-between; align-items:center;}
+.avatar-row{display:flex;}
+.avatar{
+  width:28px;height:28px;border-radius:50%; background:var(--teal-dim); color:var(--teal); border:2px solid var(--card);
+  display:flex; align-items:center; justify-content:center; font-size:11.5px; font-weight:800; margin-left:-8px;
+}
+.avatar:first-child{margin-left:0;}
+.tc-spend{text-align:right;}
+.tc-spend .amt{font-family:var(--font-display); font-size:17px; font-weight:600; color:var(--ink-hi);}
+.tc-spend .lbl{font-size:11px; color:var(--ink-faint);}
+
+.empty-state{text-align:center; padding:56px 24px; color:var(--ink-lo);}
+.empty-state .em-icon{font-size:38px; margin-bottom:12px;}
+.empty-state h3{font-size:17px; color:var(--ink-hi); margin-bottom:6px;}
+.empty-state p{font-size:13.5px; line-height:1.5;}
+
+.fab{
+  position:fixed; right:20px; bottom:calc(20px + var(--safe-bottom)); z-index:30;
+  width:58px; height:58px; border-radius:20px; border:none;
+  background:linear-gradient(135deg,#EFC562,var(--gold)); color:#231604; font-size:26px; font-weight:700;
+  box-shadow:0 10px 24px rgba(227,178,60,0.28); display:flex; align-items:center; justify-content:center;
+}
+.fab:active{transform:scale(0.94);}
+#app.trip-open .fab{right:calc(50% - 260px + 20px); bottom:calc(78px + var(--safe-bottom));}
+@media (max-width:559px){ #app.trip-open .fab{right:20px;} }
+
+/* ---------- tabs ---------- */
+.tabbar{
+  position:fixed; bottom:0; left:0; right:0; z-index:20; max-width:520px; margin:0 auto;
+  background:rgba(14,29,46,0.92); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+  border-top:1px solid var(--line); display:flex; padding:8px 6px calc(8px + var(--safe-bottom));
+}
+.tab-item{flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; padding:6px 2px; border:none; background:none; color:var(--ink-faint); border-radius:12px;}
+.tab-item .ti-icon{font-size:19px;}
+.tab-item .ti-label{font-size:10.5px; font-weight:700; letter-spacing:0.01em;}
+.tab-item.active{color:var(--gold);}
+.tab-item.active .ti-icon{transform:translateY(-1px);}
+
+/* ---------- cards / lists ---------- */
+.card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius-sm); padding:14px 16px; margin-bottom:10px;}
+.row-flex{display:flex; align-items:center; justify-content:space-between; gap:10px;}
+.stat-strip{display:flex; gap:10px; margin-bottom:18px;}
+.stat-box{flex:1; background:var(--card); border:1px solid var(--line); border-radius:var(--radius-sm); padding:14px; text-align:center;}
+.stat-box .sv{font-family:var(--font-display); font-size:20px; font-weight:600;}
+.stat-box .sl{font-size:10.5px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:0.05em; margin-top:2px;}
+
+.goal-item{display:flex; align-items:center; gap:12px; padding:13px 4px; border-bottom:1px solid var(--line);}
+.goal-item:last-child{border-bottom:none;}
+.checkbox{
+  width:24px;height:24px;border-radius:8px; border:2px solid var(--line-strong); flex-shrink:0;
+  display:flex; align-items:center; justify-content:center; font-size:14px; color:transparent;
+}
+.checkbox.done{background:var(--ok); border-color:var(--ok); color:#0B1622;}
+.goal-text{flex:1; font-size:15px;}
+.goal-text.done{color:var(--ink-faint); text-decoration:line-through;}
+.trash-btn{color:var(--ink-faint); font-size:16px; background:none; border:none; padding:6px;}
+.edit-btn{color:var(--ink-faint); font-size:15px; background:none; border:none; padding:6px;}
+.edit-btn:active{color:var(--teal);}
+
+.person-chip{
+  display:inline-flex; align-items:center; gap:8px; background:var(--card-hi); border:1px solid var(--line-strong);
+  border-radius:999px; padding:7px 12px 7px 8px; font-size:13.5px; font-weight:700; margin:0 8px 8px 0;
+}
+.person-chip .av-sm{width:22px;height:22px;border-radius:50%; background:var(--gold-dim); color:var(--gold); display:flex;align-items:center;justify-content:center; font-size:10.5px;}
+.person-chip .rm{color:var(--ink-faint); font-size:13px; margin-left:2px;}
+
+.exp-row{display:flex; align-items:center; gap:12px; padding:13px 4px; border-bottom:1px solid var(--line);}
+.exp-row:last-child{border-bottom:none;}
+.exp-icon{width:40px;height:40px;border-radius:12px; background:var(--teal-dim); display:flex;align-items:center;justify-content:center; font-size:18px; flex-shrink:0;}
+.exp-mid{flex:1; min-width:0;}
+.exp-title{font-size:14.5px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.exp-cat{font-size:11.5px; color:var(--ink-faint); margin-top:2px;}
+.exp-sub{font-size:12px; color:var(--ink-lo); margin-top:2px;}
+.exp-amt{text-align:right; flex-shrink:0;}
+.exp-amt .a{font-family:var(--font-display); font-weight:600; font-size:15.5px;}
+.tag-personal{color:var(--teal); font-size:10.5px; font-weight:800; text-transform:uppercase;}
+.tag-group{color:var(--gold); font-size:10.5px; font-weight:800; text-transform:uppercase;}
+
+.seg{display:flex; background:var(--bg-2); border:1px solid var(--line-strong); border-radius:12px; padding:3px; margin-bottom:16px;}
+.seg-btn{flex:1; text-align:center; padding:9px 6px; border-radius:9px; font-size:13.5px; font-weight:700; color:var(--ink-lo); background:none; border:none;}
+.seg-btn.active{background:var(--card-hi); color:var(--ink-hi);}
+
+.cat-pill-row{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:6px;}
+.cat-pill{
+  padding:9px 14px; border-radius:999px; background:var(--bg-2); border:1px solid var(--line-strong); font-size:13.5px; font-weight:700;
+  display:flex; align-items:center; gap:6px; color:var(--ink-lo);
+}
+.cat-pill.sel{background:var(--gold-dim); color:var(--gold); border-color:rgba(227,178,60,0.4);}
+
+.person-select-grid{display:flex; flex-wrap:wrap; gap:8px;}
+.ps-item{padding:9px 13px; border-radius:12px; background:var(--bg-2); border:1px solid var(--line-strong); font-size:13.5px; font-weight:700; color:var(--ink-lo);}
+.ps-item.sel{background:var(--teal-dim); color:var(--teal); border-color:rgba(63,167,150,0.4);}
+
+.bar-row{margin-bottom:14px;}
+.bar-row .bl{display:flex; justify-content:space-between; font-size:13px; margin-bottom:6px;}
+.bar-row .bl .nm{font-weight:700;}
+.bar-row .bl .vv{color:var(--ink-lo); font-family:var(--font-display); font-weight:600;}
+.bar-track{height:9px; border-radius:6px; background:var(--bg-2); overflow:hidden;}
+.bar-fill{height:100%; border-radius:6px; background:linear-gradient(90deg,var(--teal),var(--gold));}
+
+.donut-wrap{display:flex; align-items:center; gap:18px; flex-wrap:wrap;}
+.donut-svg-box{position:relative; width:150px; height:150px; flex-shrink:0;}
+.donut-svg-box svg{width:100%; height:100%;}
+.donut-center{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; pointer-events:none; text-align:center;}
+.dc-amt{font-family:var(--font-display); font-size:15px; font-weight:600; color:var(--ink-hi);}
+.dc-lbl{font-size:10px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:0.05em; margin-top:2px;}
+.legend{flex:1; min-width:140px; display:flex; flex-direction:column; gap:10px;}
+.legend-item{display:flex; align-items:center; gap:8px; cursor:pointer;}
+.legend-dot{width:10px; height:10px; border-radius:50%; flex-shrink:0;}
+.legend-name{flex:1; font-size:13px; font-weight:700; color:var(--ink-hi); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.legend-val{font-size:12px; color:var(--ink-lo); font-family:var(--font-display); font-weight:600; white-space:nowrap;}
+
+.balance-card{display:flex; align-items:center; gap:12px; padding:14px; border-radius:var(--radius-sm); background:var(--card); border:1px solid var(--line); margin-bottom:10px;}
+.bal-av{width:42px;height:42px;border-radius:50%; background:var(--card-hi); display:flex;align-items:center;justify-content:center; font-weight:800; font-size:14px;}
+.bal-name{font-weight:700; font-size:14.5px;}
+.bal-detail{font-size:12px; color:var(--ink-lo); margin-top:1px;}
+.bal-amt{margin-left:auto; text-align:right; font-family:var(--font-display); font-weight:600; font-size:16px;}
+.pos{color:var(--ok);} .neg{color:var(--bad);}
+
+.settle-line{display:flex; align-items:center; gap:10px; padding:14px; background:var(--card); border:1px solid var(--line); border-radius:var(--radius-sm); margin-bottom:10px; font-size:14px;}
+.settle-line b{font-family:var(--font-display); font-weight:600; color:var(--gold);}
+.settle-arrow{color:var(--ink-faint);}
+
+/* modal */
+.modal-overlay{position:fixed; inset:0; background:rgba(6,12,20,0.6); backdrop-filter:blur(3px); z-index:50; display:flex; align-items:flex-end;}
+.modal-sheet{
+  background:var(--bg-2); width:100%; max-width:520px; margin:0 auto; border-radius:24px 24px 0 0;
+  padding:20px 20px calc(24px + var(--safe-bottom)); max-height:88vh; overflow-y:auto;
+  border-top:1px solid var(--line-strong); animation:slideup .22s ease;
+}
+@keyframes slideup{from{transform:translateY(30px); opacity:0.4} to{transform:translateY(0); opacity:1}}
+.modal-handle{width:38px; height:4px; background:var(--line-strong); border-radius:3px; margin:0 auto 16px;}
+.modal-title{font-family:var(--font-display); font-size:20px; font-weight:600; margin-bottom:16px;}
+
+.toast{
+  position:fixed; bottom:calc(90px + var(--safe-bottom)); left:50%; transform:translateX(-50%); z-index:60;
+  background:var(--card-hi); border:1px solid var(--line-strong); padding:11px 18px; border-radius:12px; font-size:13.5px; font-weight:700;
+  box-shadow:0 8px 20px rgba(0,0,0,0.3); opacity:0; pointer-events:none; transition:opacity .25s ease, transform .25s ease;
+}
+.toast.show{opacity:1; transform:translateX(-50%) translateY(-4px);}
+
+.top-actions{display:flex; gap:8px;}
+.link-btn{color:var(--teal); font-size:13.5px; font-weight:700; background:none; border:none; padding:4px 0;}
+.small-note{font-size:12px; color:var(--ink-faint); line-height:1.5; margin-top:14px; padding-top:14px; border-top:1px solid var(--line);}
+
+/* PWA install banner */
+.install-banner{
+  position:fixed; left:0; right:0; bottom:0; z-index:70; display:none; align-items:center; gap:14px;
+  background:var(--card-hi); border-top:1px solid var(--line-strong); padding:14px 18px calc(14px + var(--safe-bottom));
+  box-shadow:0 -8px 24px rgba(0,0,0,0.35);
+}
+.install-banner.show{display:flex;}
+.ib-icon{font-size:30px; flex-shrink:0;}
+.ib-text{flex:1; min-width:0;}
+.ib-title{font-family:var(--font-display); font-weight:600; font-size:15px; color:var(--ink-hi);}
+.ib-sub{font-size:12px; color:var(--ink-lo); margin-top:2px;}
+.ib-actions{display:flex; align-items:center; gap:8px; flex-shrink:0;}
+.ib-dismiss{background:none; border:none; color:var(--ink-faint); font-size:16px; padding:6px; cursor:pointer;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ============ SCREEN: START ============ -->
+  <div id="screen-start" class="screen center-screen">
+    <div class="eyebrow-mark">🧭</div>
+    <div class="display-title">Voyage Ledger</div>
+    <div class="sub">Plan itineraries, track shared costs, and settle up — all inside one encrypted file that stays on your phone.</div>
+    <div style="height:28px"></div>
+    <div class="btn-row" style="flex-direction:column; gap:12px; width:100%;">
+      <button class="btn btn-primary" id="btn-create-vault">Create a new vault</button>
+      <button class="btn btn-secondary" id="btn-open-vault">Open a .fvault file</button>
+    </div>
+    <input type="file" id="file-input" accept=".fvault" class="hidden">
+  </div>
+
+  <!-- ============ SCREEN: PIN ============ -->
+  <div id="screen-pin" class="screen center-screen hidden">
+    <div class="eyebrow-mark">🔒</div>
+    <div class="display-title" id="pin-title">Enter PIN</div>
+    <div class="sub" id="pin-sub">Unlock Voyage Ledger to continue.</div>
+    <div class="pin-dots" id="pin-dots">
+      <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
+      <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
+    </div>
+    <div class="keypad" id="keypad"></div>
+    <button class="link-btn" id="btn-pin-back" style="margin-top:22px;">← Back</button>
+  </div>
+
+  <!-- ============ SCREEN: HOME ============ -->
+  <div id="screen-home" class="screen hidden">
+    <div class="topbar">
+      <div class="tb-title">
+        <h2>Your Trips</h2>
+        <div class="tb-sub" id="vault-status">Vault ready</div>
+      </div>
+      <div class="top-actions">
+        <button class="icon-btn" id="btn-export" title="Export vault">⬇️</button>
+        <button class="icon-btn" id="btn-lock" title="Lock">🔒</button>
+      </div>
+    </div>
+    <div class="content" id="trip-list"></div>
+    <button class="fab" id="fab-add-trip">+</button>
+  </div>
+
+  <!-- ============ SCREEN: TRIP ============ -->
+  <div id="screen-trip" class="screen hidden">
+    <div class="topbar">
+      <button class="icon-btn" id="btn-trip-back">←</button>
+      <div class="tb-title">
+        <h2 id="trip-title-bar">Trip</h2>
+        <div class="tb-sub" id="trip-sub-bar"></div>
+      </div>
+      <button class="icon-btn" id="btn-trip-menu">⋯</button>
+    </div>
+    <div class="content" id="trip-content"></div>
+    <button class="fab hidden" id="fab-trip-action">+</button>
+    <div class="tabbar">
+      <button class="tab-item" data-tab="overview"><span class="ti-icon">🗺️</span><span class="ti-label">Overview</span></button>
+      <button class="tab-item" data-tab="planning"><span class="ti-icon">🎒</span><span class="ti-label">Planning</span></button>
+      <button class="tab-item" data-tab="goals"><span class="ti-icon">✅</span><span class="ti-label">Goals</span></button>
+      <button class="tab-item" data-tab="expenses"><span class="ti-icon">💳</span><span class="ti-label">Expenses</span></button>
+      <button class="tab-item" data-tab="stats"><span class="ti-icon">📊</span><span class="ti-label">Stats</span></button>
+      <button class="tab-item" data-tab="settle"><span class="ti-icon">🤝</span><span class="ti-label">Settle</span></button>
+    </div>
+  </div>
+
+  <div id="modal-root"></div>
+  <div class="toast" id="toast"></div>
+
+  <!-- ============ PWA INSTALL BANNER ============ -->
+  <div class="install-banner" id="install-banner">
+    <div class="ib-icon">🧭</div>
+    <div class="ib-text">
+      <div class="ib-title">Install Voyage Ledger</div>
+      <div class="ib-sub">Add to home screen — plan trips offline</div>
+    </div>
+    <div class="ib-actions">
+      <button class="btn btn-primary btn-sm" id="btn-install">Install</button>
+      <button class="ib-dismiss" id="btn-install-dismiss">✕</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ============================================================
+   CONSTANTS
+============================================================ */
+const PBKDF2_ITER = 600000;
+const DEFAULT_CATEGORIES = [
+  {id:"cat_food", name:"Food & Drink", emoji:"🍜", subcategories:[
+    {id:"sub_rest",name:"Restaurants"},{id:"sub_cafe",name:"Cafes"},{id:"sub_street",name:"Street food"},{id:"sub_grocery",name:"Groceries"}
+  ]},
+  {id:"cat_stay", name:"Stay", emoji:"🛏️", subcategories:[
+    {id:"sub_hotel",name:"Hotel"},{id:"sub_hostel",name:"Hostel"},{id:"sub_rental",name:"Rental"}
+  ]},
+  {id:"cat_transport", name:"Transport", emoji:"🚕", subcategories:[
+    {id:"sub_flight",name:"Flights"},{id:"sub_taxi",name:"Taxi / Rideshare"},{id:"sub_train",name:"Train / Bus"},{id:"sub_fuel",name:"Fuel"}
+  ]},
+  {id:"cat_activities", name:"Activities", emoji:"🎟️", subcategories:[
+    {id:"sub_tickets",name:"Tickets & Tours"},{id:"sub_adventure",name:"Adventure"}
+  ]},
+  {id:"cat_shopping", name:"Shopping", emoji:"🛍️", subcategories:[
+    {id:"sub_souvenirs",name:"Souvenirs"},{id:"sub_essentials",name:"Essentials"}
+  ]},
+  {id:"cat_misc", name:"Misc", emoji:"✨", subcategories:[
+    {id:"sub_tips",name:"Tips"},{id:"sub_other",name:"Other"}
+  ]}
+];
+const CHART_COLORS = ['#3FA796','#E3B23C','#C4552F','#6FBE8F','#7FB3D5','#DA6A5C','#B08FC4','#E8935B'];
+
+/* ============================================================
+   STATE
+============================================================ */
+const S = {
+  fileHandle: null,
+  usingFSA: false,
+  vaultKey: null,
+  vaultSalt: null,
+  data: null,          // { version, trips: [...] }
+  dirty: false,
+  pendingPurpose: null, // 'create' | 'open'
+  pendingFileText: null,
+  pinBuffer: "",
+  firstPinEntry: null,
+  currentTripId: null,
+  currentTab: "overview",
+  statsCatDrill: null,
+  vaultName: "voyage"
+};
+
+/* ============================================================
+   UTIL
+============================================================ */
+function uid(prefix){ return (prefix||"id") + "_" + Math.random().toString(36).slice(2,10) + Date.now().toString(36).slice(-4); }
+function $(sel, root){ return (root||document).querySelector(sel); }
+function $all(sel, root){ return Array.from((root||document).querySelectorAll(sel)); }
+function esc(str){ const d=document.createElement("div"); d.textContent = (str==null?"":String(str)); return d.innerHTML; }
+function fmtMoney(n){
+  n = Number(n)||0;
+  const neg = n < 0; n = Math.abs(n);
+  const s = n.toLocaleString('en-IN', {maximumFractionDigits:2, minimumFractionDigits: (n%1===0)?0:2});
+  return (neg?"-":"") + "₹" + s;
+}
+function fmtDate(d){
+  if(!d) return "";
+  const dt = new Date(d+"T00:00:00");
+  if(isNaN(dt.getTime())) return d;
+  const dd = String(dt.getDate()).padStart(2,'0');
+  const mm = String(dt.getMonth()+1).padStart(2,'0');
+  const yyyy = dt.getFullYear();
+  return `${dd}-${mm}-${yyyy}`;
+}
+function initials(name){
+  return (name||"?").trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase();
+}
+function toast(msg){
+  const t = $("#toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toast._h);
+  toast._h = setTimeout(()=>t.classList.remove("show"), 2200);
+}
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+
+/* ============================================================
+   CRYPTO
+============================================================ */
+function bufToB64(buf){
+  const bytes = new Uint8Array(buf);
+  let bin = "";
+  for(let i=0;i<bytes.length;i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin);
+}
+function b64ToBuf(b64){
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
+}
+async function deriveKey(pin, saltBytes, iterations){
+  iterations = iterations || PBKDF2_ITER;
+  const enc = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey("raw", enc.encode(pin), {name:"PBKDF2"}, false, ["deriveKey"]);
+  return crypto.subtle.deriveKey(
+    {name:"PBKDF2", salt: saltBytes, iterations, hash:"SHA-256"},
+    keyMaterial,
+    {name:"AES-GCM", length:256},
+    false,
+    ["encrypt","decrypt"]
+  );
+}
+async function encryptVault(dataObj, key, saltBytes){
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const enc = new TextEncoder();
+  const plaintext = enc.encode(JSON.stringify(dataObj));
+  const cipherBuf = await crypto.subtle.encrypt({name:"AES-GCM", iv}, key, plaintext);
+  const payload = { fvault:1, kdf:"PBKDF2-SHA256", iter: PBKDF2_ITER, salt: bufToB64(saltBytes), iv: bufToB64(iv), data: bufToB64(cipherBuf) };
+  return JSON.stringify(payload);
+}
+async function decryptVault(fileText, pin){
+  let payload;
+  try{ payload = JSON.parse(fileText); } catch(e){ throw new Error("This doesn't look like a valid .fvault file."); }
+  if(!payload || !payload.salt || !payload.iv || !payload.data) throw new Error("This doesn't look like a valid .fvault file.");
+  const saltBytes = b64ToBuf(payload.salt);
+  const ivBytes = b64ToBuf(payload.iv);
+  const cipherBytes = b64ToBuf(payload.data);
+  const iterations = payload.iter || PBKDF2_ITER;
+  const key = await deriveKey(pin, saltBytes, iterations);
+  let plainBuf;
+  try{
+    plainBuf = await crypto.subtle.decrypt({name:"AES-GCM", iv: ivBytes}, key, cipherBytes);
+  }catch(e){
+    throw new Error("Incorrect PIN or the file is corrupted.");
+  }
+  const dec = new TextDecoder();
+  const obj = JSON.parse(dec.decode(plainBuf));
+  return {obj, saltBytes, key};
+}
+
+/* ============================================================
+   FILE I/O
+============================================================ */
+function supportsFSA(){ return "showSaveFilePicker" in window && "showOpenFilePicker" in window; }
+
+async function pickOpenFile(){
+  if(supportsFSA()){
+    const [handle] = await window.showOpenFilePicker({
+      types:[{description:"Voyage Ledger vault", accept:{"application/octet-stream":[".fvault"]}}],
+      excludeAcceptAllOption:false, multiple:false
+    });
+    const file = await handle.getFile();
+    const text = await file.text();
+    return {text, handle, name:file.name};
+  } else {
+    return new Promise((resolve, reject)=>{
+      const input = $("#file-input");
+      input.value = "";
+      input.onchange = async ()=>{
+        const file = input.files[0];
+        if(!file){ reject(new Error("No file selected")); return; }
+        const text = await file.text();
+        resolve({text, handle:null, name:file.name});
+      };
+      input.click();
+    });
+  }
+}
+
+async function pickSaveFile(suggestedName){
+  if(supportsFSA()){
+    try{
+      const handle = await window.showSaveFilePicker({
+        suggestedName: suggestedName,
+        types:[{description:"Voyage Ledger vault", accept:{"application/octet-stream":[".fvault"]}}]
+      });
+      return handle;
+    }catch(e){ return null; }
+  }
+  return null;
+}
+
+async function writeToHandle(handle, text){
+  const writable = await handle.createWritable();
+  await writable.write(text);
+  await writable.close();
+}
+
+function downloadText(text, filename){
+  const blob = new Blob([text], {type:"application/octet-stream"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 4000);
+}
+
+async function persistVault(opts){
+  opts = opts || {};
+  if(!S.vaultKey || !S.vaultSalt || !S.data) return;
+  const text = await encryptVault(S.data, S.vaultKey, S.vaultSalt);
+  if(S.fileHandle){
+    try{
+      await writeToHandle(S.fileHandle, text);
+      S.dirty = false;
+      updateVaultStatus("Saved to " + S.vaultName + ".fvault");
+      return;
+    }catch(e){
+      toast("Direct save failed — downloading a copy instead");
+      // fall through to download fallback
+    }
+  }
+  if(opts.forceDownload){
+    downloadText(text, S.vaultName + ".fvault");
+    S.dirty = false;
+    updateVaultStatus("Downloaded " + S.vaultName + ".fvault — overwrite your old file with this one");
+    toast("Vault downloaded — replace your old file");
+  } else {
+    S.dirty = true;
+    updateVaultStatus("Unsaved changes — tap ⬇️ to export");
+  }
+}
+
+function updateVaultStatus(msg){
+  const el = $("#vault-status");
+  if(el) el.textContent = msg;
+}
+
+/* ============================================================
+   DATA MODEL HELPERS
+============================================================ */
+function newVaultData(){
+  return { version:1, trips: [] };
+}
+function getTrip(id){ return S.data.trips.find(t=>t.id===id); }
+function currentTrip(){ return getTrip(S.currentTripId); }
+
+function tripTotalSpend(trip){
+  return trip.expenses.reduce((sum,e)=>sum+Number(e.amount||0),0);
+}
+function isTripCompleted(trip){
+  return !!(trip.endDate && trip.endDate < todayISO());
+}
+function personName(trip, personId){
+  const p = trip.persons.find(p=>p.id===personId);
+  return p ? p.name : "Unknown";
+}
+function findCategory(trip, catId){ return trip.categories.find(c=>c.id===catId); }
+function findSub(cat, subId){ return cat ? (cat.subcategories||[]).find(s=>s.id===subId) : null; }
+
+/* Settlement math: every expense has paidBy + participants[] + splitMode + customSplits.
+   Personal expenses are modeled as participants=[personId] (100% share to that one person). */
+function splitEqually(amount, participantIds){
+  const n = participantIds.length;
+  const shares = {};
+  if(n === 0) return shares;
+  // Work in integer cents/paise to avoid floating-point division leaving a residual
+  // (e.g. ₹100 / 3 = 33.333... — naive division would lose ₹0.01 across the group,
+  // which becomes very visible whenever only a few of all travellers are selected).
+  const totalCents = Math.round((Number(amount)||0) * 100);
+  const baseCents = Math.floor(totalCents / n);
+  const remainderCents = totalCents - baseCents * n; // first `remainderCents` participants absorb the leftover paisa
+  participantIds.forEach((pid, idx)=>{
+    const cents = baseCents + (idx < remainderCents ? 1 : 0);
+    shares[pid] = cents / 100;
+  });
+  return shares;
+}
+function computeBalances(trip){
+  const paid = {}, owed = {};
+  trip.persons.forEach(p=>{ paid[p.id]=0; owed[p.id]=0; });
+  trip.expenses.forEach(e=>{
+    const amt = Number(e.amount)||0;
+    if(e.paidBy && paid.hasOwnProperty(e.paidBy)) paid[e.paidBy] += amt;
+    const participants = (e.participants && e.participants.length) ? e.participants : (e.personId?[e.personId]:[]);
+    if(!participants.length) return;
+    if(e.splitMode === "custom" && e.customSplits){
+      participants.forEach(pid=>{
+        const share = Number(e.customSplits[pid])||0;
+        if(owed.hasOwnProperty(pid)) owed[pid] += share;
+      });
+    } else {
+      const shares = splitEqually(amt, participants);
+      participants.forEach(pid=>{
+        if(owed.hasOwnProperty(pid)) owed[pid] += shares[pid] || 0;
+      });
+    }
+  });
+  const balances = trip.persons.map(p=>({
+    id:p.id, name:p.name,
+    paid: paid[p.id]||0,
+    owed: owed[p.id]||0,
+    net: (paid[p.id]||0) - (owed[p.id]||0)
+  }));
+  return balances;
+}
+
+function simplifyDebts(balances){
+  const creditors = balances.filter(b=>b.net>0.005).map(b=>({id:b.id,name:b.name,amt:b.net})).sort((a,b)=>b.amt-a.amt);
+  const debtors = balances.filter(b=>b.net<-0.005).map(b=>({id:b.id,name:b.name,amt:-b.net})).sort((a,b)=>b.amt-a.amt);
+  const txns = [];
+  let i=0,j=0;
+  while(i<debtors.length && j<creditors.length){
+    const pay = Math.min(debtors[i].amt, creditors[j].amt);
+    if(pay>0.005){
+      txns.push({from:debtors[i].name, to:creditors[j].name, amount:pay});
+    }
+    debtors[i].amt -= pay; creditors[j].amt -= pay;
+    if(debtors[i].amt<=0.005) i++;
+    if(creditors[j].amt<=0.005) j++;
+  }
+  return txns;
+}
+
+/* ============================================================
+   RENDER: SCREEN SWITCHING
+============================================================ */
+function showScreen(id){
+  $all(".screen").forEach(s=>s.classList.add("hidden"));
+  $("#"+id).classList.remove("hidden");
+  document.getElementById("app").classList.toggle("trip-open", id==="screen-trip");
+}
+
+/* ============================================================
+   PIN SCREEN
+============================================================ */
+function buildKeypad(){
+  const layout = ["1","2","3","4","5","6","7","8","9","del","0","ok"];
+  const kp = $("#keypad");
+  kp.innerHTML = "";
+  layout.forEach(k=>{
+    const btn = document.createElement("button");
+    btn.className = "key" + (k==="del"||k==="ok" ? " func":"");
+    btn.textContent = k==="del" ? "⌫" : (k==="ok" ? "✓" : k);
+    btn.addEventListener("click", ()=>handleKey(k));
+    kp.appendChild(btn);
+  });
+}
+function handleKey(k){
+  if(k==="del"){ S.pinBuffer = S.pinBuffer.slice(0,-1); renderPinDots(); return; }
+  if(k==="ok"){ submitPin(); return; }
+  if(S.pinBuffer.length>=6) return;
+  S.pinBuffer += k;
+  renderPinDots();
+  if(S.pinBuffer.length===6) setTimeout(submitPin, 120);
+}
+function renderPinDots(){
+  const dots = $all(".pin-dot");
+  dots.forEach((d,i)=>{
+    d.classList.toggle("filled", i<S.pinBuffer.length);
+    d.classList.remove("err");
+  });
+}
+function pinError(){
+  $all(".pin-dot").forEach(d=>d.classList.add("err"));
+  $("#pin-dots").classList.add("shake");
+  setTimeout(()=>{ $("#pin-dots").classList.remove("shake"); S.pinBuffer=""; renderPinDots(); }, 420);
+}
+async function submitPin(){
+  const entered = S.pinBuffer;
+  if(entered.length!==6) return;
+
+  if(S.pendingPurpose === "create"){
+    if(S.firstPinEntry === null){
+      // first entry — stash it and ask the user to confirm it
+      S.firstPinEntry = entered;
+      S.pinBuffer = "";
+      $("#pin-title").textContent = "Confirm your PIN";
+      $("#pin-sub").textContent = "Enter the same 6-digit PIN again.";
+      renderPinDots();
+      return;
+    }
+    if(entered !== S.firstPinEntry){
+      S.firstPinEntry = null;
+      pinError();
+      toast("PINs didn't match — start over");
+      $("#pin-title").textContent = "Set your PIN";
+      $("#pin-sub").textContent = "Enter the 6-digit PIN that will protect this vault.";
+      return;
+    }
+    // confirmed — this is the user's own PIN, used directly as the encryption password
+    S.vaultSalt = crypto.getRandomValues(new Uint8Array(16));
+    S.vaultKey = await deriveKey(entered, S.vaultSalt);
+    S.data = newVaultData();
+    S.fileHandle = await pickSaveFile("trips.fvault").catch(()=>null);
+    if(S.fileHandle) S.vaultName = "trips";
+    await persistVault({forceDownload: !S.fileHandle});
+    S.firstPinEntry = null;
+    S.pinBuffer = "";
+    goHome();
+  } else if(S.pendingPurpose === "open"){
+    try{
+      const {obj, saltBytes, key} = await decryptVault(S.pendingFileText, entered);
+      S.data = obj;
+      (S.data.trips||[]).forEach(tr=>{ if(!tr.planning) tr.planning = []; });
+      S.vaultSalt = saltBytes;
+      S.vaultKey = key;
+      S.pinBuffer = "";
+      goHome();
+      toast("Vault unlocked");
+    }catch(e){
+      pinError();
+      toast(e.message || "Could not open vault");
+    }
+  }
+}
+
+/* ============================================================
+   HOME SCREEN
+============================================================ */
+function goHome(){
+  S.currentTripId = null;
+  showScreen("screen-home");
+  renderHome();
+}
+function renderHome(){
+  const list = $("#trip-list");
+  if(!S.data.trips.length){
+    list.innerHTML = `<div class="empty-state">
+      <div class="em-icon">🧳</div>
+      <h3>No trips yet</h3>
+      <p>Tap the + button to plan your first trip — add travellers, goals, and start logging expenses.</p>
+    </div>`;
+    return;
+  }
+  const sorted = [...S.data.trips].sort((a,b)=> (b.startDate||"").localeCompare(a.startDate||""));
+  list.innerHTML = sorted.map(t=>{
+    const total = tripTotalSpend(t);
+    const dateStr = t.startDate ? (fmtDate(t.startDate) + (t.endDate? " – "+fmtDate(t.endDate) : "")) : "Dates not set";
+    const avatars = t.persons.slice(0,4).map(p=>`<div class="avatar">${esc(initials(p.name))}</div>`).join("");
+    const more = t.persons.length>4 ? `<div class="avatar">+${t.persons.length-4}</div>` : "";
+    return `<div class="trip-card" data-trip="${t.id}">
+      ${isTripCompleted(t) ? `<div class="tc-stamp"><span class="tc-stamp-stars">★ ★ ★</span><span class="tc-stamp-main">Done</span><span class="tc-stamp-sub">Voyage Ledger</span></div>` : ``}
+      <div class="tc-top">
+        <div>
+          <div class="tc-dest">${esc(t.name||"Untitled trip")}</div>
+          <div class="tc-dates">${esc(dateStr)}</div>
+        </div>
+        <div class="icon-btn" style="pointer-events:none;">✈️</div>
+      </div>
+      <hr class="tc-divider">
+      <div class="tc-bottom">
+        <div class="avatar-row">${avatars}${more}</div>
+        <div class="tc-spend">
+          <div class="amt">${fmtMoney(total)}</div>
+          <div class="lbl">total spend</div>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+  $all(".trip-card", list).forEach(card=>{
+    card.addEventListener("click", ()=>openTrip(card.dataset.trip));
+  });
+}
+
+/* ============================================================
+   TRIP SCREEN
+============================================================ */
+function openTrip(id){
+  S.currentTripId = id;
+  S.currentTab = "overview";
+  showScreen("screen-trip");
+  renderTripChrome();
+  renderTripTab();
+}
+function renderTripChrome(){
+  const t = currentTrip();
+  $("#trip-title-bar").textContent = t.name || "Untitled trip";
+  const dateStr = t.startDate ? (fmtDate(t.startDate) + (t.endDate? " – "+fmtDate(t.endDate) : "")) : "";
+  $("#trip-sub-bar").textContent = dateStr;
+  $all(".tab-item").forEach(b=> b.classList.toggle("active", b.dataset.tab===S.currentTab));
+}
+function renderTripTab(){
+  const t = currentTrip();
+  const content = $("#trip-content");
+  const fab = $("#fab-trip-action");
+  fab.classList.remove("hidden");
+  if(S.currentTab==="overview"){
+    fab.classList.add("hidden");
+    content.innerHTML = renderOverviewTab(t);
+    bindOverviewTab(t);
+  } else if(S.currentTab==="planning"){
+    fab.onclick = ()=>openPlanningModal();
+    content.innerHTML = renderPlanningTab(t);
+    bindPlanningTab(t);
+  } else if(S.currentTab==="goals"){
+    fab.onclick = ()=>openGoalModal();
+    content.innerHTML = renderGoalsTab(t);
+    bindGoalsTab(t);
+  } else if(S.currentTab==="expenses"){
+    fab.onclick = ()=>openExpenseModal();
+    content.innerHTML = renderExpensesTab(t);
+    bindExpensesTab(t);
+  } else if(S.currentTab==="stats"){
+    fab.classList.add("hidden");
+    content.innerHTML = renderStatsTab(t);
+  } else if(S.currentTab==="settle"){
+    fab.classList.add("hidden");
+    content.innerHTML = renderSettleTab(t);
+  }
+}
+$all(".tab-item").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    S.currentTab = btn.dataset.tab;
+    renderTripChrome();
+    renderTripTab();
+  });
+});
+
+/* ---------- OVERVIEW ---------- */
+function renderOverviewTab(t){
+  const total = tripTotalSpend(t);
+  const goalsDone = t.goals.filter(g=>g.done).length;
+  return `
+    <div class="stat-strip">
+      <div class="stat-box"><div class="sv">${fmtMoney(total)}</div><div class="sl">Total spend</div></div>
+      <div class="stat-box"><div class="sv">${t.persons.length}</div><div class="sl">Travellers</div></div>
+      <div class="stat-box"><div class="sv">${goalsDone}/${t.goals.length}</div><div class="sl">Goals done</div></div>
+    </div>
+
+    <div class="row-flex" style="margin-bottom:12px;">
+      <div class="section-label" style="margin:0;">Travellers</div>
+      <button class="link-btn" id="btn-add-person">+ Add person</button>
+    </div>
+    <div class="card" style="padding:14px;">
+      <div id="person-chips">${t.persons.length ? t.persons.map(p=>`
+        <span class="person-chip" data-person="${p.id}">
+          <span class="av-sm">${esc(initials(p.name))}</span>${esc(p.name)}
+          <span class="rm" data-rm-person="${p.id}">✕</span>
+        </span>`).join("") : `<span class="hint">No travellers added yet.</span>`}
+      </div>
+    </div>
+
+    <div class="row-flex" style="margin:20px 0 12px;">
+      <div class="section-label" style="margin:0;">Trip details</div>
+      <button class="link-btn" id="btn-edit-trip">Edit</button>
+    </div>
+    <div class="card">
+      <div class="row-flex" style="margin-bottom:10px;"><span class="hint">Name</span><b>${esc(t.name||"—")}</b></div>
+      <div class="row-flex" style="margin-bottom:10px;"><span class="hint">Start</span><b>${t.startDate?fmtDate(t.startDate):"—"}</b></div>
+      <div class="row-flex" style="margin-bottom:0;"><span class="hint">End</span><b>${t.endDate?fmtDate(t.endDate):"—"}</b></div>
+    </div>
+
+    <div class="row-flex" style="margin:20px 0 12px;">
+      <div class="section-label" style="margin:0;">Categories</div>
+      <button class="link-btn" id="btn-manage-cats">Manage</button>
+    </div>
+    <div class="cat-pill-row">
+      ${t.categories.map(c=>`<span class="cat-pill">${c.emoji||"🏷️"} ${esc(c.name)}</span>`).join("")}
+    </div>
+
+    <div class="small-note">Deleting a trip removes its goals, travellers, categories and expenses permanently from this vault.</div>
+    <button class="btn btn-danger" id="btn-delete-trip" style="margin-top:12px;">Delete this trip</button>
+  `;
+}
+function bindOverviewTab(t){
+  $("#btn-add-person").onclick = ()=>openPersonModal();
+  $("#btn-edit-trip").onclick = ()=>openTripModal(t);
+  $("#btn-manage-cats").onclick = ()=>openCategoryManager(t);
+  $("#btn-delete-trip").onclick = ()=>confirmDeleteTrip(t);
+  $all("[data-rm-person]").forEach(el=>{
+    el.addEventListener("click", (ev)=>{
+      ev.stopPropagation();
+      removePerson(t, el.dataset.rmPerson);
+    });
+  });
+}
+function removePerson(t, personId){
+  const used = t.expenses.some(e=> e.paidBy===personId || (e.participants||[]).includes(personId) || e.personId===personId);
+  if(used){
+    toast("Can't remove — this person is linked to an expense");
+    return;
+  }
+  t.persons = t.persons.filter(p=>p.id!==personId);
+  saveAndRerender();
+}
+function confirmDeleteTrip(t){
+  openConfirmModal({
+    title: "Delete this trip?",
+    body: `This permanently deletes "${esc(t.name||"Untitled trip")}" and everything inside it. This can't be undone.`,
+    confirmLabel: "Delete trip",
+    danger: true,
+    onConfirm: ()=>{
+      S.data.trips = S.data.trips.filter(x=>x.id!==t.id);
+      closeModal();
+      goHome();
+      saveVaultSilently();
+      toast("Trip deleted");
+    }
+  });
+}
+
+/* ---------- PLANNING ---------- */
+function renderPlanningTab(t){
+  if(!t.planning.length){
+    return `<div class="empty-state"><div class="em-icon">🎒</div><h3>Nothing planned yet</h3><p>Add the things you need to sort out before this trip — tap + to start.</p></div>`;
+  }
+  return `<div class="card" style="padding:6px 12px;">
+    ${t.planning.map(p=>`
+      <div class="goal-item" data-plan="${p.id}">
+        <div class="checkbox ${p.done?'done':''}" data-plan-toggle="${p.id}">${p.done?'✓':''}</div>
+        <div class="goal-text ${p.done?'done':''}">${esc(p.text)}</div>
+        <button class="edit-btn" data-plan-edit="${p.id}">✎</button>
+        <button class="trash-btn" data-plan-del="${p.id}">🗑️</button>
+      </div>`).join("")}
+  </div>`;
+}
+function bindPlanningTab(t){
+  $all("[data-plan-toggle]").forEach(el=>{
+    el.addEventListener("click", ()=>{
+      const p = t.planning.find(x=>x.id===el.dataset.planToggle);
+      p.done = !p.done;
+      saveAndRerender();
+    });
+  });
+  $all("[data-plan-edit]").forEach(el=>{
+    el.addEventListener("click", ()=>{
+      const p = t.planning.find(x=>x.id===el.dataset.planEdit);
+      openPlanningModal(p);
+    });
+  });
+  $all("[data-plan-del]").forEach(el=>{
+    el.addEventListener("click", ()=>{
+      t.planning = t.planning.filter(x=>x.id!==el.dataset.planDel);
+      saveAndRerender();
+    });
+  });
+}
+function openPlanningModal(existing){
+  const isEdit = !!existing;
+  renderModal(`
+    <div class="modal-title">${isEdit?"Edit planning item":"Add a planning item"}</div>
+    <div class="field"><label>What needs to be done before you go?</label>
+      <textarea id="mp-text" placeholder="e.g. Renew passport, book airport taxi">${isEdit?esc(existing.text):""}</textarea>
+    </div>
+    <div class="btn-row"><button class="btn btn-secondary" id="mp-cancel">Cancel</button><button class="btn btn-primary" id="mp-save">${isEdit?"Save":"Add item"}</button></div>
+  `);
+  $("#mp-cancel").onclick = closeModal;
+  $("#mp-save").onclick = ()=>{
+    const text = $("#mp-text").value.trim();
+    if(!text){ toast("Enter something first"); return; }
+    if(isEdit){
+      existing.text = text;
+    } else {
+      currentTrip().planning.push({id:uid("plan"), text, done:false});
+    }
+    closeModal();
+    saveAndRerender();
+  };
+}
+
+/* ---------- GOALS ---------- */
+function renderGoalsTab(t){
+  if(!t.goals.length){
+    return `<div class="empty-state"><div class="em-icon">🎯</div><h3>No goals yet</h3><p>Add the things you want to do or see on this trip — tap + to start.</p></div>`;
+  }
+  return `<div class="card" style="padding:6px 12px;">
+    ${t.goals.map(g=>`
+      <div class="goal-item" data-goal="${g.id}">
+        <div class="checkbox ${g.done?'done':''}" data-toggle="${g.id}">${g.done?'✓':''}</div>
+        <div class="goal-text ${g.done?'done':''}">${esc(g.text)}</div>
+        <button class="trash-btn" data-del="${g.id}">🗑️</button>
+      </div>`).join("")}
+  </div>`;
+}
+function bindGoalsTab(t){
+  $all("[data-toggle]").forEach(el=>{
+    el.addEventListener("click", ()=>{
+      const g = t.goals.find(x=>x.id===el.dataset.toggle);
+      g.done = !g.done;
+      saveAndRerender();
+    });
+  });
+  $all("[data-del]").forEach(el=>{
+    el.addEventListener("click", ()=>{
+      t.goals = t.goals.filter(x=>x.id!==el.dataset.del);
+      saveAndRerender();
+    });
+  });
+}
+function openGoalModal(){
+  renderModal(`
+    <div class="modal-title">Add a goal</div>
+    <div class="field"><label>What do you want to do?</label>
+      <textarea id="mg-text" placeholder="e.g. Watch sunset at Tanah Lot"></textarea>
+    </div>
+    <div class="btn-row"><button class="btn btn-secondary" id="mg-cancel">Cancel</button><button class="btn btn-primary" id="mg-save">Add goal</button></div>
+  `);
+  $("#mg-cancel").onclick = closeModal;
+  $("#mg-save").onclick = ()=>{
+    const text = $("#mg-text").value.trim();
+    if(!text){ toast("Enter a goal first"); return; }
+    currentTrip().goals.push({id:uid("goal"), text, done:false});
+    closeModal();
+    saveAndRerender();
+  };
+}
+
+/* ---------- EXPENSES ---------- */
+function renderExpensesTab(t){
+  const sorted = [...t.expenses].sort((a,b)=> (b.date||"").localeCompare(a.date||""));
+  const list = sorted.length ? `<div class="card" style="padding:6px 12px;">${sorted.map(e=>expenseRowHtml(t,e)).join("")}</div>`
+    : `<div class="empty-state"><div class="em-icon">💳</div><h3>No expenses logged</h3><p>Tap + to log your first expense for this trip.</p></div>`;
+  const disabled = t.persons.length===0 ? `<div class="small-note">Add at least one traveller in Overview before logging expenses.</div>` : "";
+  return disabled + list;
+}
+function expenseRowHtml(t,e){
+  const cat = findCategory(t, e.categoryId);
+  const sub = findSub(cat, e.subcategoryId);
+  const payer = personName(t, e.paidBy);
+  const tag = e.type==="personal" ? `<span class="tag-personal">Personal · ${esc(personName(t,e.personId))}</span>` : `<span class="tag-group">Group · ${(e.participants||[]).length} people</span>`;
+  const catLabel = `${esc(cat?cat.name:'Uncategorised')}${sub? ' · '+esc(sub.name):''}`;
+  const title = e.note ? esc(e.note) : (cat?esc(cat.name):'Uncategorised');
+  return `<div class="exp-row" data-exp="${e.id}">
+    <div class="exp-icon">${cat?cat.emoji:'💰'}</div>
+    <div class="exp-mid">
+      <div class="exp-title">${title}</div>
+      <div class="exp-cat">${catLabel}</div>
+      <div class="exp-sub">${tag} · Paid by ${esc(payer)} · ${fmtDate(e.date)}</div>
+    </div>
+    <div class="exp-amt"><div class="a">${fmtMoney(e.amount)}</div></div>
+  </div>`;
+}
+function bindExpensesTab(t){
+  $all("[data-exp]").forEach(el=>{
+    el.addEventListener("click", ()=>{
+      const e = t.expenses.find(x=>x.id===el.dataset.exp);
+      openExpenseModal(e);
+    });
+  });
+}
+
+function openExpenseModal(existing){
+  const t = currentTrip();
+  if(t.persons.length===0){ toast("Add a traveller first"); return; }
+  const isEdit = !!existing;
+  const e = existing ? JSON.parse(JSON.stringify(existing)) : {
+    id: uid("exp"), categoryId: t.categories[0]?t.categories[0].id:"", subcategoryId:"",
+    amount:"", date: todayISO(), note:"", paidBy: t.persons[0].id,
+    type:"group", personId: t.persons[0].id, participants: t.persons.map(p=>p.id), splitMode:"equal", customSplits:{}
+  };
+  renderModal(buildExpenseForm(t,e), true);
+  bindExpenseForm(t, e, isEdit);
+}
+
+function buildExpenseForm(t,e){
+  const cat = findCategory(t,e.categoryId);
+  const subs = cat ? (cat.subcategories||[]) : [];
+  return `
+    <div class="modal-title">${e.id && currentTrip().expenses.some(x=>x.id===e.id) ? "Edit expense" : "Log an expense"}</div>
+
+    <div class="field"><label>Category</label>
+      <div class="cat-pill-row" id="ef-cats">
+        ${t.categories.map(c=>`<span class="cat-pill ${c.id===e.categoryId?'sel':''}" data-cat="${c.id}">${c.emoji||'🏷️'} ${esc(c.name)}</span>`).join("")}
+      </div>
+    </div>
+    <div class="field" id="ef-sub-wrap" ${subs.length?'':'style="display:none"'}>
+      <label>Subcategory</label>
+      <div class="cat-pill-row" id="ef-subs">
+        ${subs.map(s=>`<span class="cat-pill ${s.id===e.subcategoryId?'sel':''}" data-sub="${s.id}">${esc(s.name)}</span>`).join("")}
+      </div>
+    </div>
+
+    <div class="field"><label>Amount (₹)</label><input type="number" inputmode="decimal" id="ef-amount" value="${e.amount!==undefined?e.amount:''}" placeholder="0.00"></div>
+    <div class="field"><label>Date</label><input type="date" id="ef-date" value="${e.date||todayISO()}"></div>
+
+    <div class="field"><label>Paid by</label>
+      <div class="person-select-grid" id="ef-paidby">
+        ${t.persons.map(p=>`<span class="ps-item ${p.id===e.paidBy?'sel':''}" data-paidby="${p.id}">${esc(p.name)}</span>`).join("")}
+      </div>
+    </div>
+
+    <div class="field"><label>Expense type</label>
+      <div class="seg">
+        <button type="button" class="seg-btn ${e.type==='personal'?'active':''}" data-type="personal">Personal</button>
+        <button type="button" class="seg-btn ${e.type==='group'?'active':''}" data-type="group">Group</button>
+      </div>
+    </div>
+
+    <div id="ef-personal-wrap" class="field" ${e.type==='personal'?'':'style="display:none"'}>
+      <label>For which person?</label>
+      <div class="person-select-grid" id="ef-personid">
+        ${t.persons.map(p=>`<span class="ps-item ${p.id===e.personId?'sel':''}" data-personid="${p.id}">${esc(p.name)}</span>`).join("")}
+      </div>
+      <div class="hint">This cost belongs to one person only — it won't be split with the group.</div>
+    </div>
+
+    <div id="ef-group-wrap" class="field" ${e.type==='group'?'':'style="display:none"'}>
+      <label>Split among</label>
+      <div class="person-select-grid" id="ef-participants">
+        ${t.persons.map(p=>`<span class="ps-item ${(e.participants||[]).includes(p.id)?'sel':''}" data-part="${p.id}">${esc(p.name)}</span>`).join("")}
+      </div>
+      <div class="seg" style="margin-top:12px;">
+        <button type="button" class="seg-btn ${e.splitMode!=='custom'?'active':''}" data-split="equal">Split equally</button>
+        <button type="button" class="seg-btn ${e.splitMode==='custom'?'active':''}" data-split="custom">Custom amounts</button>
+      </div>
+      <div id="ef-custom-splits" style="margin-top:12px; ${e.splitMode==='custom'?'':'display:none'}"></div>
+    </div>
+
+    <div class="field"><label>Note (optional)</label><input type="text" id="ef-note" value="${esc(e.note||'')}" placeholder="e.g. Dinner at the beach shack"></div>
+
+    <div class="btn-row"><button class="btn btn-secondary" id="ef-cancel">Cancel</button><button class="btn btn-primary" id="ef-save">Save expense</button></div>
+    ${ currentTrip().expenses.some(x=>x.id===e.id) ? `<button class="btn btn-danger" id="ef-delete" style="margin-top:10px;">Delete expense</button>` : ``}
+  `;
+}
+
+function bindExpenseForm(t, e, isEdit){
+  function refreshSubcats(){
+    const cat = findCategory(t, e.categoryId);
+    const wrap = $("#ef-sub-wrap");
+    if(!cat || !(cat.subcategories||[]).length){ wrap.style.display="none"; return; }
+    wrap.style.display="";
+    $("#ef-subs").innerHTML = cat.subcategories.map(s=>`<span class="cat-pill ${s.id===e.subcategoryId?'sel':''}" data-sub="${s.id}">${esc(s.name)}</span>`).join("");
+    bindSubClicks();
+  }
+  function bindSubClicks(){
+    $all("[data-sub]").forEach(el=>{
+      el.addEventListener("click", ()=>{
+        e.subcategoryId = el.dataset.sub;
+        $all("[data-sub]").forEach(x=>x.classList.remove("sel"));
+        el.classList.add("sel");
+      });
+    });
+  }
+  function renderCustomSplitInputs(){
+    const box = $("#ef-custom-splits");
+    const parts = e.participants||[];
+    box.innerHTML = parts.map(pid=>{
+      const p = t.persons.find(x=>x.id===pid);
+      const val = e.customSplits && e.customSplits[pid]!==undefined ? e.customSplits[pid] : "";
+      return `<div class="field" style="margin-bottom:10px;"><label>${esc(p?p.name:'')}</label><input type="number" inputmode="decimal" data-cs="${pid}" value="${val}" placeholder="0.00"></div>`;
+    }).join("");
+    $all("[data-cs]", box).forEach(inp=>{
+      inp.addEventListener("input", ()=>{
+        e.customSplits = e.customSplits || {};
+        e.customSplits[inp.dataset.cs] = inp.value;
+      });
+    });
+  }
+
+  $all("[data-cat]").forEach(el=>{
+    el.addEventListener("click", ()=>{
+      e.categoryId = el.dataset.cat;
+      e.subcategoryId = "";
+      $all("[data-cat]").forEach(x=>x.classList.remove("sel"));
+      el.classList.add("sel");
+      refreshSubcats();
+    });
+  });
+  bindSubClicks();
+
+  $all("[data-paidby]").forEach(el=>{
+    el.addEventListener("click", ()=>{
+      e.paidBy = el.dataset.paidby;
+      $all("[data-paidby]").forEach(x=>x.classList.remove("sel"));
+      el.classList.add("sel");
+    });
+  });
+
+  $all("[data-type]").forEach(el=>{
+    el.addEventListener("click", ()=>{
+      e.type = el.dataset.type;
+      $all("[data-type]").forEach(x=>x.classList.remove("active"));
+      el.classList.add("active");
+      $("#ef-personal-wrap").style.display = e.type==="personal" ? "" : "none";
+      $("#ef-group-wrap").style.display = e.type==="group" ? "" : "none";
+    });
+  });
+
+  $all("[data-personid]").forEach(el=>{
+    el.addEventListener("click", ()=>{
+      e.personId = el.dataset.personid;
+      $all("[data-personid]").forEach(x=>x.classList.remove("sel"));
+      el.classList.add("sel");
+    });
+  });
+
+  $all("[data-part]").forEach(el=>{
+    el.addEventListener("click", ()=>{
+      const pid = el.dataset.part;
+      e.participants = e.participants || [];
+      if(e.participants.includes(pid)){
+        e.participants = e.participants.filter(x=>x!==pid);
+        el.classList.remove("sel");
+      } else {
+        e.participants.push(pid);
+        el.classList.add("sel");
+      }
+      if(e.splitMode==="custom") renderCustomSplitInputs();
+    });
+  });
+
+  $all("[data-split]").forEach(el=>{
+    el.addEventListener("click", ()=>{
+      e.splitMode = el.dataset.split;
+      $all("[data-split]").forEach(x=>x.classList.remove("active"));
+      el.classList.add("active");
+      $("#ef-custom-splits").style.display = e.splitMode==="custom" ? "" : "none";
+      if(e.splitMode==="custom") renderCustomSplitInputs();
+    });
+  });
+  if(e.splitMode==="custom") renderCustomSplitInputs();
+
+  $("#ef-cancel").onclick = closeModal;
+  const delBtn = $("#ef-delete");
+  if(delBtn){
+    delBtn.onclick = ()=>{
+      openConfirmModal({
+        title:"Delete this expense?",
+        body:"This can't be undone.",
+        confirmLabel:"Delete",
+        danger:true,
+        onConfirm:()=>{
+          t.expenses = t.expenses.filter(x=>x.id!==e.id);
+          closeModal();
+          saveAndRerender();
+          toast("Expense deleted");
+        }
+      });
+    };
+  }
+
+  $("#ef-save").onclick = ()=>{
+    const amount = parseFloat($("#ef-amount").value);
+    if(!e.categoryId){ toast("Choose a category"); return; }
+    if(!amount || amount<=0){ toast("Enter a valid amount"); return; }
+    if(!e.paidBy){ toast("Choose who paid"); return; }
+    e.amount = amount;
+    e.date = $("#ef-date").value || todayISO();
+    e.note = $("#ef-note").value.trim();
+
+    if(e.type==="personal"){
+      if(!e.personId){ toast("Choose who this expense is for"); return; }
+      e.participants = [e.personId];
+      e.splitMode = "equal";
+      e.customSplits = {};
+    } else {
+      if(!e.participants || !e.participants.length){ toast("Select at least one person to split with"); return; }
+      if(e.splitMode==="custom"){
+        const total = e.participants.reduce((s,pid)=> s + (parseFloat(e.customSplits && e.customSplits[pid]) || 0), 0);
+        if(Math.abs(total - amount) > 0.5){
+          toast(`Custom splits (${fmtMoney(total)}) must add up to the total (${fmtMoney(amount)})`);
+          return;
+        }
+        const clean = {};
+        e.participants.forEach(pid=> clean[pid] = parseFloat(e.customSplits[pid])||0);
+        e.customSplits = clean;
+      }
+    }
+
+    const idx = t.expenses.findIndex(x=>x.id===e.id);
+    if(idx>=0) t.expenses[idx] = e; else t.expenses.push(e);
+    closeModal();
+    saveAndRerender();
+    toast(isEdit?"Expense updated":"Expense logged");
+  };
+}
+
+/* ---------- CATEGORY MANAGER ---------- */
+function openCategoryManager(t){
+  renderModal(buildCategoryManagerHtml(t), true);
+  bindCategoryManager(t);
+}
+function buildCategoryManagerHtml(t){
+  return `
+    <div class="modal-title">Manage categories</div>
+    <div id="cm-list">${t.categories.map(c=>`
+      <div class="card" data-cat-card="${c.id}">
+        <div class="row-flex">
+          <b>${c.emoji||'🏷️'} ${esc(c.name)}</b>
+          <button class="trash-btn" data-del-cat="${c.id}">🗑️</button>
+        </div>
+        <div class="cat-pill-row" style="margin-top:10px;">
+          ${(c.subcategories||[]).map(s=>`<span class="cat-pill">${esc(s.name)} <span class="rm" data-del-sub="${c.id}|${s.id}" style="cursor:pointer;">✕</span></span>`).join("")}
+        </div>
+        <div style="display:flex; gap:8px; margin-top:10px;">
+          <input type="text" placeholder="New subcategory" data-newsub="${c.id}" style="flex:1; background:var(--bg-2); border:1px solid var(--line-strong); color:var(--ink-hi); padding:9px 12px; border-radius:10px; font-size:13.5px;">
+          <button class="btn btn-secondary btn-sm" data-addsub="${c.id}">Add</button>
+        </div>
+      </div>
+    `).join("")}</div>
+    <div class="field" style="margin-top:18px;"><label>New category</label>
+      <div style="display:flex; gap:8px;">
+        <input type="text" id="cm-newcat-emoji" maxlength="2" placeholder="🏷️" style="width:56px; text-align:center; background:var(--bg-2); border:1px solid var(--line-strong); color:var(--ink-hi); padding:12px 6px; border-radius:12px;">
+        <input type="text" id="cm-newcat-name" placeholder="Category name" style="flex:1; background:var(--bg-2); border:1px solid var(--line-strong); color:var(--ink-hi); padding:12px 14px; border-radius:12px;">
+      </div>
+    </div>
+    <button class="btn btn-primary" id="cm-addcat">Add category</button>
+    <button class="btn btn-secondary" id="cm-done" style="margin-top:10px;">Done</button>
+  `;
+}
+function bindCategoryManager(t){
+  $("#cm-done").onclick = closeModal;
+  $("#cm-addcat").onclick = ()=>{
+    const name = $("#cm-newcat-name").value.trim();
+    const emoji = $("#cm-newcat-emoji").value.trim() || "🏷️";
+    if(!name){ toast("Enter a category name"); return; }
+    t.categories.push({id:uid("cat"), name, emoji, subcategories:[]});
+    saveVaultSilently();
+    reopenCategoryManager(t);
+  };
+  $all("[data-del-cat]").forEach(el=>{
+    el.addEventListener("click", ()=>{
+      const catId = el.dataset.delCat;
+      const inUse = t.expenses.some(e=>e.categoryId===catId);
+      if(inUse){ toast("Can't delete — expenses use this category"); return; }
+      t.categories = t.categories.filter(c=>c.id!==catId);
+      saveVaultSilently();
+      reopenCategoryManager(t);
+    });
+  });
+  $all("[data-del-sub]").forEach(el=>{
+    el.addEventListener("click", ()=>{
+      const [catId, subId] = el.dataset.delSub.split("|");
+      const inUse = t.expenses.some(e=>e.categoryId===catId && e.subcategoryId===subId);
+      if(inUse){ toast("Can't delete — expenses use this subcategory"); return; }
+      const cat = findCategory(t, catId);
+      cat.subcategories = cat.subcategories.filter(s=>s.id!==subId);
+      saveVaultSilently();
+      reopenCategoryManager(t);
+    });
+  });
+  $all("[data-addsub]").forEach(el=>{
+    el.addEventListener("click", ()=>{
+      const catId = el.dataset.addsub;
+      const input = $(`[data-newsub="${catId}"]`);
+      const name = input.value.trim();
+      if(!name){ toast("Enter a subcategory name"); return; }
+      const cat = findCategory(t, catId);
+      cat.subcategories = cat.subcategories || [];
+      cat.subcategories.push({id:uid("sub"), name});
+      saveVaultSilently();
+      reopenCategoryManager(t);
+    });
+  });
+}
+function reopenCategoryManager(t){
+  $("#modal-root").innerHTML = "";
+  openCategoryManager(t);
+  renderTripTab();
+}
+
+/* ---------- STATS ---------- */
+function buildCategoryDonut(catArr, total){
+  const size = 150, r = 54, cx = 75, cy = 75, sw = 22;
+  const circumference = 2 * Math.PI * r;
+  let offset = 0;
+  const arcs = catArr.map((c, i)=>{
+    const frac = total > 0 ? (c.amount/total) : 0;
+    const dash = Math.max(frac * circumference, 0);
+    const gap = circumference - dash;
+    const circle = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${CHART_COLORS[i % CHART_COLORS.length]}" stroke-width="${sw}" stroke-dasharray="${dash.toFixed(2)} ${gap.toFixed(2)}" stroke-dashoffset="${(-offset).toFixed(2)}" data-drill="${c.id}" style="cursor:pointer;"/>`;
+    offset += dash;
+    return circle;
+  }).join("");
+  const legend = catArr.map((c,i)=>{
+    const pct = total>0 ? Math.round(c.amount/total*100) : 0;
+    return `<div class="legend-item" data-drill="${c.id}">
+      <span class="legend-dot" style="background:${CHART_COLORS[i%CHART_COLORS.length]}"></span>
+      <span class="legend-name">${c.emoji||''} ${esc(c.name)}</span>
+      <span class="legend-val">${fmtMoney(c.amount)} · ${pct}%</span>
+    </div>`;
+  }).join("");
+  return `<div class="donut-wrap">
+    <div class="donut-svg-box">
+      <svg viewBox="0 0 ${size} ${size}" style="transform:rotate(-90deg);">${arcs}</svg>
+      <div class="donut-center"><div class="dc-amt">${fmtMoney(total)}</div><div class="dc-lbl">total</div></div>
+    </div>
+    <div class="legend">${legend}</div>
+  </div>`;
+}
+function renderStatsTab(t){
+  const total = tripTotalSpend(t);
+  if(!t.expenses.length){
+    return `<div class="empty-state"><div class="em-icon">📊</div><h3>Nothing to show yet</h3><p>Log some expenses to see category breakdowns and per-person stats.</p></div>`;
+  }
+  // by category
+  const byCat = {};
+  t.categories.forEach(c=> byCat[c.id] = {name:c.name, emoji:c.emoji, amount:0});
+  t.expenses.forEach(e=>{
+    if(!byCat[e.categoryId]) byCat[e.categoryId] = {name:"Uncategorised", emoji:"❔", amount:0};
+    byCat[e.categoryId].amount += Number(e.amount)||0;
+  });
+  const catArr = Object.entries(byCat).map(([id,v])=>({id,...v})).filter(c=>c.amount>0).sort((a,b)=>b.amount-a.amount);
+
+  // by person (paid)
+  const byPerson = t.persons.map(p=>({
+    name:p.name,
+    amount: t.expenses.filter(e=>e.paidBy===p.id).reduce((s,e)=>s+Number(e.amount||0),0)
+  })).sort((a,b)=>b.amount-a.amount);
+  const maxPerson = Math.max(...byPerson.map(p=>p.amount), 1);
+
+  // personal vs group
+  const personalTotal = t.expenses.filter(e=>e.type==="personal").reduce((s,e)=>s+Number(e.amount||0),0);
+  const groupTotal = total - personalTotal;
+
+  let subDrillHtml = "";
+  if(S.statsCatDrill){
+    const cat = findCategory(t, S.statsCatDrill);
+    if(cat){
+      const subs = {};
+      (cat.subcategories||[]).forEach(s=> subs[s.id] = {name:s.name, amount:0});
+      subs["__none"] = {name:"No subcategory", amount:0};
+      t.expenses.filter(e=>e.categoryId===cat.id).forEach(e=>{
+        const key = e.subcategoryId && subs[e.subcategoryId] ? e.subcategoryId : "__none";
+        subs[key].amount += Number(e.amount)||0;
+      });
+      const subArr = Object.values(subs).filter(s=>s.amount>0).sort((a,b)=>b.amount-a.amount);
+      const maxSub = Math.max(...subArr.map(s=>s.amount),1);
+      subDrillHtml = `
+        <div class="row-flex" style="margin:22px 0 12px;">
+          <div class="section-label" style="margin:0;">${cat.emoji||''} ${esc(cat.name)} breakdown</div>
+          <button class="link-btn" id="stats-close-drill">Close</button>
+        </div>
+        <div class="card">
+          ${subArr.map(s=>`<div class="bar-row"><div class="bl"><span class="nm">${esc(s.name)}</span><span class="vv">${fmtMoney(s.amount)}</span></div><div class="bar-track"><div class="bar-fill" style="width:${(s.amount/maxSub*100).toFixed(1)}%"></div></div></div>`).join("")}
+        </div>`;
+    }
+  }
+
+  return `
+    <div class="stat-strip">
+      <div class="stat-box"><div class="sv">${fmtMoney(total)}</div><div class="sl">Total</div></div>
+      <div class="stat-box"><div class="sv">${fmtMoney(groupTotal)}</div><div class="sl">Group</div></div>
+      <div class="stat-box"><div class="sv">${fmtMoney(personalTotal)}</div><div class="sl">Personal</div></div>
+    </div>
+
+    <div class="section-label">By category <span style="text-transform:none; font-weight:600;">(tap for subcategories)</span></div>
+    <div class="card" id="stats-cat-card">
+      ${buildCategoryDonut(catArr, total)}
+    </div>
+
+    <div id="stats-drill-zone">${subDrillHtml}</div>
+
+    <div class="section-label" style="margin-top:22px;">By traveller (amount paid)</div>
+    <div class="card">
+      ${byPerson.map(p=>`
+        <div class="bar-row">
+          <div class="bl"><span class="nm">${esc(p.name)}</span><span class="vv">${fmtMoney(p.amount)}</span></div>
+          <div class="bar-track"><div class="bar-fill" style="width:${(p.amount/maxPerson*100).toFixed(1)}%"></div></div>
+        </div>`).join("")}
+    </div>
+  `;
+}
+// Delegate stats drill clicks since content re-renders
+document.addEventListener("click", (ev)=>{
+  const drillEl = ev.target.closest("[data-drill]");
+  if(drillEl){
+    S.statsCatDrill = drillEl.dataset.drill;
+    renderTripTab();
+    return;
+  }
+  if(ev.target.id === "stats-close-drill"){
+    S.statsCatDrill = null;
+    renderTripTab();
+  }
+});
+
+/* ---------- SETTLE ---------- */
+function renderSettleTab(t){
+  if(t.persons.length<2){
+    return `<div class="empty-state"><div class="em-icon">🤝</div><h3>Add more travellers</h3><p>Settlement needs at least two people on the trip.</p></div>`;
+  }
+  const balances = computeBalances(t).sort((a,b)=>b.net-a.net);
+  const txns = simplifyDebts(balances);
+  const balHtml = balances.map(b=>{
+    const cls = b.net>0.5 ? "pos" : (b.net<-0.5 ? "neg" : "");
+    const label = b.net>0.5 ? "should receive" : (b.net<-0.5 ? "owes overall" : "settled up");
+    return `<div class="balance-card">
+      <div class="bal-av">${esc(initials(b.name))}</div>
+      <div>
+        <div class="bal-name">${esc(b.name)}</div>
+        <div class="bal-detail">Paid ${fmtMoney(b.paid)} · Fair share ${fmtMoney(b.owed)}</div>
+      </div>
+      <div class="bal-amt ${cls}">${fmtMoney(Math.abs(b.net))}<div style="font-size:10.5px; font-weight:700; text-transform:uppercase; color:var(--ink-faint);">${label}</div></div>
+    </div>`;
+  }).join("");
+
+  const txnHtml = txns.length ? txns.map(x=>`
+    <div class="settle-line">💸 <b>${esc(x.from)}</b> pays <b>${fmtMoney(x.amount)}</b> to <b>${esc(x.to)}</b></div>
+  `).join("") : `<div class="empty-state" style="padding:30px 20px;"><div class="em-icon">✅</div><h3>All settled</h3><p>Nobody owes anybody anything on this trip.</p></div>`;
+
+  return `
+    <div class="section-label">Net balance per traveller</div>
+    ${balHtml}
+    <div class="section-label" style="margin-top:22px;">Suggested settlement</div>
+    ${txnHtml}
+    <div class="small-note">Balances reflect what each person has already paid versus their fair share of group expenses — personal expenses aren't split.</div>
+  `;
+}
+
+/* ============================================================
+   MODALS
+============================================================ */
+function renderModal(innerHtml, wide){
+  $("#modal-root").innerHTML = `<div class="modal-overlay" id="modal-overlay"><div class="modal-sheet"><div class="modal-handle"></div>${innerHtml}</div></div>`;
+  $("#modal-overlay").addEventListener("mousedown", (ev)=>{ if(ev.target.id==="modal-overlay") closeModal(); });
+}
+function closeModal(){ $("#modal-root").innerHTML = ""; }
+function openConfirmModal(opts){
+  renderModal(`
+    <div class="modal-title">${esc(opts.title)}</div>
+    <div class="sub" style="text-align:left; margin-top:0; margin-bottom:20px;">${esc(opts.body)}</div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" id="cf-cancel">Cancel</button>
+      <button class="btn ${opts.danger?'btn-danger':'btn-primary'}" id="cf-ok">${esc(opts.confirmLabel||'Confirm')}</button>
+    </div>
+  `);
+  $("#cf-cancel").onclick = closeModal;
+  $("#cf-ok").onclick = opts.onConfirm;
+}
+
+function openTripModal(existing){
+  const isEdit = !!existing;
+  const t = existing || {id:uid("trip"), name:"", startDate:"", endDate:"", persons:[], goals:[], planning:[], categories: JSON.parse(JSON.stringify(DEFAULT_CATEGORIES)), expenses:[]};
+  renderModal(`
+    <div class="modal-title">${isEdit?"Edit trip":"New trip"}</div>
+    <div class="field"><label>Trip name / destination</label><input type="text" id="tm-name" value="${esc(t.name)}" placeholder="e.g. Bali with the crew"></div>
+    <div class="field"><label>Start date</label><input type="date" id="tm-start" value="${t.startDate||''}"></div>
+    <div class="field"><label>End date</label><input type="date" id="tm-end" value="${t.endDate||''}"></div>
+    <div class="btn-row"><button class="btn btn-secondary" id="tm-cancel">Cancel</button><button class="btn btn-primary" id="tm-save">${isEdit?"Save":"Create trip"}</button></div>
+  `);
+  $("#tm-cancel").onclick = closeModal;
+  $("#tm-save").onclick = ()=>{
+    const name = $("#tm-name").value.trim();
+    if(!name){ toast("Enter a trip name"); return; }
+    t.name = name;
+    t.startDate = $("#tm-start").value;
+    t.endDate = $("#tm-end").value;
+    if(!isEdit){
+      S.data.trips.push(t);
+      closeModal();
+      saveVaultSilently();
+      openTrip(t.id);
+    } else {
+      closeModal();
+      saveAndRerender();
+    }
+  };
+}
+
+function openPersonModal(){
+  const t = currentTrip();
+  renderModal(`
+    <div class="modal-title">Add traveller</div>
+    <div class="field"><label>Name</label><input type="text" id="pm-name" placeholder="e.g. Meera"></div>
+    <div class="btn-row"><button class="btn btn-secondary" id="pm-cancel">Cancel</button><button class="btn btn-primary" id="pm-save">Add</button></div>
+  `);
+  $("#pm-cancel").onclick = closeModal;
+  $("#pm-save").onclick = ()=>{
+    const name = $("#pm-name").value.trim();
+    if(!name){ toast("Enter a name"); return; }
+    t.persons.push({id:uid("p"), name});
+    closeModal();
+    saveAndRerender();
+  };
+}
+
+/* ============================================================
+   SAVE / RERENDER GLUE
+============================================================ */
+function saveAndRerender(){
+  persistVault();
+  if(!S.currentTripId){ renderHome(); }
+  else { renderTripChrome(); renderTripTab(); }
+}
+function saveVaultSilently(){ persistVault(); }
+
+/* ============================================================
+   TOP-LEVEL EVENT WIRING
+============================================================ */
+$("#btn-create-vault").addEventListener("click", ()=>{
+  S.pendingPurpose = "create";
+  S.pinBuffer = "";
+  S.firstPinEntry = null;
+  $("#pin-title").textContent = "Set your PIN";
+  $("#pin-sub").textContent = "Enter the 6-digit PIN that will protect this vault.";
+  showScreen("screen-pin");
+  renderPinDots();
+});
+
+$("#btn-open-vault").addEventListener("click", async ()=>{
+  try{
+    const {text, handle, name} = await pickOpenFile();
+    S.pendingFileText = text;
+    S.fileHandle = handle;
+    S.vaultName = name ? name.replace(/\.fvault$/i,"") : "trips";
+    S.pendingPurpose = "open";
+    S.pinBuffer = "";
+    S.firstPinEntry = null;
+    $("#pin-title").textContent = "Enter PIN";
+    $("#pin-sub").textContent = "Unlock " + name;
+    showScreen("screen-pin");
+    renderPinDots();
+  }catch(e){
+    if(e && e.name === "AbortError") return;
+    toast("Couldn't read that file");
+  }
+});
+
+$("#btn-pin-back").addEventListener("click", ()=>{
+  S.pinBuffer = "";
+  S.firstPinEntry = null;
+  showScreen("screen-start");
+});
+
+$("#fab-add-trip").addEventListener("click", ()=> openTripModal());
+$("#btn-trip-back").addEventListener("click", goHome);
+$("#btn-trip-menu").addEventListener("click", ()=>{
+  const t = currentTrip();
+  openTripModal(t);
+});
+$("#btn-lock").addEventListener("click", ()=>{
+  S.vaultKey=null; S.vaultSalt=null; S.data=null; S.fileHandle=null; S.pinBuffer="";
+  showScreen("screen-start");
+});
+$("#btn-export").addEventListener("click", ()=>{
+  persistVault({forceDownload:true});
+});
+
+buildKeypad();
+showScreen("screen-start");
+
+document.addEventListener("keydown", (ev)=>{
+  if(ev.key === "Escape" && $("#modal-root").innerHTML.trim() !== ""){
+    closeModal();
+  }
+});
+
+/* Warn before leaving with unsaved data in fallback mode */
+window.addEventListener("beforeunload", (e)=>{
+  if(S.dirty){ e.preventDefault(); e.returnValue=""; }
+});
+
+/* ============================================================
+   PWA — SERVICE WORKER
+============================================================ */
+if("serviceWorker" in navigator){
+  let swRefreshing = false;
+  navigator.serviceWorker.addEventListener("controllerchange", ()=>{
+    if(!swRefreshing){ swRefreshing = true; window.location.reload(); }
+  });
+  window.addEventListener("load", ()=>{
+    navigator.serviceWorker.register("./sw.js").then(reg=>{
+      reg.addEventListener("updatefound", ()=>{
+        const nw = reg.installing;
+        nw.addEventListener("statechange", ()=>{
+          if(nw.state === "installed" && navigator.serviceWorker.controller){
+            nw.postMessage({type:"SKIP_WAITING"});
+          }
+        });
+      });
+    }).catch(err=> console.warn("SW registration failed:", err));
+  });
+}
+
+/* ============================================================
+   PWA — INSTALL PROMPT
+============================================================ */
+let deferredPrompt = null;
+window.addEventListener("beforeinstallprompt", (e)=>{
+  e.preventDefault();
+  deferredPrompt = e;
+  setTimeout(()=>{
+    if(!localStorage.getItem("voyage_pwa_dismissed")){
+      $("#install-banner").classList.add("show");
+    }
+  }, 2500);
+});
+window.addEventListener("appinstalled", ()=>{
+  $("#install-banner").classList.remove("show");
+  deferredPrompt = null;
+  toast("Voyage Ledger installed!");
+});
+$("#btn-install").addEventListener("click", ()=>{
+  if(!deferredPrompt){
+    toast("Tap ⋮ → Add to Home screen");
+    $("#install-banner").classList.remove("show");
+    return;
+  }
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(()=>{
+    deferredPrompt = null;
+    $("#install-banner").classList.remove("show");
+  });
+});
+$("#btn-install-dismiss").addEventListener("click", ()=>{
+  $("#install-banner").classList.remove("show");
+  localStorage.setItem("voyage_pwa_dismissed", "1");
+});
+
+})();
+</script>
+</body>
+</html>
