@@ -323,6 +323,28 @@ header {
     </div>
   </div>
 
+  <div class="search-wrap" style="padding-top:0;">
+    <div class="sum-card" style="text-align:left;padding:16px;">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;">Check Amount by Status &amp; Person</div>
+      <div class="mrow" style="margin-bottom:12px;">
+        <div class="field">
+          <select id="lk_status" onchange="updateLookup()">
+            <option value="unpaid">Unpaid</option>
+            <option value="partial">Partially Paid</option>
+            <option value="paid">Fully Paid</option>
+          </select>
+        </div>
+        <div class="field">
+          <select id="lk_person" onchange="updateLookup()"></select>
+        </div>
+      </div>
+      <div style="text-align:center;">
+        <div class="sum-val" id="lk_result" style="font-size:26px;color:var(--accent);">₹0</div>
+        <div class="sum-lbl" id="lk_count" style="margin-top:6px;">0 loans</div>
+      </div>
+    </div>
+  </div>
+
   <div class="card-list" id="cardList"></div>
   <div class="empty" id="emptyState">
     <div class="empty-icon">💸</div>
@@ -896,6 +918,28 @@ function getPaid(l) { return (l.repayments||[]).reduce((s,r)=>s+parseFloat(r.amo
 function getOutstanding(l) { return Math.max(0, parseFloat(l.amount) - getPaid(l)); }
 
 // ═══════════════════════════════════════════════
+//  STATUS / PERSON LOOKUP
+// ═══════════════════════════════════════════════
+function populateLookupPersons() {
+  const sel = document.getElementById('lk_person');
+  const prev = sel.value;
+  const names = [...new Set(loans.map(l => l.name))].sort((a,b)=>a.localeCompare(b));
+  sel.innerHTML = names.length
+    ? names.map(n => `<option value="${escHtml(n)}">${escHtml(n)}</option>`).join('')
+    : `<option value="">No borrowers yet</option>`;
+  if (prev && names.includes(prev)) sel.value = prev;
+}
+
+function updateLookup() {
+  const status = document.getElementById('lk_status').value;
+  const person = document.getElementById('lk_person').value;
+  const matches = loans.filter(l => l.name === person && getStatus(l) === status);
+  const total = matches.reduce((s, l) => s + (status === 'paid' ? parseFloat(l.amount) : getOutstanding(l)), 0);
+  document.getElementById('lk_result').textContent = fmt(total);
+  document.getElementById('lk_count').textContent = matches.length + (matches.length === 1 ? ' loan' : ' loans');
+}
+
+// ═══════════════════════════════════════════════
 //  TOAST
 // ═══════════════════════════════════════════════
 function showToast(msg, type='') {
@@ -944,6 +988,8 @@ function renderCards() {
   if (filtered.length === 0) { list.innerHTML=''; empty.classList.add('show'); }
   else { empty.classList.remove('show'); list.innerHTML = filtered.map(buildCard).join(''); }
   updateSummary();
+  populateLookupPersons();
+  updateLookup();
 }
 
 function buildCard(loan) {
