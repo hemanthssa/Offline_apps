@@ -153,6 +153,7 @@ body{display:flex;flex-direction:column;}
 .pool-name-col{display:flex;flex-direction:column;gap:3px;flex:1;}
 .pool-badge{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:var(--purple);background:rgba(155,127,232,0.12);padding:2px 8px;border-radius:20px;width:fit-content;}
 .pool-name{font-family:'Playfair Display',serif;font-size:16px;color:var(--text);}
+.pool-start-sub{font-size:10px;color:var(--text3);margin-top:-1px;}
 .pool-corpus-badge{font-family:'DM Mono',monospace;font-size:13px;color:var(--gold2);background:rgba(232,201,122,0.1);padding:4px 9px;border-radius:20px;white-space:nowrap;flex-shrink:0;}
 .pool-bar-wrap{padding:0 14px 12px;}
 .pool-bar-bg{height:5px;background:var(--bg4);border-radius:3px;overflow:hidden;}
@@ -1192,6 +1193,42 @@ function poolStats(pool){
   };
 }
 
+// Earliest purchase date among bonds funded (even partly) by this pool -- i.e. when the pool was first put to use
+function poolStartDate(poolId){
+  const dates=vaultData.bonds
+    .filter(b=>(b.funding||[]).some(f=>f.poolId===poolId)&&b.purchaseDate)
+    .map(b=>b.purchaseDate)
+    .sort();
+  return dates.length?dates[0]:null;
+}
+// Calendar-aware (not just day-count) difference between a date string and now
+function calcDurationParts(fromStr){
+  const from=new Date(fromStr+'T00:00:00');
+  const to=new Date();
+  if(isNaN(from.getTime())||from>to) return {years:0,months:0,days:0};
+  let years=to.getFullYear()-from.getFullYear();
+  let months=to.getMonth()-from.getMonth();
+  let days=to.getDate()-from.getDate();
+  if(days<0){
+    months--;
+    days+=new Date(to.getFullYear(),to.getMonth(),0).getDate();
+  }
+  if(months<0){
+    years--;
+    months+=12;
+  }
+  return {years,months,days};
+}
+function formatDurationParts(p){
+  if(!p) return '--';
+  const segs=[];
+  if(p.years>0) segs.push(p.years+' year'+(p.years===1?'':'s'));
+  if(p.months>0) segs.push(p.months+' month'+(p.months===1?'':'s'));
+  if(p.days>0||segs.length===0) segs.push(p.days+' day'+(p.days===1?'':'s'));
+  if(segs.length===1) return segs[0];
+  return segs.slice(0,-1).join(', ')+' and '+segs[segs.length-1];
+}
+
 // DASHBOARD
 function renderDashboard(){
   const bonds=vaultData.bonds;
@@ -1364,7 +1401,9 @@ function renderPools(){
     const s=poolStats(p);
     // Progress bar: deployed as % of effective corpus (what's actually available)
     const pct=s.effectiveCorpus>0?Math.min(100,(s.deployed/s.effectiveCorpus)*100):0;
-    return '<div class="pool-card" onclick="showPoolDetail(\''+p.id+'\')"><div class="pool-card-header"><div class="pool-name-col"><span class="pool-badge">Pool</span><span class="pool-name">'+p.name+'</span></div><span class="pool-corpus-badge">'+fmt(s.effectiveCorpus)+'</span></div>'
+    const startDate=poolStartDate(p.id);
+    const startSub=startDate?'Since '+fmtDate(startDate)+' &middot; '+formatDurationParts(calcDurationParts(startDate)):'No investments yet';
+    return '<div class="pool-card" onclick="showPoolDetail(\''+p.id+'\')"><div class="pool-card-header"><div class="pool-name-col"><span class="pool-badge">Pool</span><span class="pool-name">'+p.name+'</span><span class="pool-start-sub">'+startSub+'</span></div><span class="pool-corpus-badge">'+fmt(s.effectiveCorpus)+'</span></div>'
       +'<div class="pool-bar-wrap"><div class="pool-bar-bg"><div class="pool-bar-fill" style="width:'+pct+'%"></div></div><div class="pool-bar-labels"><span class="pool-bar-label">Deployed '+pct.toFixed(0)+'%</span><span class="pool-bar-label">Idle '+fmt(s.idle)+'</span></div></div>'
       +'<div class="pool-footer"><div class="pool-stat"><span class="pool-stat-label">Deployed</span><span class="pool-stat-val blue">'+fmt(s.deployed)+'</span></div><div class="pool-stat"><span class="pool-stat-label">Interest Earned</span><span class="pool-stat-val green">'+fmt(s.interestEarned+s.rebateEarned)+'</span></div><div class="pool-stat"><span class="pool-stat-label">Capital Gains</span><span class="pool-stat-val '+(s.capitalGains>0?'green':s.capitalGains<0?'red':'')+'">'+(s.capitalGains>=0?'+':'')+fmt(s.capitalGains)+'</span></div><div class="pool-stat"><span class="pool-stat-label">Effective Corpus</span><span class="pool-stat-val gold">'+fmt(s.effectiveCorpus)+'</span></div></div>'
     +'</div>';
@@ -1377,6 +1416,8 @@ function showPoolDetail(id){
   const s=poolStats(p);
   // Progress bar: deployed as % of effective corpus
   const pct=s.effectiveCorpus>0?Math.min(100,(s.deployed/s.effectiveCorpus)*100):0;
+  const startDate=poolStartDate(id);
+  const durationStr=startDate?formatDurationParts(calcDurationParts(startDate)):'--';
   const linkedBonds=vaultData.bonds.filter(b=>(b.funding||[]).some(f=>f.poolId===id));
   const bondRows=linkedBonds.length?linkedBonds.map(b=>{
     const contrib=(b.funding||[]).find(f=>f.poolId===id);
@@ -1400,6 +1441,8 @@ function showPoolDetail(id){
       +'<div class="detail-platform">Money Pool</div>'
       +'<div class="detail-name">'+p.name+'</div>'
       +'<div class="detail-stats">'
+        +'<div class="detail-stat"><div class="detail-stat-label">Active Since</div><div class="detail-stat-val">'+(startDate?fmtDate(startDate):'--')+'</div></div>'
+        +'<div class="detail-stat"><div class="detail-stat-label">Duration Active</div><div class="detail-stat-val gold">'+durationStr+'</div></div>'
         +'<div class="detail-stat"><div class="detail-stat-label">Initial Corpus</div><div class="detail-stat-val">'+fmt(s.corpus)+'</div></div>'
         +'<div class="detail-stat"><div class="detail-stat-label">Active Deployed</div><div class="detail-stat-val" style="color:var(--blue)">'+fmt(s.deployed)+'</div></div>'
         +'<div class="detail-stat"><div class="detail-stat-label">Interest Earned</div><div class="detail-stat-val green">'+fmt(s.interestEarned)+'</div></div>'
