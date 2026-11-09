@@ -275,7 +275,7 @@ input, select { font-family: inherit; }
   display: block; margin: 18px 2px 8px;
   font-size: 12px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-muted);
 }
-input[type="text"], input[type="number"], input[type="date"], input[type="time"], select {
+input[type="text"], input[type="number"], input[type="date"], input[type="time"], select, textarea {
   display: block; width: 100%; min-width: 0; min-height: 54px; padding: 14px 16px;
   background: var(--surface-2); color: var(--text); color-scheme: dark;
   border: 1.5px solid transparent; border-radius: 17px;
@@ -283,7 +283,8 @@ input[type="text"], input[type="number"], input[type="date"], input[type="time"]
   transition: border-color 0.2s, background 0.2s;
 }
 input::placeholder { color: var(--text-muted); font-weight: 500; }
-input:focus, select:focus { border-color: var(--accent); background: var(--surface-3); }
+input:focus, select:focus, textarea:focus { border-color: var(--accent); background: var(--surface-3); }
+textarea { min-height: 112px; resize: none; line-height: 1.5; }
 input[type="date"], input[type="time"] { text-align: left; }
 select {
   padding-right: 46px; text-overflow: ellipsis;
@@ -540,6 +541,25 @@ option { background: #1B1B21; color: #F6F6F8; }
 .subcat-chip .rm { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: rgba(255, 255, 255, 0.07); color: var(--text-muted); cursor: pointer; }
 .subcat-chip .rm .ic { width: 12px; height: 12px; stroke-width: 2.6; }
 .add-subcat-btn { padding: 8px 14px; border-radius: 99px; border: 1.5px dashed var(--line-strong); color: var(--accent); font-size: 13px; font-weight: 700; }
+
+/* Quick (predefined) notes */
+.subpage-head { display: flex; align-items: center; gap: 12px; margin: 6px 2px 14px; }
+.subpage-head .page-title { margin: 0; }
+.np-card { padding: 2px 16px; }
+.np-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 0; border-top: 1px solid var(--line); }
+.np-row:first-child { border-top: 0; }
+.np-text { flex: 1; min-width: 0; font-size: 14.5px; font-weight: 600; line-height: 1.4; word-break: break-word; }
+.np-del { width: 28px; height: 28px; border-radius: 50%; flex: none; display: grid; place-items: center; background: rgba(255, 255, 255, 0.07); color: var(--text-muted); }
+.np-del .ic { width: 13px; height: 13px; stroke-width: 2.6; }
+.np-del:active { background: var(--expense-soft); color: var(--danger); }
+.note-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; max-height: 112px; overflow-y: auto; }
+.note-chip {
+  max-width: 100%; padding: 8px 13px; border-radius: 99px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  background: var(--surface-2); border: 1.5px solid transparent; color: var(--text-dim);
+  font-size: 13px; font-weight: 600; transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.12s;
+}
+.note-chip:active { transform: scale(0.96); }
+.note-chip.selected { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
 .add-cat-btn { margin-top: 4px; }
 
 /* =====================================================================
@@ -921,6 +941,15 @@ option { background: #1B1B21; color: #F6F6F8; }
         </div>
 
         <div class="settings-group">
+          <div class="glabel">Quick Notes</div>
+          <div class="glass-card settings-item" id="btn-open-notepresets">
+            <div class="si-ic blue"><svg class="ic"><use href="#i-receipt"/></svg></div>
+            <div class="si-text"><div class="t">Predefined Notes</div><div class="d" id="np-entry-desc">Save regular notes for each category and sub category</div></div>
+            <div class="arrow"><svg class="ic"><use href="#i-chev-r"/></svg></div>
+          </div>
+        </div>
+
+        <div class="settings-group">
           <div class="glabel">Categories</div>
           <div class="seg-tabs" id="cat-manage-tabs">
             <div class="seg-tab active" data-cattype="expense">Expense</div>
@@ -945,6 +974,31 @@ option { background: #1B1B21; color: #F6F6F8; }
         </div>
 
         <div class="settings-footer">Expense Tracker · nothing stored in the browser · AES-256-GCM</div>
+      </div>
+
+      <!-- Quick Notes page (opened from Settings) -->
+      <div class="page" id="page-notepresets">
+        <div class="subpage-head">
+          <button class="icon-btn" id="btn-notes-back" aria-label="Back to settings"><svg class="ic"><use href="#i-chev-l"/></svg></button>
+          <div class="page-title">Quick Notes</div>
+        </div>
+        <div class="settings-note">Pick a category and sub category, then add the notes you use often. They appear as one-tap suggestions under Notes when you add a transaction.</div>
+
+        <div class="seg-tabs" id="np-type-tabs">
+          <div class="seg-tab active" data-nptype="expense">Expense</div>
+          <div class="seg-tab" data-nptype="income">Income</div>
+        </div>
+
+        <span class="field-label" style="margin-top:0">Category</span>
+        <select id="np-category"></select>
+        <span class="field-label">Sub Category</span>
+        <select id="np-subcategory"></select>
+        <span class="field-label">Add Notes (one per line)</span>
+        <textarea id="np-input" placeholder="e.g. Milk and curd&#10;Vegetables&#10;Fruits" autocomplete="off"></textarea>
+        <button class="primary-btn" id="btn-np-add" type="button" style="margin-top:16px">Add to Saved Notes</button>
+
+        <div class="glabel" id="np-saved-label" style="margin-top:28px"></div>
+        <div id="np-saved-list"></div>
       </div>
     </div>
 
@@ -1031,6 +1085,7 @@ option { background: #1B1B21; color: #F6F6F8; }
     <span class="field-label">Notes</span>
     <input type="text" id="txn-notes" placeholder="Optional note" list="txn-notes-suggestions" autocomplete="off">
     <datalist id="txn-notes-suggestions"></datalist>
+    <div class="note-chips" id="txn-note-chips" style="display:none"></div>
   </div>
 
   <div id="txn-fields-transfer" style="display:none;">
@@ -1256,7 +1311,8 @@ option { background: #1B1B21; color: #F6F6F8; }
       history: [],
       transactions: [],
       categories: { income: [], expense: [] },
-      budgets: {}
+      budgets: {},
+      notePresets: {}
     };
   }
 
@@ -1267,6 +1323,7 @@ option { background: #1B1B21; color: #F6F6F8; }
     if (!data.categories.income) data.categories.income = [];
     if (!data.categories.expense) data.categories.expense = [];
     if (!data.budgets) data.budgets = {};
+    if (!data.notePresets) data.notePresets = {};
   }
 
   function getCategoryList(type) {
@@ -1618,6 +1675,9 @@ option { background: #1B1B21; color: #F6F6F8; }
     for (const t of appData.transactions) put("t_" + t.id, "txn", t);
     for (const kind of ["income", "expense"]) put("c_" + kind, "cat", { kind, list: appData.categories[kind] });
     for (const month of Object.keys(appData.budgets)) put("b_" + month, "bud", { month, limits: appData.budgets[month] });
+    for (const key of Object.keys(appData.notePresets)) {
+      if (appData.notePresets[key].length) put("n_" + key, "np", { key, list: appData.notePresets[key] });
+    }
     for (const h of appData.history) put("s_" + h.date, "snap", h);
     put("m", "meta", {
       createdAt: appData.createdAt,
@@ -1640,6 +1700,7 @@ option { background: #1B1B21; color: #F6F6F8; }
       if (rid.startsWith("a_")) { const id = Number(rid.slice(2)); accs.delete(id); opening.delete(id); }
       else if (rid.startsWith("t_")) txns.delete(Number(rid.slice(2)));
       else if (rid.startsWith("b_")) delete appData.budgets[rid.slice(2)];
+      else if (rid.startsWith("n_")) delete appData.notePresets[rid.slice(2)];
       cloudShadow.delete(rid);
     }
 
@@ -1657,6 +1718,8 @@ option { background: #1B1B21; color: #F6F6F8; }
         appData.categories[d.kind] = d.list || [];
       } else if (rec.t === "bud") {
         appData.budgets[d.month] = d.limits || {};
+      } else if (rec.t === "np") {
+        appData.notePresets[d.key] = Array.isArray(d.list) ? d.list : [];
       } else if (rec.t === "snap") {
         hist.set(d.date, d);
       } else if (rec.t === "meta") {
@@ -1716,6 +1779,7 @@ option { background: #1B1B21; color: #F6F6F8; }
     updateTotals();
     if (currentPage === "stats") renderStats();
     if (currentPage === "settings") renderCatSettings();
+    if (currentPage === "notepresets") renderNotePresetsPage();
     refreshActiveTxnView();
   }
 
@@ -2244,10 +2308,11 @@ option { background: #1B1B21; color: #F6F6F8; }
     const navBtn = document.querySelector('.nav-item[data-page="' + name + '"]');
     if (navBtn) navBtn.classList.add("active-nav");
     currentPage = name;
-    document.getElementById("nav-settings").classList.toggle("on", name === "settings");
+    document.getElementById("nav-settings").classList.toggle("on", name === "settings" || name === "notepresets");
     document.querySelector(".content").scrollTop = 0;
     if (name === "stats") renderStats();
-    if (name === "settings") { updateVaultModeDesc(); updateCloudUi(); renderCatSettings(); }
+    if (name === "settings") { updateVaultModeDesc(); updateCloudUi(); renderCatSettings(); updateNotePresetEntry(); }
+    if (name === "notepresets") renderNotePresetsPage();
     if (name === "transactions") renderTxnDaily();
   }
 
@@ -3615,7 +3680,31 @@ option { background: #1B1B21; color: #F6F6F8; }
 
     datalist.innerHTML = sortedNotes.map(n => `<option value="${escapeHtml(n)}"></option>`).join("");
     notesInput.placeholder = sortedNotes.length ? `e.g. ${sortedNotes[0]}` : "Optional note";
+
+    // Predefined notes for this type + category + sub category, shown as tap-to-fill chips.
+    const chipBox = document.getElementById("txn-note-chips");
+    if (chipBox) {
+      const presets = getNotePresets(txnFormType, catName, subName);
+      chipBox.innerHTML = presets.map((n, i) =>
+        `<button type="button" class="note-chip" data-np-index="${i}">${escapeHtml(n)}</button>`).join("");
+      chipBox.style.display = presets.length ? "" : "none";
+      updateNoteChipSelection();
+    }
   }
+
+  function updateNoteChipSelection() {
+    const val = document.getElementById("txn-notes").value.trim();
+    document.querySelectorAll("#txn-note-chips .note-chip").forEach(c =>
+      c.classList.toggle("selected", c.textContent === val));
+  }
+
+  document.getElementById("txn-note-chips").addEventListener("click", (e) => {
+    const chip = e.target.closest(".note-chip");
+    if (!chip) return;
+    document.getElementById("txn-notes").value = chip.textContent;
+    updateNoteChipSelection();
+  });
+  document.getElementById("txn-notes").addEventListener("input", updateNoteChipSelection);
 
   document.getElementById("txn-category").addEventListener("change", () => {
     populateTxnSubcategorySelect();
@@ -3849,6 +3938,164 @@ option { background: #1B1B21; color: #F6F6F8; }
   document.getElementById("btn-txn-continue").addEventListener("click", () => saveTransaction(true));
 
   // ---------------------------------------------------------------
+  // Predefined notes (saved per type + category + sub category)
+  // ---------------------------------------------------------------
+  let npType = "expense";
+
+  function notePresetKey(kind, cat, sub) {
+    return kind + "||" + cat + "||" + (sub || "");
+  }
+
+  function getNotePresets(kind, cat, sub) {
+    const list = appData && appData.notePresets && appData.notePresets[notePresetKey(kind, cat, sub)];
+    return Array.isArray(list) ? list : [];
+  }
+
+  // sub === undefined removes the presets of every sub category of the category.
+  function dropNotePresets(kind, cat, sub) {
+    const prefix = notePresetKey(kind, cat, "");
+    const exact = sub === undefined ? null : notePresetKey(kind, cat, sub);
+    Object.keys(appData.notePresets).forEach(k => {
+      if (exact === null ? k.startsWith(prefix) : k === exact) delete appData.notePresets[k];
+    });
+  }
+
+  function updateNotePresetEntry() {
+    const el = document.getElementById("np-entry-desc");
+    if (!el || !appData) return;
+    const total = Object.values(appData.notePresets).reduce((s, l) => s + l.length, 0);
+    el.textContent = total
+      ? `${total} saved note${total === 1 ? "" : "s"} across your categories`
+      : "Save regular notes for each category and sub category";
+  }
+
+  function npCurrentCategory() {
+    const name = document.getElementById("np-category").value;
+    return getCategoryList(npType).find(c => c.name === name) || null;
+  }
+
+  function npRenderSubcategories(preferred) {
+    const sel = document.getElementById("np-subcategory");
+    const cat = npCurrentCategory();
+    const subs = cat ? cat.subcategories : [];
+    if (subs.length) {
+      sel.innerHTML = subs.map(s => {
+        const n = getNotePresets(npType, cat.name, s).length;
+        return `<option value="${escapeHtml(s)}">${escapeHtml(s)}${n ? " (" + n + ")" : ""}</option>`;
+      }).join("");
+      sel.value = subs.includes(preferred) ? preferred : subs[0];
+    } else {
+      sel.innerHTML = `<option value="">— None —</option>`;
+    }
+    sel.disabled = !cat;
+  }
+
+  function npRenderSavedList() {
+    const box = document.getElementById("np-saved-list");
+    const label = document.getElementById("np-saved-label");
+    const cat = npCurrentCategory();
+    if (!cat) {
+      label.textContent = "Saved Notes";
+      box.innerHTML = `
+        <div class="glass-card empty-state">
+          <div class="empty-icon">${icon("tag")}</div>
+          <div class="empty-title">No ${npType} categories</div>
+          <div class="empty-sub">Add a category in Settings first</div>
+        </div>`;
+      return;
+    }
+    const sub = document.getElementById("np-subcategory").value;
+    const notes = getNotePresets(npType, cat.name, sub);
+    label.textContent = `Saved Notes · ${cat.name}${sub ? " › " + sub : ""}`;
+    if (!notes.length) {
+      box.innerHTML = `
+        <div class="glass-card empty-state">
+          <div class="empty-icon">${icon("receipt")}</div>
+          <div class="empty-title">No saved notes yet</div>
+          <div class="empty-sub">Notes you add above will show up here</div>
+        </div>`;
+      return;
+    }
+    box.innerHTML = `<div class="glass-card np-card">${notes.map((n, i) => `
+      <div class="np-row">
+        <span class="np-text">${escapeHtml(n)}</span>
+        <button class="np-del" data-np-index="${i}" aria-label="Remove note">${icon("x")}</button>
+      </div>`).join("")}</div>`;
+  }
+
+  function renderNotePresetsPage() {
+    if (!appData) return;
+    const catSel = document.getElementById("np-category");
+    const prevCat = catSel.value;
+    const prevSub = document.getElementById("np-subcategory").value;
+    const cats = getCategoryList(npType);
+    catSel.innerHTML = cats.length
+      ? cats.map(c => `<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)}</option>`).join("")
+      : `<option value="">No categories</option>`;
+    if (cats.some(c => c.name === prevCat)) catSel.value = prevCat;
+    catSel.disabled = !cats.length;
+    npRenderSubcategories(prevSub);
+    npRenderSavedList();
+  }
+
+  document.getElementById("btn-open-notepresets").addEventListener("click", () => showPage("notepresets"));
+  document.getElementById("btn-notes-back").addEventListener("click", () => showPage("settings"));
+
+  document.getElementById("np-type-tabs").addEventListener("click", (e) => {
+    const tab = e.target.closest(".seg-tab");
+    if (!tab) return;
+    npType = tab.getAttribute("data-nptype");
+    document.querySelectorAll("#np-type-tabs .seg-tab").forEach(t => t.classList.toggle("active", t === tab));
+    renderNotePresetsPage();
+  });
+  document.getElementById("np-category").addEventListener("change", () => {
+    npRenderSubcategories("");
+    npRenderSavedList();
+  });
+  document.getElementById("np-subcategory").addEventListener("change", npRenderSavedList);
+
+  document.getElementById("btn-np-add").addEventListener("click", async () => {
+    const cat = npCurrentCategory();
+    if (!cat) { showToast("Select a category first ❌", true); return; }
+    const sub = document.getElementById("np-subcategory").value;
+    const input = document.getElementById("np-input");
+    const lines = input.value.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+    if (!lines.length) { showToast("Enter at least one note ❌", true); return; }
+
+    const key = notePresetKey(npType, cat.name, sub);
+    const list = getNotePresets(npType, cat.name, sub).slice();
+    let added = 0;
+    lines.forEach(l => {
+      if (!list.some(x => x.toLowerCase() === l.toLowerCase())) { list.push(l); added++; }
+    });
+    input.value = "";
+    if (!added) { showToast("Those notes are already saved"); return; }
+
+    appData.notePresets[key] = list;
+    npRenderSubcategories(sub);
+    npRenderSavedList();
+    await saveVault();
+    showToast(`${added} note${added === 1 ? "" : "s"} added ✅`);
+  });
+
+  document.getElementById("np-saved-list").addEventListener("click", async (e) => {
+    const del = e.target.closest(".np-del");
+    if (!del) return;
+    const cat = npCurrentCategory();
+    if (!cat) return;
+    const sub = document.getElementById("np-subcategory").value;
+    const key = notePresetKey(npType, cat.name, sub);
+    const list = getNotePresets(npType, cat.name, sub).slice();
+    list.splice(Number(del.getAttribute("data-np-index")), 1);
+    if (list.length) appData.notePresets[key] = list;
+    else delete appData.notePresets[key];
+    npRenderSubcategories(sub);
+    npRenderSavedList();
+    await saveVault();
+    showToast("Note removed ✅");
+  });
+
+  // ---------------------------------------------------------------
   // Settings: Category management
   // ---------------------------------------------------------------
   function renderCatSettings() {
@@ -3916,7 +4163,8 @@ option { background: #1B1B21; color: #F6F6F8; }
 
     if (delBtn) {
       const idx = Number(delBtn.getAttribute("data-cat-index"));
-      getCategoryList(catManageType).splice(idx, 1);
+      const removedCat = getCategoryList(catManageType).splice(idx, 1)[0];
+      if (removedCat) dropNotePresets(catManageType, removedCat.name);
       renderCatSettings();
       await saveVault();
       showToast("Category deleted ✅");
@@ -3925,7 +4173,9 @@ option { background: #1B1B21; color: #F6F6F8; }
     if (rmBtn) {
       const ci = Number(rmBtn.getAttribute("data-cat-index"));
       const si = Number(rmBtn.getAttribute("data-sub-index"));
-      getCategoryList(catManageType)[ci].subcategories.splice(si, 1);
+      const parentCat = getCategoryList(catManageType)[ci];
+      const removedSub = parentCat.subcategories.splice(si, 1)[0];
+      dropNotePresets(catManageType, parentCat.name, removedSub);
       renderCatSettings();
       await saveVault();
       return;
