@@ -590,6 +590,8 @@ option { background: #1B1B21; color: #F6F6F8; }
 .sheet-btn-row .primary-btn { flex: 1.15; }
 .sheet-btn-row .danger-btn { flex: 1; font-size: 14.5px; background: var(--expense-soft); color: var(--danger); border: 1px solid rgba(255, 92, 108, 0.35); box-shadow: none; }
 .sheet-btn-row .danger-btn.confirm { background: var(--danger); color: #fff; border-color: var(--danger); }
+.sheet-btn-row .danger-btn:disabled { opacity: 0.4; pointer-events: none; }
+#btn-report-generate:disabled { opacity: 0.4; pointer-events: none; }
 #input-sheet-field { margin-top: 14px; }
 .type-chips { display: flex; gap: 10px; }
 .chip {
@@ -681,6 +683,8 @@ option { background: #1B1B21; color: #F6F6F8; }
   <symbol id="i-cloud-off" viewBox="0 0 24 24"><path d="M7.5 19a4.5 4.5 0 0 1-.6-8.96 6 6 0 0 1 11.6 1.46A3.8 3.8 0 0 1 17.5 19z"/><path d="M4 4l16 16"/></symbol>
   <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.5-4M4 5v3.5h3.5M4 13a8 8 0 0 0 14.5 4M20 19v-3.5h-3.5"/></symbol>
   <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h3M10 12h10M16 8l4 4-4 4"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4.5 7h15M9.5 7V4.8h5V7M6.8 7l.9 12.4a1.5 1.5 0 0 0 1.5 1.4h5.6a1.5 1.5 0 0 0 1.5-1.4L17.2 7M10.2 11v5.5M13.8 11v5.5"/></symbol>
+  <symbol id="i-floppy" viewBox="0 0 24 24"><path d="M5 3.5h11l3.5 3.5v11.5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-13a2 2 0 0 1 2-2z"/><path d="M7.5 3.5v5h7.5v-5M7 20.5v-6.5h10v6.5"/></symbol>
 </svg>
 
 <div class="phone-frame">
@@ -941,6 +945,15 @@ option { background: #1B1B21; color: #F6F6F8; }
         </div>
 
         <div class="settings-group">
+          <div class="glabel">Reports</div>
+          <div class="glass-card settings-item" id="btn-open-report">
+            <div class="si-ic green"><svg class="ic"><use href="#i-floppy"/></svg></div>
+            <div class="si-text"><div class="t">Monthly PDF Report</div><div class="d">Spending chart, all transactions and credit card usage for a month</div></div>
+            <div class="arrow"><svg class="ic"><use href="#i-chev-r"/></svg></div>
+          </div>
+        </div>
+
+        <div class="settings-group">
           <div class="glabel">Quick Notes</div>
           <div class="glass-card settings-item" id="btn-open-notepresets">
             <div class="si-ic blue"><svg class="ic"><use href="#i-receipt"/></svg></div>
@@ -962,6 +975,15 @@ option { background: #1B1B21; color: #F6F6F8; }
           </div>
           <div id="cat-manage-list"></div>
           <button class="secondary-btn add-cat-btn" id="btn-add-category"><svg class="ic"><use href="#i-plus"/></svg>Add Category</button>
+        </div>
+
+        <div class="settings-group">
+          <div class="glabel">Danger Zone</div>
+          <div class="glass-card settings-item" id="btn-clear-data">
+            <div class="si-ic rose"><svg class="ic"><use href="#i-trash"/></svg></div>
+            <div class="si-text"><div class="t">Clear All Data</div><div class="d">Delete all transactions and balances. Accounts, categories and notes stay.</div></div>
+            <div class="arrow"><svg class="ic"><use href="#i-chev-r"/></svg></div>
+          </div>
         </div>
 
         <div class="settings-group">
@@ -1153,6 +1175,42 @@ option { background: #1B1B21; color: #F6F6F8; }
   </div>
 </div>
 
+<div class="bottom-sheet" id="clear-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-top-row">
+    <h3>Clear All Data</h3>
+    <button class="icon-btn" id="btn-close-clear-sheet" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
+  </div>
+  <div>
+    <div class="detail-row"><span class="k">Deleted</span><span class="v">All transactions, balance history, and account balances (reset to 0)</span></div>
+    <div class="detail-row"><span class="k">Kept</span><span class="v">Account names, categories, sub categories, quick notes, budget limits</span></div>
+  </div>
+  <div class="settings-note" id="clear-scope-note" style="margin-top:14px"></div>
+  <span class="field-label">Type CLEAR to confirm</span>
+  <input type="text" id="clear-confirm-input" placeholder="CLEAR" autocomplete="off" autocapitalize="characters">
+  <div class="sheet-btn-row">
+    <button class="secondary-btn" id="btn-clear-cancel" type="button">Cancel</button>
+    <button class="danger-btn" id="btn-clear-confirm" type="button" disabled>Clear All Data</button>
+  </div>
+</div>
+
+<div class="bottom-sheet" id="report-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-top-row">
+    <h3>Monthly PDF Report</h3>
+    <button class="icon-btn" id="btn-close-report-sheet" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
+  </div>
+  <div class="settings-note">Choose the month. The PDF has the spending donut chart, total spent, every transaction and the amount used on each credit card.</div>
+  <div class="cal-head">
+    <button id="report-month-prev" aria-label="Previous month"><svg class="ic"><use href="#i-chev-l"/></svg></button>
+    <span class="cal-month-label" id="report-month-label"></span>
+    <button id="report-month-next" aria-label="Next month"><svg class="ic"><use href="#i-chev-r"/></svg></button>
+  </div>
+  <div class="settings-note" id="report-summary" style="text-align:center"></div>
+  <button class="primary-btn" id="btn-report-generate" type="button">Generate PDF</button>
+  <div class="settings-note" style="margin-top:12px">A print window opens. Choose "Save as PDF" as the destination to get the file.</div>
+</div>
+
 <!-- PWA install banner -->
 <div id="install-banner">
   <div class="ib-icon"><svg class="ic"><use href="#i-wallet"/></svg></div>
@@ -1241,6 +1299,8 @@ option { background: #1B1B21; color: #F6F6F8; }
   const inputSheet = document.getElementById("input-sheet");
   const txnDetailSheet = document.getElementById("txn-detail-sheet");
   const txnFilterSheet = document.getElementById("txn-filter-sheet");
+  const clearSheet = document.getElementById("clear-sheet");
+  const reportSheet = document.getElementById("report-sheet");
 
   if (!hasFSAccess) {
     persistenceNote.style.display = "block";
@@ -1489,6 +1549,7 @@ option { background: #1B1B21; color: #F6F6F8; }
   let cloudOpenGate = () => {};
   let cloudInbox = Promise.resolve();      // serialises incoming remote snapshots
   let cloudFlushChain = Promise.resolve(); // serialises outgoing change batches
+  let cloudPurgeNext = false;      // next upload must also delete the (normally kept) daily snapshots
   let cloudKeyCache = null;
   let cloudCacheUid = null;
   const cloudDocIds = new Map();   // record id -> hashed document id
@@ -1701,6 +1762,7 @@ option { background: #1B1B21; color: #F6F6F8; }
       else if (rid.startsWith("t_")) txns.delete(Number(rid.slice(2)));
       else if (rid.startsWith("b_")) delete appData.budgets[rid.slice(2)];
       else if (rid.startsWith("n_")) delete appData.notePresets[rid.slice(2)];
+      else if (rid.startsWith("s_")) hist.delete(rid.slice(2));
       cloudShadow.delete(rid);
     }
 
@@ -1804,13 +1866,14 @@ option { background: #1B1B21; color: #F6F6F8; }
   }
 
   // ---------- Upload ----------
-  async function cloudQueueChanges(current) {
+  async function cloudQueueChanges(current, purgeSnapshots) {
     if (!cloudAttached || !cloudActive || !cloudUser) return [];
     const writes = [];
     const deletes = [];
     for (const [rid, json] of current) if (cloudShadow.get(rid) !== json) writes.push([rid, json]);
-    // Old daily snapshots rolling off the 365-day window are kept in the cloud, never deleted.
-    for (const rid of cloudShadow.keys()) if (!current.has(rid) && !rid.startsWith("s_")) deletes.push(rid);
+    // Old daily snapshots rolling off the 365-day window are kept in the cloud, never deleted
+    // (unless the user explicitly cleared all data).
+    for (const rid of cloudShadow.keys()) if (!current.has(rid) && (purgeSnapshots || !rid.startsWith("s_"))) deletes.push(rid);
     if (!writes.length && !deletes.length) return [];
 
     const ref = cloudRecordsRef();
@@ -1847,11 +1910,13 @@ option { background: #1B1B21; color: #F6F6F8; }
 
   // Fire-and-forget so the UI never waits on the network; the status icon shows progress.
   function pushToCloud() {
+    const purge = cloudPurgeNext;
+    cloudPurgeNext = false;
     if (!cloudAttached) return;
     const current = collectRecordJson();
     const seq = ++cloudPushSeq;
     setCloudState("syncing");
-    const queued = cloudFlushChain.then(() => cloudQueueChanges(current));
+    const queued = cloudFlushChain.then(() => cloudQueueChanges(current, purge));
     cloudFlushChain = queued.catch(() => {});
     queued.then(commits => Promise.all(commits)).then(() => {
       if (seq === cloudPushSeq && cloudState !== "error") setCloudState("idle");
@@ -3036,6 +3101,8 @@ option { background: #1B1B21; color: #F6F6F8; }
     inputSheet.classList.remove("show");
     txnDetailSheet.classList.remove("show");
     txnFilterSheet.classList.remove("show");
+    clearSheet.classList.remove("show");
+    reportSheet.classList.remove("show");
   }
 
   function openAddSheet() {
@@ -4093,6 +4160,333 @@ option { background: #1B1B21; color: #F6F6F8; }
     npRenderSavedList();
     await saveVault();
     showToast("Note removed ✅");
+  });
+
+  // ---------------------------------------------------------------
+  // Settings: Monthly PDF report (opens a print view -> Save as PDF)
+  // ---------------------------------------------------------------
+  let reportMonthCursor = new Date();
+
+  function reportMonthKey() {
+    return `${reportMonthCursor.getFullYear()}-${String(reportMonthCursor.getMonth() + 1).padStart(2, "0")}`;
+  }
+
+  function reportMonthLabel() {
+    return reportMonthCursor.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+  }
+
+  // Gathers everything the report needs for one month (key = "YYYY-MM").
+  function collectMonthReport(key) {
+    const accMap = new Map(appData.accounts.map(a => [a.id, a]));
+    const txns = appData.transactions
+      .filter(t => typeof t.date === "string" && t.date.startsWith(key + "-"))
+      .sort((a, b) => `${a.date} ${a.time || ""}`.localeCompare(`${b.date} ${b.time || ""}`) || (a.id - b.id));
+
+    const byCat = {};
+    let spent = 0, income = 0;
+    const cards = appData.accounts.filter(a => a.type === "credit")
+      .map(a => ({ acc: a, spent: 0, refunds: 0, payments: 0, count: 0 }));
+    const cardMap = new Map(cards.map(c => [c.acc.id, c]));
+
+    txns.forEach(t => {
+      const amt = Number(t.amount) || 0;
+      if (t.type === "expense") {
+        spent += amt;
+        const cat = t.category || "Uncategorised";
+        byCat[cat] = (byCat[cat] || 0) + amt;
+      } else if (t.type === "income") {
+        income += amt;
+      }
+      if (t.type === "transfer") {
+        const card = cardMap.get(t.toAccountId);
+        if (card) card.payments += amt;
+      } else {
+        const card = cardMap.get(t.accountId);
+        if (card) {
+          card.count++;
+          if (t.type === "expense") card.spent += amt; else card.refunds += amt;
+        }
+      }
+    });
+
+    const cats = Object.keys(byCat).map(name => ({ name, total: byCat[name] })).sort((a, b) => b.total - a.total);
+    return { txns, spent, income, cats, cards, accMap };
+  }
+
+  function refreshReportSheet() {
+    document.getElementById("report-month-label").textContent = reportMonthLabel();
+    const data = collectMonthReport(reportMonthKey());
+    const summary = document.getElementById("report-summary");
+    const btn = document.getElementById("btn-report-generate");
+    if (!data.txns.length) {
+      summary.textContent = "No transactions in this month.";
+      btn.disabled = true;
+    } else {
+      const n = data.txns.length;
+      summary.textContent = `${n} transaction${n === 1 ? "" : "s"} \u00b7 ${formatINR(data.spent)} spent`;
+      btn.disabled = false;
+    }
+  }
+
+  function openReportSheet() {
+    reportMonthCursor = new Date();
+    reportMonthCursor.setDate(1);
+    refreshReportSheet();
+    closeAllSheets();
+    sheetBackdrop.classList.add("show");
+    reportSheet.classList.add("show");
+  }
+
+  function shiftReportMonth(delta) {
+    reportMonthCursor = new Date(reportMonthCursor.getFullYear(), reportMonthCursor.getMonth() + delta, 1);
+    refreshReportSheet();
+  }
+
+  function buildReportDonut(cats, total) {
+    const cx = 100, cy = 100, r = 70, sw = 30;
+    const C = 2 * Math.PI * r;
+    let rings = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#eef1f6" stroke-width="${sw}"/>`;
+    let offset = 0;
+    cats.forEach((c, i) => {
+      const dash = (c.total / total) * C;
+      rings += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${categoryColor(i)}" stroke-width="${sw}" ` +
+        `stroke-dasharray="${dash.toFixed(3)} ${(C - dash).toFixed(3)}" stroke-dashoffset="${(-offset).toFixed(3)}" ` +
+        `transform="rotate(-90 ${cx} ${cy})"/>`;
+      offset += dash;
+    });
+    const center = total > 0
+      ? `<text x="100" y="94" text-anchor="middle" font-size="11" fill="#6b7691" font-weight="600">TOTAL SPENT</text>` +
+        `<text x="100" y="114" text-anchor="middle" font-size="17" fill="#1c2333" font-weight="800">${escapeHtml(formatINR(total))}</text>`
+      : `<text x="100" y="105" text-anchor="middle" font-size="12" fill="#8a93a8" font-weight="600">No spending</text>`;
+    return `<svg class="donut" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">${rings}${center}</svg>`;
+  }
+
+  function buildReportHtml(key, label, data) {
+    const { txns, spent, income, cats, cards, accMap } = data;
+    const accName = id => (accMap.get(id) ? accMap.get(id).name : "Deleted account");
+    const money = n => escapeHtml(formatINR(n));
+
+    // --- donut + legend ---
+    const legendRows = cats.map((c, i) => {
+      const pct = spent > 0 ? (c.total / spent) * 100 : 0;
+      return `<tr><td><span class="dot" style="background:${categoryColor(i)}"></span>${escapeHtml(c.name)}</td>` +
+        `<td class="num">${money(c.total)}</td><td class="num pct">${pct.toFixed(1)}%</td></tr>`;
+    }).join("");
+    const chartSection = `
+      <div class="sec keep">
+        <h2>Spending by Category</h2>
+        <div class="card chart-row">
+          ${buildReportDonut(cats, spent)}
+          ${cats.length
+            ? `<table class="legend"><thead><tr><th>Category</th><th class="num">Spent</th><th class="num">Share</th></tr></thead><tbody>${legendRows}</tbody></table>`
+            : `<div class="muted">No expenses recorded this month.</div>`}
+        </div>
+      </div>`;
+
+    // --- summary tiles ---
+    const summarySection = `
+      <div class="kpis">
+        <div class="kpi main"><div class="k">Total Spent</div><div class="v">${money(spent)}</div></div>
+        <div class="kpi"><div class="k">Total Income</div><div class="v inc">${money(income)}</div></div>
+        <div class="kpi"><div class="k">Transactions</div><div class="v">${txns.length}</div></div>
+      </div>`;
+
+    // --- credit cards ---
+    let cardSection;
+    if (!cards.length) {
+      cardSection = `<div class="card muted">No credit cards have been added.</div>`;
+    } else {
+      const sum = cards.reduce((s, c) => ({ spent: s.spent + c.spent, refunds: s.refunds + c.refunds, payments: s.payments + c.payments, count: s.count + c.count }),
+        { spent: 0, refunds: 0, payments: 0, count: 0 });
+      const rows = cards.map(c => `<tr><td><b>${escapeHtml(c.acc.name)}</b></td><td class="num">${c.count}</td>` +
+        `<td class="num exp"><b>${money(c.spent)}</b></td><td class="num">${money(c.refunds)}</td><td class="num">${money(c.payments)}</td></tr>`).join("");
+      const totalRow = cards.length > 1
+        ? `<tr class="total"><td>Total</td><td class="num">${sum.count}</td><td class="num exp">${money(sum.spent)}</td><td class="num">${money(sum.refunds)}</td><td class="num">${money(sum.payments)}</td></tr>`
+        : "";
+      cardSection = `<table class="tx cards"><thead><tr><th>Credit Card</th><th class="num">Transactions</th><th class="num">Amount Spent</th><th class="num">Refunds</th><th class="num">Payments Made</th></tr></thead><tbody>${rows}${totalRow}</tbody></table>`;
+    }
+
+    // --- all transactions ---
+    const txnRows = txns.map(t => {
+      const amt = Number(t.amount) || 0;
+      let title, acct, badge, amtHtml;
+      if (t.type === "transfer") {
+        title = "Transfer";
+        acct = `${escapeHtml(accName(t.fromAccountId))} &rarr; ${escapeHtml(accName(t.toAccountId))}`;
+        badge = `<span class="badge trf">Transfer</span>`;
+        amtHtml = `<span class="trf">${money(amt)}</span>`;
+      } else {
+        title = escapeHtml(t.category || "Uncategorised") + (t.subcategory ? ` <span class="muted">&rsaquo; ${escapeHtml(t.subcategory)}</span>` : "");
+        acct = escapeHtml(accName(t.accountId));
+        if (t.type === "income") {
+          badge = `<span class="badge inc">Income</span>`;
+          amtHtml = `<span class="inc">+ ${money(amt)}</span>`;
+        } else {
+          badge = `<span class="badge exp">Expense</span>`;
+          amtHtml = `<span class="exp">- ${money(amt)}</span>`;
+        }
+      }
+      const notes = t.notes ? `<div class="note">${escapeHtml(t.notes)}</div>` : "";
+      return `<tr><td class="nowrap">${escapeHtml(formatDate(t.date))}<div class="note">${escapeHtml(t.time || "")}</div></td>` +
+        `<td><div class="ttl">${title}</div>${notes}</td><td>${acct}</td><td>${badge}</td><td class="num"><b>${amtHtml}</b></td></tr>`;
+    }).join("");
+    const txnSection = txns.length
+      ? `<table class="tx"><thead><tr><th>Date</th><th>Details</th><th>Account</th><th>Type</th><th class="num">Amount</th></tr></thead><tbody>${txnRows}</tbody></table>`
+      : `<div class="card muted">No transactions in this month.</div>`;
+
+    const css = `
+      @page { size: A4; margin: 12mm 12mm 14mm; }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      body { font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; color: #1c2333; font-size: 10pt; line-height: 1.4; }
+      .hdr { background: linear-gradient(135deg, #1f2a44, #3f4f86); color: #fff; border-radius: 14px; padding: 18px 22px; display: flex; justify-content: space-between; align-items: flex-end; }
+      .hdr h1 { font-size: 19pt; font-weight: 800; letter-spacing: -0.01em; }
+      .hdr .sub { opacity: 0.75; font-size: 9pt; margin-top: 2px; }
+      .hdr .month { font-size: 15pt; font-weight: 700; text-align: right; }
+      .sec { margin-top: 18px; }
+      .keep { break-inside: avoid; page-break-inside: avoid; }
+      .sec h2 { font-size: 10pt; font-weight: 800; text-transform: uppercase; letter-spacing: 0.09em; color: #3f4f86; margin-bottom: 10px; display: flex; align-items: center; gap: 10px; }
+      .sec h2::after { content: ""; flex: 1; height: 1px; background: #e3e7f0; }
+      .card { border: 1px solid #e3e7f0; border-radius: 12px; padding: 16px; background: #fff; }
+      .muted { color: #8a93a8; }
+      .chart-row { display: flex; gap: 24px; align-items: center; }
+      .donut { width: 58mm; height: 58mm; flex: none; }
+      .legend { flex: 1; border-collapse: collapse; }
+      .legend th { text-align: left; font-size: 8pt; text-transform: uppercase; letter-spacing: 0.06em; color: #8a93a8; padding: 0 0 6px; }
+      .legend td { padding: 5px 0; border-bottom: 1px solid #eef1f6; font-size: 9.5pt; }
+      .legend .pct { font-weight: 700; color: #3f4f86; padding-left: 12px; }
+      .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 8px; }
+      .kpis { display: flex; gap: 10px; margin-top: 14px; }
+      .kpi { flex: 1; border-radius: 12px; padding: 12px 14px; background: #f3f5fa; }
+      .kpi .k { font-size: 8pt; text-transform: uppercase; letter-spacing: 0.07em; color: #6b7691; font-weight: 700; }
+      .kpi .v { font-size: 15pt; font-weight: 800; margin-top: 2px; }
+      .kpi.main { background: #fdecee; }
+      .kpi.main .v { color: #d6334a; }
+      table.tx { width: 100%; border-collapse: collapse; font-size: 9pt; }
+      table.tx thead { display: table-header-group; }
+      table.tx th { background: #eef1f8; color: #3f4f86; text-align: left; font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.06em; padding: 7px 8px; }
+      table.tx td { padding: 6px 8px; border-bottom: 1px solid #eef1f6; vertical-align: top; }
+      table.tx tr { break-inside: avoid; page-break-inside: avoid; }
+      table.tx tbody tr:nth-child(even) td { background: #fafbfd; }
+      table.tx tr.total td { background: #eef1f8; font-weight: 800; border-bottom: 0; }
+      table.tx th.num, table.tx td.num, .legend .num { text-align: right; }
+      .num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+      .nowrap { white-space: nowrap; }
+      .ttl { font-weight: 600; }
+      .note { font-size: 8pt; color: #8a93a8; margin-top: 1px; word-break: break-word; }
+      .badge { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 7.5pt; font-weight: 700; }
+      .badge.exp { background: #fdecee; }
+      .badge.inc { background: #e4f7ee; }
+      .badge.trf { background: #e6efff; }
+      .exp { color: #d6334a; }
+      .inc { color: #12935f; }
+      .trf { color: #3571d8; }
+      .foot { margin-top: 18px; font-size: 8pt; color: #8a93a8; text-align: center; }
+    `;
+
+    return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Expense Report ${escapeHtml(label)}</title><style>${css}</style></head><body>
+      <div class="hdr">
+        <div><h1>Monthly Expense Report</h1><div class="sub">Generated on ${escapeHtml(formatDate(new Date()))}</div></div>
+        <div class="month">${escapeHtml(label)}</div>
+      </div>
+      ${chartSection}
+      ${summarySection}
+      <div class="sec keep"><h2>Credit Card Usage</h2>${cardSection}</div>
+      <div class="sec"><h2>All Transactions</h2>${txnSection}</div>
+      <div class="foot">Expense Tracker &middot; ${escapeHtml(label)}</div>
+    </body></html>`;
+  }
+
+  // Prints an HTML document through a hidden iframe so the browser's
+  // "Save as PDF" destination produces the file.
+  function printHtmlDocument(html, title) {
+    const frame = document.createElement("iframe");
+    frame.setAttribute("aria-hidden", "true");
+    frame.style.cssText = "position:fixed;left:-10000px;top:0;width:210mm;height:297mm;border:0;";
+    const prevTitle = document.title;
+    let done = false;
+    const cleanup = () => {
+      if (done) return;
+      done = true;
+      document.title = prevTitle;
+      frame.remove();
+    };
+    frame.onload = () => {
+      const w = frame.contentWindow;
+      w.addEventListener("afterprint", cleanup);
+      document.title = title;
+      setTimeout(() => { w.focus(); w.print(); }, 200);
+      setTimeout(cleanup, 300000);
+    };
+    frame.srcdoc = html;
+    document.body.appendChild(frame);
+  }
+
+  function generateMonthlyReport() {
+    const key = reportMonthKey();
+    const label = reportMonthLabel();
+    const data = collectMonthReport(key);
+    if (!data.txns.length) { showToast("No transactions in this month \u274c", true); return; }
+    closeAllSheets();
+    printHtmlDocument(buildReportHtml(key, label, data), `Expense_Report_${key}`);
+    showToast("Choose Save as PDF in the print window \u2705", false, 3500);
+  }
+
+  document.getElementById("btn-open-report").addEventListener("click", openReportSheet);
+  document.getElementById("btn-close-report-sheet").addEventListener("click", closeAllSheets);
+  document.getElementById("report-month-prev").addEventListener("click", () => shiftReportMonth(-1));
+  document.getElementById("report-month-next").addEventListener("click", () => shiftReportMonth(1));
+  document.getElementById("btn-report-generate").addEventListener("click", generateMonthlyReport);
+
+  // ---------------------------------------------------------------
+  // Settings: Clear all money data (keeps accounts, categories, notes, budgets)
+  // ---------------------------------------------------------------
+  const clearInput = document.getElementById("clear-confirm-input");
+  const clearConfirmBtn = document.getElementById("btn-clear-confirm");
+
+  function clearConfirmReady() {
+    const ready = clearInput.value.trim().toUpperCase() === "CLEAR";
+    clearConfirmBtn.disabled = !ready;
+    clearConfirmBtn.classList.toggle("confirm", ready);
+  }
+
+  function openClearSheet() {
+    const linked = hasFSAccess && fileHandle;
+    let note;
+    if (cloudActive && linked) note = "This also clears your cloud copy and the linked .fvault file, on every synced device. It cannot be undone.";
+    else if (cloudActive) note = "This also clears your cloud copy, on every synced device. It cannot be undone.";
+    else if (linked) note = "This also clears the linked .fvault file. It cannot be undone.";
+    else note = "A new, emptied .fvault file will be downloaded. Replace your old file with it. This cannot be undone.";
+    document.getElementById("clear-scope-note").textContent = note;
+    clearInput.value = "";
+    clearConfirmReady();
+    closeAllSheets();
+    sheetBackdrop.classList.add("show");
+    clearSheet.classList.add("show");
+  }
+
+  document.getElementById("btn-clear-data").addEventListener("click", openClearSheet);
+  document.getElementById("btn-close-clear-sheet").addEventListener("click", closeAllSheets);
+  document.getElementById("btn-clear-cancel").addEventListener("click", closeAllSheets);
+  clearInput.addEventListener("input", clearConfirmReady);
+
+  clearConfirmBtn.addEventListener("click", async () => {
+    if (clearInput.value.trim().toUpperCase() !== "CLEAR") return;
+    appData.transactions = [];
+    appData.history = [];
+    appData.accounts.forEach(a => { a.balance = 0; });
+    if (cloudActive) cloudPurgeNext = true;
+    closeAllSheets();
+    renderAccounts();
+    updateTotals();
+    updateNotePresetEntry();
+    refreshActiveTxnView();
+    try {
+      await saveVault();
+      showToast("All money data cleared ✅");
+    } catch (e) {
+      showToast("Cleared, but failed to write vault ❌", true);
+    }
   });
 
   // ---------------------------------------------------------------
