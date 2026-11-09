@@ -859,6 +859,7 @@ option { background: #1B1B21; color: #F6F6F8; }
 
         <div class="section-title" id="credit-billing-title" style="display:none;"><h3><svg class="ic"><use href="#i-card"/></svg>Credit Card Billing</h3></div>
         <div id="credit-billing-list"></div>
+        <div id="excluded-accounts-list"></div>
       </div>
 
       <!-- Stats page -->
@@ -2923,17 +2924,31 @@ option { background: #1B1B21; color: #F6F6F8; }
 
   function renderAccounts() {
     const list = document.getElementById("accounts-list");
+    const exclList = document.getElementById("excluded-accounts-list");
     if (appData.accounts.length === 0) {
       list.innerHTML = emptyStateHtml("Tap the + button to add your first account");
+      exclList.innerHTML = "";
       renderCreditBilling();
       return;
     }
 
     const groups = {};
+    const excluded = [];
     appData.accounts.slice().reverse().forEach(acc => {
+      if (acc.excludeFromTotals) { excluded.push(acc); return; }
       const t = TYPE_ORDER.includes(acc.type) ? acc.type : "bank";
       (groups[t] = groups[t] || []).push(acc);
     });
+
+    // Accounts kept out of totals get their own section at the very end of the page.
+    exclList.innerHTML = excluded.length ? `
+          <div class="acc-group">
+            <div class="acc-group-head">
+              <span class="acc-group-title"><span style="color:var(--text-muted)">Not in Totals</span></span>
+              <span class="acc-group-meta">${excluded.length}</span>
+            </div>
+            ${excluded.map(acc => accountRowHtml(acc, true)).join("")}
+          </div>` : "";
 
     list.innerHTML = TYPE_ORDER
       .filter(t => groups[t] && groups[t].length)
@@ -3174,6 +3189,7 @@ option { background: #1B1B21; color: #F6F6F8; }
   }
 
   document.getElementById("accounts-list").addEventListener("click", handleAccountListClick);
+  document.getElementById("excluded-accounts-list").addEventListener("click", handleAccountListClick);
   document.getElementById("recent-accounts-list").addEventListener("click", handleAccountListClick);
 
   fab.addEventListener("click", () => {
