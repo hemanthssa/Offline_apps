@@ -306,13 +306,13 @@ option { background: #1B1B21; color: #F6F6F8; }
 }
 .amount-wrap input { min-height: 68px; padding-left: 46px; font-size: 30px; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
 
-.primary-btn, .secondary-btn {
+.primary-btn, .secondary-btn, .danger-btn {
   display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; height: 56px;
   border-radius: 19px; font-size: 16px; font-weight: 800; transition: transform 0.15s var(--ease), opacity 0.2s;
 }
 .primary-btn { background: var(--grad); color: var(--on-accent); box-shadow: 0 12px 26px rgba(255, 107, 90, 0.3); }
 .secondary-btn { background: var(--surface-3); color: var(--text); border: 1px solid var(--line-strong); }
-.primary-btn:active, .secondary-btn:active { transform: scale(0.97); }
+.primary-btn:active, .secondary-btn:active, .danger-btn:active { transform: scale(0.97); }
 #btn-add-account, #input-sheet-save { margin-top: 24px; }
 
 .empty-state { text-align: center; padding: 36px 20px; }
@@ -435,6 +435,26 @@ option { background: #1B1B21; color: #F6F6F8; }
 
 .txn-view { display: none; }
 .txn-view.active { display: block; animation: pageIn 0.3s var(--ease) both; }
+.txn-view.filtered > .cal-head { display: none; }
+
+.page-title-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 6px 2px 18px; }
+.page-title-row .page-title { margin: 0; }
+.filter-bar { display: none; margin-bottom: 16px; padding: 14px 16px; }
+.filter-bar.show { display: block; animation: pageIn 0.3s var(--ease) both; }
+.filter-bar-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.filter-chips { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
+.filter-pill {
+  max-width: 100%; padding: 7px 12px; border-radius: 99px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  background: var(--accent-soft); color: var(--accent); border: 1px solid rgba(255, 107, 90, 0.3);
+  font-size: 12.5px; font-weight: 700;
+}
+.filter-clear { flex: none; padding: 7px 4px; font-size: 13px; font-weight: 800; color: var(--text-dim); }
+.filter-clear:active { color: var(--accent); }
+.filter-summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 13px; font-weight: 600; color: var(--text-muted); }
+.filter-summary .net { font-weight: 800; font-variant-numeric: tabular-nums; }
+.filter-summary .net.income { color: var(--income); }
+.filter-summary .net.expense { color: var(--expense); }
+.filter-summary .net.transfer { color: var(--transfer); }
 
 .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
 .cal-weekday { padding: 4px 0 8px; text-align: center; font-size: 11px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); }
@@ -548,6 +568,8 @@ option { background: #1B1B21; color: #F6F6F8; }
 .sheet-btn-row { display: flex; gap: 12px; margin-top: 26px; }
 .sheet-btn-row .secondary-btn { flex: 1; font-size: 14.5px; }
 .sheet-btn-row .primary-btn { flex: 1.15; }
+.sheet-btn-row .danger-btn { flex: 1; font-size: 14.5px; background: var(--expense-soft); color: var(--danger); border: 1px solid rgba(255, 92, 108, 0.35); box-shadow: none; }
+.sheet-btn-row .danger-btn.confirm { background: var(--danger); color: #fff; border-color: var(--danger); }
 #input-sheet-field { margin-top: 14px; }
 .type-chips { display: flex; gap: 10px; }
 .chip {
@@ -611,6 +633,7 @@ option { background: #1B1B21; color: #F6F6F8; }
   <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M3 3l18 18"/><path d="M10.6 5.1A9.7 9.7 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4.1M6.5 6.6C3.8 8.3 2 12 2 12s3.6 7 10 7c1.6 0 3-.4 4.2-1"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></symbol>
   <symbol id="i-chart" viewBox="0 0 24 24"><path d="M5 20v-7M12 20V5M19 20v-10"/></symbol>
   <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h9M19 7h1M4 17h1M11 17h9"/><circle cx="16" cy="7" r="2.5"/><circle cx="8" cy="17" r="2.5"/></symbol>
+  <symbol id="i-filter" viewBox="0 0 24 24"><path d="M4 5.5h16l-6.2 7.3V19l-3.6 1.5v-7.7z"/></symbol>
   <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9.5" rx="3"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
   <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
@@ -743,12 +766,23 @@ option { background: #1B1B21; color: #F6F6F8; }
 
       <!-- Transactions page -->
       <div class="page" id="page-transactions">
-        <div class="page-title">Transactions</div>
+        <div class="page-title-row">
+          <div class="page-title">Transactions</div>
+          <button class="icon-btn" id="btn-txn-filter" aria-label="Filter transactions"><svg class="ic"><use href="#i-filter"/></svg></button>
+        </div>
 
         <div class="seg-tabs" id="txn-view-tabs">
           <div class="seg-tab active" data-view="daily">Daily</div>
           <div class="seg-tab" data-view="calendar">Calendar</div>
           <div class="seg-tab" data-view="custom">Custom</div>
+        </div>
+
+        <div class="glass-card filter-bar" id="txn-filter-bar">
+          <div class="filter-bar-top">
+            <div class="filter-chips" id="txn-filter-chips"></div>
+            <button class="filter-clear" id="btn-txn-filter-clear" type="button">Clear</button>
+          </div>
+          <div class="filter-summary" id="txn-filter-summary"></div>
         </div>
 
         <div class="txn-view active" id="txn-view-daily">
@@ -1042,6 +1076,25 @@ option { background: #1B1B21; color: #F6F6F8; }
   <div id="txn-detail-body"></div>
   <div class="sheet-btn-row">
     <button class="primary-btn" id="btn-edit-txn">Edit Transaction</button>
+    <button class="danger-btn" id="btn-delete-txn" type="button">Delete</button>
+  </div>
+</div>
+
+<div class="bottom-sheet" id="txn-filter-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-top-row">
+    <h3>Filter Transactions</h3>
+    <button class="icon-btn" id="btn-close-txn-filter-sheet" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
+  </div>
+  <span class="field-label">Account</span>
+  <select id="flt-account"></select>
+  <span class="field-label">Category</span>
+  <select id="flt-category"></select>
+  <span class="field-label">Sub Category</span>
+  <select id="flt-subcategory"></select>
+  <div class="sheet-btn-row">
+    <button class="secondary-btn" id="btn-flt-clear" type="button">Clear</button>
+    <button class="primary-btn" id="btn-flt-apply" type="button">Apply Filter</button>
   </div>
 </div>
 
@@ -1107,6 +1160,8 @@ option { background: #1B1B21; color: #F6F6F8; }
   let inputSheetContext = null;
   let editingTxnId = null;
   let currentDetailTxnId = null;
+  let deleteTxnTimer = null;
+  let txnFilter = { account: "", category: "", subcategory: "" };
   let editingAccountId = null;
 
   // ---------------------------------------------------------------
@@ -1130,6 +1185,7 @@ option { background: #1B1B21; color: #F6F6F8; }
   const addTxnSheet = document.getElementById("add-txn-sheet");
   const inputSheet = document.getElementById("input-sheet");
   const txnDetailSheet = document.getElementById("txn-detail-sheet");
+  const txnFilterSheet = document.getElementById("txn-filter-sheet");
 
   if (!hasFSAccess) {
     persistenceNote.style.display = "block";
@@ -2171,6 +2227,7 @@ option { background: #1B1B21; color: #F6F6F8; }
   function lockVault() {
     cloudStop();
     appData = null;
+    txnFilter = { account: "", category: "", subcategory: "" };
     balancesHidden = true;
     updateBalanceToggle();
     closeAllSheets();
@@ -2233,7 +2290,8 @@ option { background: #1B1B21; color: #F6F6F8; }
       const bal = Number(acc.balance) || 0;
       if (acc.type === "bank") { assets += bal; bank += bal; }
       else if (acc.type === "investment") { assets += bal; investment += bal; }
-      else if (acc.type === "credit") { liabilities += bal; credit += bal; }
+      // A credit card balance is negative when money is owed, so the amount owed is -bal.
+      else if (acc.type === "credit") { liabilities += -bal; credit += bal; }
     }
     return { assets, liabilities, networth: assets - liabilities, bank, investment, credit };
   }
@@ -2912,6 +2970,7 @@ option { background: #1B1B21; color: #F6F6F8; }
     addTxnSheet.classList.remove("show");
     inputSheet.classList.remove("show");
     txnDetailSheet.classList.remove("show");
+    txnFilterSheet.classList.remove("show");
   }
 
   function openAddSheet() {
@@ -3149,12 +3208,21 @@ option { background: #1B1B21; color: #F6F6F8; }
     ).join("");
 
     currentDetailTxnId = t.id;
+    resetDeleteTxnButton();
     closeAllSheets();
     sheetBackdrop.classList.add("show");
     txnDetailSheet.classList.add("show");
   }
 
+  function resetDeleteTxnButton() {
+    const btn = document.getElementById("btn-delete-txn");
+    clearTimeout(deleteTxnTimer);
+    btn.classList.remove("confirm");
+    btn.textContent = "Delete";
+  }
+
   function closeTxnDetailSheet() {
+    resetDeleteTxnButton();
     sheetBackdrop.classList.remove("show");
     txnDetailSheet.classList.remove("show");
   }
@@ -3164,6 +3232,37 @@ option { background: #1B1B21; color: #F6F6F8; }
   document.getElementById("btn-edit-txn").addEventListener("click", () => {
     const t = appData.transactions.find(x => x.id === currentDetailTxnId);
     if (t) openEditTxnSheet(t);
+  });
+
+  // Two taps to delete: the first arms the button, the second (within 3 s) confirms.
+  document.getElementById("btn-delete-txn").addEventListener("click", async () => {
+    const btn = document.getElementById("btn-delete-txn");
+    if (!btn.classList.contains("confirm")) {
+      btn.classList.add("confirm");
+      btn.textContent = "Tap again to delete";
+      deleteTxnTimer = setTimeout(resetDeleteTxnButton, 3000);
+      return;
+    }
+    resetDeleteTxnButton();
+    const idx = appData.transactions.findIndex(x => x.id === currentDetailTxnId);
+    if (idx === -1) { closeTxnDetailSheet(); return; }
+
+    // Undo the transaction's effect on its account balance(s), then remove it.
+    revertTxnBalance(appData.transactions[idx]);
+    appData.transactions.splice(idx, 1);
+    currentDetailTxnId = null;
+    closeTxnDetailSheet();
+    renderAccounts();
+    updateTotals();
+    refreshActiveTxnView();
+    if (currentPage === "stats") renderStats();
+
+    try {
+      await saveVault();
+      showToast("Transaction deleted ✅");
+    } catch (e) {
+      showToast("Deleted, but failed to write vault ❌", true);
+    }
   });
 
   function handleTxnListClick(e) {
@@ -3209,6 +3308,126 @@ option { background: #1B1B21; color: #F6F6F8; }
     }).join("");
   }
 
+  // ---------------------------------------------------------------
+  // Transaction filter (account / category / sub category)
+  // ---------------------------------------------------------------
+  function txnFilterActive() {
+    return !!(txnFilter.account || txnFilter.category || txnFilter.subcategory);
+  }
+
+  function matchesTxnFilter(t) {
+    if (txnFilter.account) {
+      const id = Number(txnFilter.account);
+      const hit = t.type === "transfer" ? (t.fromAccountId === id || t.toAccountId === id) : t.accountId === id;
+      if (!hit) return false;
+    }
+    if (txnFilter.category) {
+      if (t.type === "transfer" || t.category !== txnFilter.category) return false;
+    }
+    if (txnFilter.subcategory) {
+      if (t.type === "transfer" || (t.subcategory || "") !== txnFilter.subcategory) return false;
+    }
+    return true;
+  }
+
+  function filterTxns(list) {
+    return txnFilterActive() ? list.filter(matchesTxnFilter) : list;
+  }
+
+  function filterCategoryNames() {
+    const names = [];
+    const add = n => { if (n && !names.includes(n)) names.push(n); };
+    ["expense", "income"].forEach(k => getCategoryList(k).forEach(c => add(c.name)));
+    appData.transactions.forEach(t => { if (t.type !== "transfer") add(t.category); });
+    return names;
+  }
+
+  function filterSubcategoryNames(catName) {
+    const subs = [];
+    const add = s => { if (s && !subs.includes(s)) subs.push(s); };
+    ["expense", "income"].forEach(k => getCategoryList(k).forEach(c => {
+      if (c.name === catName) (c.subcategories || []).forEach(add);
+    }));
+    appData.transactions.forEach(t => { if (t.type !== "transfer" && t.category === catName) add(t.subcategory); });
+    return subs;
+  }
+
+  function populateFilterSubSelect(selected) {
+    const sel = document.getElementById("flt-subcategory");
+    const cat = document.getElementById("flt-category").value;
+    const subs = cat ? filterSubcategoryNames(cat) : [];
+    sel.innerHTML = `<option value="">All sub categories</option>` +
+      subs.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join("");
+    sel.disabled = !subs.length;
+    sel.value = subs.includes(selected) ? selected : "";
+  }
+
+  function openTxnFilterSheet() {
+    document.getElementById("flt-account").innerHTML = `<option value="">All accounts</option>` +
+      appData.accounts.map(a => `<option value="${a.id}">${escapeHtml(a.name)}</option>`).join("");
+    document.getElementById("flt-account").value = txnFilter.account;
+
+    const cats = filterCategoryNames();
+    document.getElementById("flt-category").innerHTML = `<option value="">All categories</option>` +
+      cats.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
+    document.getElementById("flt-category").value = cats.includes(txnFilter.category) ? txnFilter.category : "";
+    populateFilterSubSelect(txnFilter.subcategory);
+
+    closeAllSheets();
+    sheetBackdrop.classList.add("show");
+    txnFilterSheet.classList.add("show");
+  }
+
+  function applyTxnFilter(next) {
+    txnFilter = next;
+    closeAllSheets();
+    refreshActiveTxnView();
+  }
+
+  document.getElementById("btn-txn-filter").addEventListener("click", openTxnFilterSheet);
+  document.getElementById("btn-close-txn-filter-sheet").addEventListener("click", closeAllSheets);
+  document.getElementById("flt-category").addEventListener("change", () => populateFilterSubSelect(""));
+  document.getElementById("btn-flt-apply").addEventListener("click", () => {
+    applyTxnFilter({
+      account: document.getElementById("flt-account").value,
+      category: document.getElementById("flt-category").value,
+      subcategory: document.getElementById("flt-subcategory").value
+    });
+  });
+  const clearTxnFilter = () => applyTxnFilter({ account: "", category: "", subcategory: "" });
+  document.getElementById("btn-flt-clear").addEventListener("click", clearTxnFilter);
+  document.getElementById("btn-txn-filter-clear").addEventListener("click", clearTxnFilter);
+
+  // Refreshes the filter button highlight, the active-filter bar and its summary.
+  // `shown` is the list currently displayed (null = no summary), `scope` describes its time span.
+  function updateTxnFilterUi(shown, scope) {
+    const active = txnFilterActive();
+    document.getElementById("btn-txn-filter").classList.toggle("on", active);
+    document.getElementById("txn-view-daily").classList.toggle("filtered", active);
+    const bar = document.getElementById("txn-filter-bar");
+    bar.classList.toggle("show", active);
+    if (!active) return;
+
+    const pills = [];
+    if (txnFilter.account) {
+      const acc = appData.accounts.find(a => a.id === Number(txnFilter.account));
+      pills.push(acc ? acc.name : "Unknown account");
+    }
+    if (txnFilter.category) pills.push(txnFilter.category);
+    if (txnFilter.subcategory) pills.push(txnFilter.subcategory);
+    document.getElementById("txn-filter-chips").innerHTML =
+      pills.map(p => `<span class="filter-pill">${escapeHtml(p)}</span>`).join("");
+
+    const summary = document.getElementById("txn-filter-summary");
+    if (!shown) { summary.style.display = "none"; return; }
+    summary.style.display = "";
+    const net = shown.reduce((s, t) => s + txnNetAmount(t), 0);
+    const netClass = net > 0 ? "income" : (net < 0 ? "expense" : "transfer");
+    const netText = net === 0 ? "—" : (net > 0 ? "+ " : "- ") + formatINR(Math.abs(net));
+    summary.innerHTML = `<span>${shown.length} transaction${shown.length === 1 ? "" : "s"} · ${escapeHtml(scope)}</span>` +
+      `<span class="net ${netClass}">${netText}</span>`;
+  }
+
   function dateToLocalISO(d) {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   }
@@ -3221,8 +3440,11 @@ option { background: #1B1B21; color: #F6F6F8; }
     if (label) {
       label.textContent = dailyCursor.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short", year: "numeric" });
     }
-    const dayTxns = appData.transactions.filter(t => t.date === iso);
-    renderTxnListGroupedByDay(container, dayTxns, "No transactions on this day");
+    const dayTxns = txnFilterActive()
+      ? appData.transactions.filter(matchesTxnFilter)
+      : appData.transactions.filter(t => t.date === iso);
+    updateTxnFilterUi(dayTxns, "all dates");
+    renderTxnListGroupedByDay(container, dayTxns, txnFilterActive() ? "No transactions match this filter" : "No transactions on this day");
   }
 
   document.getElementById("daily-prev").addEventListener("click", () => {
@@ -3255,9 +3477,11 @@ option { background: #1B1B21; color: #F6F6F8; }
     const todayIso = todayISO();
 
     const totalsByDay = {};
-    appData.transactions.forEach(t => {
+    const monthTxns = [];
+    filterTxns(appData.transactions).forEach(t => {
       const d = new Date(t.date + "T00:00:00");
       if (d.getFullYear() === year && d.getMonth() === month) {
+        monthTxns.push(t);
         if (!totalsByDay[t.date]) totalsByDay[t.date] = { income: 0, expense: 0 };
         if (t.type === "income") totalsByDay[t.date].income += Number(t.amount) || 0;
         else if (t.type === "expense") totalsByDay[t.date].expense += Number(t.amount) || 0;
@@ -3281,6 +3505,7 @@ option { background: #1B1B21; color: #F6F6F8; }
       html += `<div class="cal-cell${isToday ? " today" : ""}"><div class="cal-day-num">${day}</div>${totalHtml}</div>`;
     }
     grid.innerHTML = html;
+    updateTxnFilterUi(monthTxns, label.textContent);
   }
 
   document.getElementById("cal-prev").addEventListener("click", () => {
@@ -3297,6 +3522,7 @@ option { background: #1B1B21; color: #F6F6F8; }
     const fromVal = document.getElementById("txn-from-date").value;
     const toVal = document.getElementById("txn-to-date").value;
     if (!fromVal || !toVal) {
+      updateTxnFilterUi(null, "");
       container.innerHTML = `
         <div class="glass-card empty-state">
           <div class="empty-icon">${icon("calendar")}</div>
@@ -3305,7 +3531,8 @@ option { background: #1B1B21; color: #F6F6F8; }
         </div>`;
       return;
     }
-    const filtered = appData.transactions.filter(t => t.date >= fromVal && t.date <= toVal);
+    const filtered = filterTxns(appData.transactions.filter(t => t.date >= fromVal && t.date <= toVal));
+    updateTxnFilterUi(filtered, "selected range");
     renderTxnListGroupedByDay(container, filtered, "No transactions in this date range");
   }
 
