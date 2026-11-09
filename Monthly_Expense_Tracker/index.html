@@ -391,6 +391,14 @@ option { background: #1B1B21; color: #F6F6F8; }
 .acc-info { flex: 1; min-width: 0; }
 .acc-name { font-size: 15.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .acc-type { margin-top: 2px; font-size: 12.5px; font-weight: 500; color: var(--text-muted); text-transform: capitalize; }
+.acc-excl-tag { margin-top: 3px; display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 10.5px; font-weight: 800; letter-spacing: 0.03em; background: var(--surface-3); color: var(--text-muted); }
+.tgl-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 18px; padding: 14px 16px; border-radius: 16px; background: var(--surface-2); border: 1px solid var(--line); cursor: pointer; }
+.tgl-row .tt { font-size: 14.5px; font-weight: 700; }
+.tgl-row .td { margin-top: 3px; font-size: 12px; line-height: 1.45; color: var(--text-muted); }
+.tgl-row input[type="checkbox"] { -webkit-appearance: none; appearance: none; flex: none; position: relative; width: 46px; height: 28px; margin: 0; padding: 0; border-radius: 99px; border: 1px solid var(--line); background: var(--surface-3); cursor: pointer; transition: background 0.2s; }
+.tgl-row input[type="checkbox"]::after { content: ""; position: absolute; top: 2px; left: 2px; width: 22px; height: 22px; border-radius: 50%; background: #fff; transition: transform 0.2s var(--ease); }
+.tgl-row input[type="checkbox"]:checked { background: var(--accent); border-color: var(--accent); }
+.tgl-row input[type="checkbox"]:checked::after { transform: translateX(18px); }
 .acc-balance { font-size: 15.5px; font-weight: 800; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .acc-balance.positive { color: var(--income); }
 .acc-balance.negative { color: var(--expense); }
@@ -1070,6 +1078,14 @@ option { background: #1B1B21; color: #F6F6F8; }
     <span class="field-label">Due Date (day of month)</span>
     <input type="number" id="acc-due-date" placeholder="e.g. 25" min="1" max="31" inputmode="numeric">
   </div>
+
+  <label class="tgl-row" for="acc-exclude">
+    <div>
+      <div class="tt">Keep out of totals</div>
+      <div class="td">When on, this account's balance is not counted in net worth, assets, liabilities or the breakdown. Use it for minor adjustments like cashback.</div>
+    </div>
+    <input type="checkbox" id="acc-exclude">
+  </label>
 
   <button class="primary-btn" id="btn-add-account">Add Account</button>
 </div>
@@ -2419,6 +2435,7 @@ option { background: #1B1B21; color: #F6F6F8; }
   function computeTotals() {
     let assets = 0, liabilities = 0, bank = 0, investment = 0, credit = 0;
     for (const acc of appData.accounts) {
+      if (acc.excludeFromTotals) continue;   // minor-adjustment accounts stay out of every total
       const bal = Number(acc.balance) || 0;
       if (acc.type === "bank") { assets += bal; bank += bal; }
       else if (acc.type === "investment") { assets += bal; investment += bal; }
@@ -2880,6 +2897,7 @@ option { background: #1B1B21; color: #F6F6F8; }
         <div class="acc-info">
           <div class="acc-name">${escapeHtml(acc.name)}</div>
           ${showType ? `<div class="acc-type">${escapeHtml(acc.type)}</div>` : ""}
+          ${acc.excludeFromTotals ? `<div class="acc-excl-tag">Not in totals</div>` : ""}
         </div>
         <div class="acc-balance ${balanceClass}">${formatINR(acc.balance)}</div>
       </div>`;
@@ -2921,7 +2939,7 @@ option { background: #1B1B21; color: #F6F6F8; }
       .filter(t => groups[t] && groups[t].length)
       .map(t => {
         const accs = groups[t];
-        const subtotal = accs.reduce((s, a) => s + (Number(a.balance) || 0), 0);
+        const subtotal = accs.reduce((s, a) => s + (a.excludeFromTotals ? 0 : (Number(a.balance) || 0)), 0);
         return `
           <div class="acc-group">
             <div class="acc-group-head">
@@ -3117,6 +3135,7 @@ option { background: #1B1B21; color: #F6F6F8; }
     document.getElementById("acc-balance").value = "";
     document.getElementById("acc-bill-date").value = "";
     document.getElementById("acc-due-date").value = "";
+    document.getElementById("acc-exclude").checked = false;
     selectedType = "bank";
     document.querySelectorAll("#acc-type-chips .chip").forEach(c =>
       c.classList.toggle("selected", c.getAttribute("data-type") === "bank")
@@ -3136,6 +3155,7 @@ option { background: #1B1B21; color: #F6F6F8; }
     document.getElementById("acc-balance").value = acc.balance;
     document.getElementById("acc-bill-date").value = acc.billDate || "";
     document.getElementById("acc-due-date").value = acc.dueDate || "";
+    document.getElementById("acc-exclude").checked = !!acc.excludeFromTotals;
     selectedType = acc.type;
     document.querySelectorAll("#acc-type-chips .chip").forEach(c =>
       c.classList.toggle("selected", c.getAttribute("data-type") === acc.type)
@@ -3203,12 +3223,16 @@ option { background: #1B1B21; color: #F6F6F8; }
       }
     }
 
+    const excludeFromTotals = document.getElementById("acc-exclude").checked;
+
     if (editingAccountId !== null) {
       const acc = appData.accounts.find(a => a.id === editingAccountId);
       if (acc) {
         acc.name = name;
         acc.type = selectedType;
         acc.balance = balance;
+        if (excludeFromTotals) acc.excludeFromTotals = true;
+        else delete acc.excludeFromTotals;
         if (selectedType === "credit") {
           acc.billDate = billDate;
           acc.dueDate = dueDate;
@@ -3239,6 +3263,7 @@ option { background: #1B1B21; color: #F6F6F8; }
       type: selectedType,
       balance
     };
+    if (excludeFromTotals) newAccount.excludeFromTotals = true;
     if (selectedType === "credit") {
       newAccount.billDate = billDate;
       newAccount.dueDate = dueDate;
