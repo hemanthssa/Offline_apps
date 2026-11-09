@@ -2449,10 +2449,11 @@ option { background: #1B1B21; color: #F6F6F8; }
       const bal = Number(acc.balance) || 0;
       if (acc.type === "bank") { assets += bal; bank += bal; }
       else if (acc.type === "investment") { assets += bal; investment += bal; }
-      // A credit card balance is negative when money is owed, so the amount owed is -bal.
-      else if (acc.type === "credit") { liabilities += -bal; credit += bal; }
+      // Liabilities keep their own sign: money owed on a card is a NEGATIVE balance,
+      // so liabilities is negative and net worth = assets + liabilities.
+      else if (acc.type === "credit") { liabilities += bal; credit += bal; }
     }
-    return { assets, liabilities, networth: assets - liabilities, bank, investment, credit };
+    return { assets, liabilities, networth: assets + liabilities, bank, investment, credit };
   }
 
   let balancesHidden = true; // hidden by default every time the vault is opened
@@ -3237,8 +3238,8 @@ option { background: #1B1B21; color: #F6F6F8; }
     document.getElementById("acc-sheet-title").textContent = "Edit Account";
     document.getElementById("btn-add-account").textContent = "Update Account";
     document.getElementById("acc-name").value = acc.name;
-    // Credit cards are edited as the amount owed (positive = owed); stored balance is the negative of it.
-    document.getElementById("acc-balance").value = acc.type === "credit" ? (0 - (Number(acc.balance) || 0)) : acc.balance;
+    // Credit cards show their stored balance (negative = owed).
+    document.getElementById("acc-balance").value = acc.balance;
     document.getElementById("acc-person").value = personOf(acc);
     document.getElementById("acc-bill-date").value = acc.billDate || "";
     document.getElementById("acc-due-date").value = acc.dueDate || "";
@@ -3297,8 +3298,8 @@ option { background: #1B1B21; color: #F6F6F8; }
       showToast("Invalid balance ❌", true);
       return;
     }
-    // For a credit card the user enters the amount owed; it is stored as a negative balance (a liability).
-    const balance = selectedType === "credit" ? 0 - enteredBalance : enteredBalance;
+    // A credit card entry is always stored as a negative balance (money owed), whichever sign is typed.
+    const balance = selectedType === "credit" ? 0 - Math.abs(enteredBalance) : enteredBalance;
 
     let billDate = null;
     let dueDate = null;
