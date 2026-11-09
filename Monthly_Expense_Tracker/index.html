@@ -546,6 +546,8 @@ option { background: #1B1B21; color: #F6F6F8; }
 .subpage-head { display: flex; align-items: center; gap: 12px; margin: 6px 2px 14px; }
 .subpage-head .page-title { margin: 0; }
 .np-card { padding: 2px 16px; }
+.np-card + .np-card { margin-top: 12px; }
+.np-group-title { padding: 12px 0 8px; font-size: 11.5px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent-2); }
 .np-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 0; border-top: 1px solid var(--line); }
 .np-row:first-child { border-top: 0; }
 .np-text { flex: 1; min-width: 0; font-size: 14.5px; font-weight: 600; line-height: 1.4; word-break: break-word; }
@@ -4008,6 +4010,7 @@ option { background: #1B1B21; color: #F6F6F8; }
   // Predefined notes (saved per type + category + sub category)
   // ---------------------------------------------------------------
   let npType = "expense";
+  let npGroupKeys = [];   // preset keys in the order the saved-notes groups are rendered
 
   function notePresetKey(kind, cat, sub) {
     return kind + "||" + cat + "||" + (sub || "");
@@ -4072,9 +4075,23 @@ option { background: #1B1B21; color: #F6F6F8; }
       return;
     }
     const sub = document.getElementById("np-subcategory").value;
-    const notes = getNotePresets(npType, cat.name, sub);
-    label.textContent = `Saved Notes · ${cat.name}${sub ? " › " + sub : ""}`;
-    if (!notes.length) {
+    // Every saved note of the active type, grouped by category > sub category.
+    const prefix = npType + "||";
+    const catOrder = getCategoryList(npType).map(c => c.name);
+    const groups = Object.keys(appData.notePresets)
+      .filter(k => k.startsWith(prefix) && Array.isArray(appData.notePresets[k]) && appData.notePresets[k].length)
+      .map(k => {
+        const [, gCat, gSub] = k.split("||");
+        return { key: k, cat: gCat, sub: gSub || "", notes: appData.notePresets[k] };
+      })
+      .sort((a, b) => {
+        const ia = catOrder.indexOf(a.cat), ib = catOrder.indexOf(b.cat);
+        return (ia < 0 ? 999 : ia) - (ib < 0 ? 999 : ib) || a.cat.localeCompare(b.cat) || a.sub.localeCompare(b.sub);
+      });
+    const total = groups.reduce((s, g) => s + g.notes.length, 0);
+    npGroupKeys = groups.map(g => g.key);
+    label.textContent = `Saved Notes${total ? " \u00b7 " + total : ""}`;
+    if (!groups.length) {
       box.innerHTML = `
         <div class="glass-card empty-state">
           <div class="empty-icon">${icon("receipt")}</div>
@@ -4083,11 +4100,15 @@ option { background: #1B1B21; color: #F6F6F8; }
         </div>`;
       return;
     }
-    box.innerHTML = `<div class="glass-card np-card">${notes.map((n, i) => `
-      <div class="np-row">
-        <span class="np-text">${escapeHtml(n)}</span>
-        <button class="np-del" data-np-index="${i}" aria-label="Remove note">${icon("x")}</button>
-      </div>`).join("")}</div>`;
+    box.innerHTML = groups.map((g, gi) => `
+      <div class="glass-card np-card">
+        <div class="np-group-title">${escapeHtml(g.cat)}${g.sub ? " \u203a " + escapeHtml(g.sub) : ""}</div>
+        ${g.notes.map((n, i) => `
+        <div class="np-row">
+          <span class="np-text">${escapeHtml(n)}</span>
+          <button class="np-del" data-np-group="${gi}" data-np-index="${i}" aria-label="Remove note">${icon("x")}</button>
+        </div>`).join("")}
+      </div>`).join("");
   }
 
   function renderNotePresetsPage() {
@@ -4148,16 +4169,16 @@ option { background: #1B1B21; color: #F6F6F8; }
   document.getElementById("np-saved-list").addEventListener("click", async (e) => {
     const del = e.target.closest(".np-del");
     if (!del) return;
-    const cat = npCurrentCategory();
-    if (!cat) return;
-    const sub = document.getElementById("np-subcategory").value;
-    const key = notePresetKey(npType, cat.name, sub);
-    const list = getNotePresets(npType, cat.name, sub).slice();
+    const key = npGroupKeys[Number(del.getAttribute("data-np-group"))];
+    const current = key && appData.notePresets[key];
+    if (!Array.isArray(current)) return;
+    const list = current.slice();
     list.splice(Number(del.getAttribute("data-np-index")), 1);
     if (list.length) appData.notePresets[key] = list;
     else delete appData.notePresets[key];
-    npRenderSubcategories(sub);
+    npRenderSubcategories(document.getElementById("np-subcategory").value);
     npRenderSavedList();
+    updateNotePresetEntry();
     await saveVault();
     showToast("Note removed ✅");
   });
