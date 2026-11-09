@@ -391,6 +391,7 @@ option { background: #1B1B21; color: #F6F6F8; }
 .acc-info { flex: 1; min-width: 0; }
 .acc-name { font-size: 15.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .acc-type { margin-top: 2px; font-size: 12.5px; font-weight: 500; color: var(--text-muted); text-transform: capitalize; }
+.acc-person-tag { margin-top: 3px; margin-right: 6px; display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 10.5px; font-weight: 800; letter-spacing: 0.03em; background: rgba(124,180,255,0.16); color: #7CB4FF; }
 .acc-excl-tag { margin-top: 3px; display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 10.5px; font-weight: 800; letter-spacing: 0.03em; background: var(--surface-3); color: var(--text-muted); }
 .tgl-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 18px; padding: 14px 16px; border-radius: 16px; background: var(--surface-2); border: 1px solid var(--line); cursor: pointer; }
 .tgl-row .tt { font-size: 14.5px; font-weight: 700; }
@@ -912,6 +913,8 @@ option { background: #1B1B21; color: #F6F6F8; }
         </div>
         <div class="spend-donut-legend" id="spend-donut-legend"></div>
 
+        <div id="spend-person-list"></div>
+
         <span class="field-label">Category</span>
         <select id="spend-category-select"></select>
 
@@ -1071,6 +1074,12 @@ option { background: #1B1B21; color: #F6F6F8; }
 
   <span class="field-label" id="acc-balance-label">Initial Balance</span>
   <input type="text" id="acc-balance" placeholder="0.00" inputmode="decimal">
+
+  <div id="acc-person-fields">
+    <span class="field-label">Person Name (optional)</span>
+    <input type="text" id="acc-person" list="acc-person-options" placeholder="e.g. Rahul" autocomplete="off" maxlength="40">
+    <datalist id="acc-person-options"></datalist>
+  </div>
 
   <div id="acc-credit-fields" style="display:none;">
     <span class="field-label">Bill Date (day of month)</span>
@@ -2649,10 +2658,12 @@ option { background: #1B1B21; color: #F6F6F8; }
     const { from, to } = getSpendRange();
     const groups = {};
     let total = 0;
+    const expenseTxns = [];
     appData.transactions.forEach(t => {
       if (t.type !== "expense") return;
       if (from && t.date < from) return;
       if (to && t.date > to) return;
+      expenseTxns.push(t);
       const cat = t.category || "Uncategorised";
       const sub = t.subcategory || "Other";
       const accId = t.accountId;
@@ -2664,7 +2675,26 @@ option { background: #1B1B21; color: #F6F6F8; }
       groups[cat].subs[sub].total += amt;
       groups[cat].subs[sub].sources[accId] = (groups[cat].subs[sub].sources[accId] || 0) + amt;
     });
-    return { groups, total };
+    const persons = groupSpendByPerson(expenseTxns, new Map(appData.accounts.map(a => [a.id, a])));
+    return { groups, total, persons };
+  }
+
+  function renderSpendPersons(persons, total) {
+    const el = document.getElementById("spend-person-list");
+    if (!persons.length) { el.innerHTML = ""; return; }
+    const rows = persons.map(p => {
+      const pct = total > 0 ? (p.total / total * 100) : 0;
+      return `
+        <div class="spend-src-row">
+          <span>${escapeHtml(p.name)}<span style="color:var(--text-muted); font-weight:500; font-size:12px;">${escapeHtml([...p.accounts].join(", "))}</span></span>
+          <span class="v">${formatINR(p.total)} <span style="color:var(--text-muted); font-weight:500;">(${pct.toFixed(0)}%)</span></span>
+        </div>`;
+    }).join("");
+    el.innerHTML = `
+      <div class="glass-card spend-cat-card" style="margin-top:12px;">
+        <div class="spend-cat-head"><span class="spend-cat-name">Spent by Person</span><span class="spend-cat-amt">${formatINR(total)}</span></div>
+        <div class="spend-sub-list">${rows}</div>
+      </div>`;
   }
 
   function renderSpendAnalysis() {
@@ -2678,10 +2708,11 @@ option { background: #1B1B21; color: #F6F6F8; }
       document.getElementById("spend-month-label").textContent = spendMonthLabel();
     }
 
-    const { groups, total } = computeSpendAnalysis();
+    const { groups, total, persons } = computeSpendAnalysis();
     totalValueEl.textContent = formatINR(total);
 
     drawSpendDonut(groups, total);
+    renderSpendPersons(persons, total);
     populateSpendFilterSelects(groups);
     renderSpendDetail(groups, total);
   }
@@ -2890,6 +2921,29 @@ option { background: #1B1B21; color: #F6F6F8; }
     renderSpendAnalysis();
   });
 
+  // Optional owner of a bank / credit account (used to see who spent how much).
+  function personOf(acc) {
+    return acc && typeof acc.person === "string" ? acc.person.trim() : "";
+  }
+
+  // Groups expense transactions by the person of the account they were spent from.
+  // Returns [] when no account has a person set, so the section stays hidden for existing data.
+  function groupSpendByPerson(expenseTxns, accMap) {
+    if (![...accMap.values()].some(a => personOf(a))) return [];
+    const map = new Map();
+    expenseTxns.forEach(t => {
+      const acc = accMap.get(t.accountId);
+      const name = personOf(acc) || "No person set";
+      const key = name.toLowerCase();
+      if (!map.has(key)) map.set(key, { name, total: 0, count: 0, accounts: new Set() });
+      const g = map.get(key);
+      g.total += Number(t.amount) || 0;
+      g.count++;
+      g.accounts.add(acc ? acc.name : "Deleted account");
+    });
+    return [...map.values()].sort((a, b) => b.total - a.total);
+  }
+
   function accountRowHtml(acc, showType = true) {
     const balanceClass = acc.type === "credit" ? "negative" : "positive";
     return `
@@ -2898,7 +2952,7 @@ option { background: #1B1B21; color: #F6F6F8; }
         <div class="acc-info">
           <div class="acc-name">${escapeHtml(acc.name)}</div>
           ${showType ? `<div class="acc-type">${escapeHtml(acc.type)}</div>` : ""}
-          ${acc.excludeFromTotals ? `<div class="acc-excl-tag">Not in totals</div>` : ""}
+          ${personOf(acc) ? `<div class="acc-person-tag">${escapeHtml(personOf(acc))}</div>` : ""}${acc.excludeFromTotals ? `<div class="acc-excl-tag">Not in totals</div>` : ""}
         </div>
         <div class="acc-balance ${balanceClass}">${formatINR(acc.balance)}</div>
       </div>`;
@@ -3140,14 +3194,30 @@ option { background: #1B1B21; color: #F6F6F8; }
     reportSheet.classList.remove("show");
   }
 
+  function updateAccTypeUi() {
+    const isCredit = selectedType === "credit";
+    const editing = editingAccountId !== null;
+    document.getElementById("acc-balance-label").textContent =
+      isCredit ? (editing ? "Outstanding Amount Owed" : "Initial Outstanding Amount Owed")
+               : (editing ? "Balance" : "Initial Balance");
+
+    // Person name applies to bank and credit accounts only.
+    document.getElementById("acc-person-fields").style.display =
+      (selectedType === "bank" || isCredit) ? "block" : "none";
+    const seen = new Map();
+    appData.accounts.forEach(a => { const p = personOf(a); if (p && !seen.has(p.toLowerCase())) seen.set(p.toLowerCase(), p); });
+    document.getElementById("acc-person-options").innerHTML =
+      [...seen.values()].map(p => `<option value="${escapeHtml(p).replace(/"/g, "&quot;")}"></option>`).join("");
+  }
+
   function openAddSheet() {
     closeAllSheets();
     editingAccountId = null;
     document.getElementById("acc-sheet-title").textContent = "Add Account";
-    document.getElementById("acc-balance-label").textContent = "Initial Balance";
     document.getElementById("btn-add-account").textContent = "Add Account";
     document.getElementById("acc-name").value = "";
     document.getElementById("acc-balance").value = "";
+    document.getElementById("acc-person").value = "";
     document.getElementById("acc-bill-date").value = "";
     document.getElementById("acc-due-date").value = "";
     document.getElementById("acc-exclude").checked = false;
@@ -3156,6 +3226,7 @@ option { background: #1B1B21; color: #F6F6F8; }
       c.classList.toggle("selected", c.getAttribute("data-type") === "bank")
     );
     document.getElementById("acc-credit-fields").style.display = "none";
+    updateAccTypeUi();
     sheetBackdrop.classList.add("show");
     addSheet.classList.add("show");
   }
@@ -3164,10 +3235,11 @@ option { background: #1B1B21; color: #F6F6F8; }
     closeAllSheets();
     editingAccountId = acc.id;
     document.getElementById("acc-sheet-title").textContent = "Edit Account";
-    document.getElementById("acc-balance-label").textContent = "Balance";
     document.getElementById("btn-add-account").textContent = "Update Account";
     document.getElementById("acc-name").value = acc.name;
-    document.getElementById("acc-balance").value = acc.balance;
+    // Credit cards are edited as the amount owed (positive = owed); stored balance is the negative of it.
+    document.getElementById("acc-balance").value = acc.type === "credit" ? (0 - (Number(acc.balance) || 0)) : acc.balance;
+    document.getElementById("acc-person").value = personOf(acc);
     document.getElementById("acc-bill-date").value = acc.billDate || "";
     document.getElementById("acc-due-date").value = acc.dueDate || "";
     document.getElementById("acc-exclude").checked = !!acc.excludeFromTotals;
@@ -3176,6 +3248,7 @@ option { background: #1B1B21; color: #F6F6F8; }
       c.classList.toggle("selected", c.getAttribute("data-type") === acc.type)
     );
     document.getElementById("acc-credit-fields").style.display = acc.type === "credit" ? "block" : "none";
+    updateAccTypeUi();
     sheetBackdrop.classList.add("show");
     addSheet.classList.add("show");
   }
@@ -3206,6 +3279,7 @@ option { background: #1B1B21; color: #F6F6F8; }
     document.querySelectorAll("#acc-type-chips .chip").forEach(c => c.classList.remove("selected"));
     chip.classList.add("selected");
     document.getElementById("acc-credit-fields").style.display = selectedType === "credit" ? "block" : "none";
+    updateAccTypeUi();
   });
 
   document.getElementById("btn-add-account").addEventListener("click", async () => {
@@ -3213,16 +3287,18 @@ option { background: #1B1B21; color: #F6F6F8; }
     const balanceInput = document.getElementById("acc-balance");
 
     const name = nameInput.value.trim();
-    const balance = parseFloat(balanceInput.value);
+    const enteredBalance = parseFloat(balanceInput.value);
 
     if (!name) {
       showToast("Account name cannot be empty ❌", true);
       return;
     }
-    if (isNaN(balance)) {
+    if (isNaN(enteredBalance)) {
       showToast("Invalid balance ❌", true);
       return;
     }
+    // For a credit card the user enters the amount owed; it is stored as a negative balance (a liability).
+    const balance = selectedType === "credit" ? 0 - enteredBalance : enteredBalance;
 
     let billDate = null;
     let dueDate = null;
@@ -3240,6 +3316,8 @@ option { background: #1B1B21; color: #F6F6F8; }
     }
 
     const excludeFromTotals = document.getElementById("acc-exclude").checked;
+    const person = (selectedType === "bank" || selectedType === "credit")
+      ? document.getElementById("acc-person").value.trim() : "";
 
     if (editingAccountId !== null) {
       const acc = appData.accounts.find(a => a.id === editingAccountId);
@@ -3249,6 +3327,8 @@ option { background: #1B1B21; color: #F6F6F8; }
         acc.balance = balance;
         if (excludeFromTotals) acc.excludeFromTotals = true;
         else delete acc.excludeFromTotals;
+        if (person) acc.person = person;
+        else delete acc.person;
         if (selectedType === "credit") {
           acc.billDate = billDate;
           acc.dueDate = dueDate;
@@ -3280,6 +3360,7 @@ option { background: #1B1B21; color: #F6F6F8; }
       balance
     };
     if (excludeFromTotals) newAccount.excludeFromTotals = true;
+    if (person) newAccount.person = person;
     if (selectedType === "credit") {
       newAccount.billDate = billDate;
       newAccount.dueDate = dueDate;
@@ -4272,7 +4353,8 @@ option { background: #1B1B21; color: #F6F6F8; }
     });
 
     const cats = Object.keys(byCat).map(name => ({ name, total: byCat[name] })).sort((a, b) => b.total - a.total);
-    return { txns, spent, income, cats, cards, accMap };
+    const persons = groupSpendByPerson(txns.filter(t => t.type === "expense"), accMap);
+    return { txns, spent, income, cats, cards, accMap, persons };
   }
 
   function refreshReportSheet() {
@@ -4324,7 +4406,7 @@ option { background: #1B1B21; color: #F6F6F8; }
   }
 
   function buildReportHtml(key, label, data) {
-    const { txns, spent, income, cats, cards, accMap } = data;
+    const { txns, spent, income, cats, cards, accMap, persons } = data;
     const accName = id => (accMap.get(id) ? accMap.get(id).name : "Deleted account");
     const money = n => escapeHtml(formatINR(n));
 
@@ -4366,6 +4448,17 @@ option { background: #1B1B21; color: #F6F6F8; }
         ? `<tr class="total"><td>Total</td><td class="num">${sum.count}</td><td class="num exp">${money(sum.spent)}</td><td class="num">${money(sum.refunds)}</td><td class="num">${money(sum.payments)}</td></tr>`
         : "";
       cardSection = `<table class="tx cards"><thead><tr><th>Credit Card</th><th class="num">Transactions</th><th class="num">Amount Spent</th><th class="num">Refunds</th><th class="num">Payments Made</th></tr></thead><tbody>${rows}${totalRow}</tbody></table>`;
+    }
+
+    // --- spending by person (only when at least one account has a person) ---
+    let personSection = "";
+    if (persons.length) {
+      const pRows = persons.map(p => {
+        const pct = spent > 0 ? (p.total / spent) * 100 : 0;
+        return `<tr><td><b>${escapeHtml(p.name)}</b></td><td>${escapeHtml([...p.accounts].join(", "))}</td><td class="num">${p.count}</td>` +
+          `<td class="num exp"><b>${money(p.total)}</b></td><td class="num">${pct.toFixed(1)}%</td></tr>`;
+      }).join("");
+      personSection = `<div class="sec keep"><h2>Spending by Person</h2><table class="tx cards"><thead><tr><th>Person</th><th>Accounts Used</th><th class="num">Transactions</th><th class="num">Amount Spent</th><th class="num">Share</th></tr></thead><tbody>${pRows}</tbody></table></div>`;
     }
 
     // --- all transactions ---
@@ -4453,6 +4546,7 @@ option { background: #1B1B21; color: #F6F6F8; }
       </div>
       ${chartSection}
       ${summarySection}
+      ${personSection}
       <div class="sec keep"><h2>Credit Card Usage</h2>${cardSection}</div>
       <div class="sec"><h2>All Transactions</h2>${txnSection}</div>
       <div class="foot">Expense Tracker &middot; ${escapeHtml(label)}</div>
