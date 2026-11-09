@@ -1,0 +1,3833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+<meta name="theme-color" content="#09090C">
+<meta name="color-scheme" content="dark">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Expense Tracker">
+<meta name="application-name" content="Expense Tracker">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Expense Tracker</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+
+/* =====================================================================
+   Design tokens
+   ===================================================================== */
+:root {
+  --bg: #09090C;
+  --surface: #131317;
+  --surface-2: #1B1B21;
+  --surface-3: #25252D;
+  --line: rgba(255, 255, 255, 0.07);
+  --line-strong: rgba(255, 255, 255, 0.12);
+
+  --text: #F6F6F8;
+  --text-dim: #B9B9C4;
+  --text-muted: #7D7D8A;
+
+  --accent: #FF6B5A;
+  --accent-2: #FFB547;
+  --accent-soft: rgba(255, 107, 90, 0.14);
+  --grad: linear-gradient(135deg, #FF6B5A 0%, #FF8F4D 55%, #FFB547 100%);
+  --on-accent: #1C0E08;
+
+  --income: #4ADE9C;
+  --expense: #FF6F7D;
+  --transfer: #7CB4FF;
+  --danger: #FF5C6C;
+  --warn: #FFB547;
+  --income-soft: rgba(74, 222, 156, 0.14);
+  --expense-soft: rgba(255, 111, 125, 0.14);
+  --transfer-soft: rgba(124, 180, 255, 0.14);
+  --warn-soft: rgba(255, 181, 71, 0.14);
+
+  --r-sm: 14px;
+  --r-md: 22px;
+  --r-lg: 30px;
+  --nav-h: 72px;
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sat: env(safe-area-inset-top, 0px);
+  --font: 'Manrope', Roboto, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* =====================================================================
+   Base
+   ===================================================================== */
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; background: #000; color: var(--text); font-family: var(--font); }
+body {
+  display: flex; justify-content: center; overflow: hidden;
+  -webkit-font-smoothing: antialiased; overscroll-behavior: none;
+}
+button { font-family: inherit; color: inherit; border: 0; background: none; cursor: pointer; touch-action: manipulation; }
+input, select { font-family: inherit; }
+::-webkit-scrollbar { display: none; }
+* { scrollbar-width: none; }
+
+.ic {
+  width: 22px; height: 22px; flex: none;
+  fill: none; stroke: currentColor; stroke-width: 1.9;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+
+.phone-frame {
+  position: relative; width: 100%; max-width: 480px;
+  height: 100vh; height: 100dvh;
+  background: var(--bg); overflow: hidden; isolation: isolate;
+}
+.phone-frame::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(60% 34% at 95% -4%, rgba(255, 107, 90, 0.17), transparent 70%),
+    radial-gradient(50% 30% at -8% 6%, rgba(255, 181, 71, 0.10), transparent 70%);
+}
+@media (min-width: 520px) {
+  .phone-frame { border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
+}
+
+.screen { position: absolute; inset: 0; display: none; flex-direction: column; }
+.screen.active { display: flex; }
+
+/* =====================================================================
+   PIN screen
+   ===================================================================== */
+#pin-screen {
+  align-items: center; overflow-y: auto;
+  padding: calc(24px + var(--sat)) 24px calc(24px + var(--sab));
+}
+#pin-content { width: 100%; max-width: 340px; margin: auto; text-align: center; }
+#pin-content.shake { animation: shake 0.4s ease; }
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-12px); }
+  40% { transform: translateX(10px); }
+  60% { transform: translateX(-8px); }
+  80% { transform: translateX(6px); }
+}
+
+.dial-wrap { position: relative; width: 136px; height: 136px; margin: 0 auto 24px; }
+.dial-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.app-icon-badge {
+  position: absolute; inset: 20px; border-radius: 30px; background: var(--grad);
+  display: flex; align-items: center; justify-content: center; overflow: hidden;
+  box-shadow: 0 14px 34px rgba(255, 107, 90, 0.38);
+}
+.app-icon-badge img { width: 100%; height: 100%; object-fit: cover; }
+.app-icon-badge .ic { width: 38px; height: 38px; color: var(--on-accent); stroke-width: 2; }
+
+.pin-title { font-size: 28px; font-weight: 800; letter-spacing: -0.02em; }
+.pin-subtitle { margin-top: 8px; font-size: 14.5px; color: var(--text-muted); line-height: 1.45; }
+.pin-error { min-height: 22px; margin: 14px 0 6px; font-size: 13.5px; font-weight: 700; color: var(--danger); }
+
+.pin-dots { display: flex; justify-content: center; gap: 16px; margin: 4px 0 30px; }
+.pin-dot {
+  width: 14px; height: 14px; border-radius: 50%;
+  border: 2px solid var(--line-strong); transition: transform 0.2s var(--ease), background 0.2s, border-color 0.2s;
+}
+.pin-dot.filled { background: var(--grad); border-color: transparent; transform: scale(1.18); box-shadow: 0 0 14px rgba(255, 143, 77, 0.55); }
+
+.keypad { display: grid; grid-template-columns: repeat(3, 76px); gap: 16px; justify-content: center; }
+.keypad button {
+  width: 76px; height: 76px; border-radius: 50%;
+  background: var(--surface-2); border: 1px solid var(--line);
+  font-size: 27px; font-weight: 600; display: grid; place-items: center;
+  transition: transform 0.12s var(--ease), background 0.15s;
+}
+.keypad button:active { transform: scale(0.9); background: var(--surface-3); }
+.keypad .key-action { background: transparent; border-color: transparent; color: var(--text-muted); font-size: 19px; font-weight: 700; }
+.keypad .key-action .ic { width: 26px; height: 26px; }
+
+.vault-choice { margin-top: 6px; }
+.vault-choice p { font-size: 14px; color: var(--text-muted); margin-bottom: 20px; }
+.choice-or {
+  display: flex; align-items: center; gap: 12px; margin: 6px 0 18px;
+  font-size: 11.5px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted);
+}
+.choice-or::before, .choice-or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.pill-btn {
+  width: 100%; height: 58px; margin-bottom: 12px; border-radius: 20px;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  font-size: 16px; font-weight: 800; background: var(--grad); color: var(--on-accent);
+  box-shadow: 0 12px 28px rgba(255, 107, 90, 0.28); transition: transform 0.15s var(--ease);
+}
+.pill-btn.secondary { background: var(--surface-2); color: var(--text); border: 1px solid var(--line-strong); box-shadow: none; }
+.pill-btn:active { transform: scale(0.97); }
+.link-btn { margin-top: 8px; padding: 12px 18px; font-size: 14.5px; font-weight: 700; color: var(--text-dim); }
+
+.persistence-note {
+  margin-top: 22px; padding: 14px 16px; border-radius: 18px; text-align: left;
+  background: var(--warn-soft); border: 1px solid rgba(255, 181, 71, 0.22);
+  color: #FFD9A0; font-size: 12.5px; line-height: 1.55; font-weight: 500;
+}
+
+/* =====================================================================
+   App shell: top bar, content, nav
+   ===================================================================== */
+.topbar {
+  flex: none; display: flex; align-items: center; justify-content: space-between;
+  padding: calc(14px + var(--sat)) 20px 10px;
+}
+.brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.greeting-icon {
+  width: 44px; height: 44px; border-radius: 15px; background: var(--grad); color: var(--on-accent);
+  display: grid; place-items: center; box-shadow: 0 8px 20px rgba(255, 107, 90, 0.3);
+}
+.greeting-icon .ic { stroke-width: 2.2; }
+.brand-text { min-width: 0; }
+.app-name { font-size: 17px; font-weight: 800; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.app-tag { margin-top: 1px; font-size: 12.5px; font-weight: 500; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.top-actions { display: flex; gap: 8px; flex: none; }
+.top-actions .icon-btn { width: 40px; height: 40px; }
+.top-actions .icon-btn .ic { width: 20px; height: 20px; }
+
+.icon-btn {
+  width: 44px; height: 44px; border-radius: 50%; flex: none;
+  background: var(--surface-2); border: 1px solid var(--line); color: var(--text-dim);
+  display: grid; place-items: center; transition: transform 0.15s var(--ease), background 0.2s, color 0.2s;
+}
+.icon-btn:active { transform: scale(0.9); }
+.icon-btn.on { background: var(--accent-soft); color: var(--accent); border-color: rgba(255, 107, 90, 0.3); }
+
+/* Cloud sync status button (state classes set from JS) */
+#nav-cloud.connected { background: var(--income-soft); color: var(--income); border-color: rgba(74, 222, 156, 0.3); }
+#nav-cloud.syncing { background: var(--warn-soft); color: var(--warn); border-color: rgba(255, 181, 71, 0.3); animation: cloudPulse 1.1s ease-in-out infinite; }
+#nav-cloud.error { background: var(--expense-soft); color: var(--danger); border-color: rgba(255, 92, 108, 0.35); }
+@keyframes cloudPulse { 50% { opacity: 0.5; } }
+
+.content {
+  flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  padding: 8px 20px calc(var(--nav-h) + 52px + var(--sab));
+}
+.page { display: none; }
+.page.active { display: block; animation: pageIn 0.35s var(--ease) both; }
+@keyframes pageIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+.page-title { margin: 6px 2px 18px; font-size: 30px; font-weight: 800; letter-spacing: -0.03em; }
+
+.bottom-nav {
+  position: absolute; z-index: 20; left: 14px; right: 14px; bottom: calc(12px + var(--sab));
+  height: var(--nav-h); padding: 0 6px;
+  display: grid; grid-template-columns: 1fr 1fr 80px 1fr 1fr; align-items: center;
+  background: rgba(24, 24, 30, 0.86);
+  -webkit-backdrop-filter: blur(24px) saturate(160%); backdrop-filter: blur(24px) saturate(160%);
+  border: 1px solid var(--line-strong); border-radius: 32px;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.6);
+}
+.nav-item {
+  height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.01em; color: var(--text-muted); transition: color 0.2s;
+}
+.nav-ico { width: 54px; height: 30px; border-radius: 15px; display: grid; place-items: center; transition: background 0.25s var(--ease), color 0.25s; }
+.nav-item:active .nav-ico { transform: scale(0.92); }
+.nav-item.active-nav { color: var(--text); }
+.nav-item.active-nav .nav-ico { background: var(--accent-soft); color: var(--accent); }
+
+.fab {
+  justify-self: center; width: 62px; height: 62px; margin-top: -30px; border-radius: 24px;
+  background: var(--grad); color: var(--on-accent); display: grid; place-items: center;
+  box-shadow: 0 14px 30px rgba(255, 107, 90, 0.45), 0 0 0 6px var(--bg);
+  transition: transform 0.2s var(--ease);
+}
+.fab .ic { width: 28px; height: 28px; stroke-width: 2.5; transition: transform 0.25s var(--ease); }
+.fab:active { transform: scale(0.92); }
+.fab:active .ic { transform: rotate(90deg); }
+
+/* =====================================================================
+   Shared components
+   ===================================================================== */
+.glass-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); }
+
+.section-title { display: flex; align-items: center; justify-content: space-between; margin: 28px 2px 12px; }
+.section-title h3 { font-size: 17px; font-weight: 800; letter-spacing: -0.01em; display: flex; align-items: center; gap: 8px; }
+.section-title h3 .ic { width: 20px; height: 20px; color: var(--accent); }
+.section-title a { padding: 7px 14px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); font-size: 13px; font-weight: 700; text-decoration: none; }
+
+.seg-tabs { display: flex; gap: 4px; padding: 4px; margin-bottom: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 19px; }
+.seg-tab {
+  flex: 1; text-align: center; padding: 12px 6px; border-radius: 15px; user-select: none; cursor: pointer;
+  font-size: 13.5px; font-weight: 700; color: var(--text-muted); transition: background 0.25s var(--ease), color 0.2s, transform 0.12s;
+}
+.seg-tab:active { transform: scale(0.97); }
+.seg-tab.active { background: var(--grad); color: var(--on-accent); box-shadow: 0 6px 16px rgba(255, 107, 90, 0.28); }
+#txn-type-tabs .seg-tab.active[data-ttype="income"] { background: linear-gradient(135deg, #3FD08F, #7BEBB6); box-shadow: 0 6px 16px rgba(74, 222, 156, 0.25); }
+#txn-type-tabs .seg-tab.active[data-ttype="transfer"] { background: linear-gradient(135deg, #6AA5F5, #9CCBFF); box-shadow: 0 6px 16px rgba(124, 180, 255, 0.25); }
+
+.cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.cal-head button {
+  width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--surface); border: 1px solid var(--line); color: var(--text-dim);
+  transition: transform 0.15s var(--ease), background 0.2s;
+}
+.cal-head button:active { transform: scale(0.9); background: var(--surface-3); }
+.cal-month-label { font-size: 16px; font-weight: 800; letter-spacing: -0.01em; }
+
+.field-label {
+  display: block; margin: 18px 2px 8px;
+  font-size: 12px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-muted);
+}
+input[type="text"], input[type="number"], input[type="date"], input[type="time"], select {
+  display: block; width: 100%; min-width: 0; min-height: 54px; padding: 14px 16px;
+  background: var(--surface-2); color: var(--text); color-scheme: dark;
+  border: 1.5px solid transparent; border-radius: 17px;
+  font-size: 16px; font-weight: 600; outline: none; -webkit-appearance: none; appearance: none;
+  transition: border-color 0.2s, background 0.2s;
+}
+input::placeholder { color: var(--text-muted); font-weight: 500; }
+input:focus, select:focus { border-color: var(--accent); background: var(--surface-3); }
+input[type="date"], input[type="time"] { text-align: left; }
+select {
+  padding-right: 46px; text-overflow: ellipsis;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237D7D8A' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 14px center; background-size: 20px;
+}
+select:disabled { opacity: 0.5; }
+option { background: #1B1B21; color: #F6F6F8; }
+.page select, .page input { margin-bottom: 2px; }
+.custom-range-row { display: flex; gap: 12px; margin-bottom: 16px; }
+.custom-range-row > div { flex: 1; min-width: 0; }
+.custom-range-row .field-label { margin-top: 0; }
+.custom-range-row.sheet-row { margin: 0; }
+.custom-range-row.sheet-row .field-label { margin-top: 18px; }
+
+.amount-wrap { position: relative; }
+.amount-wrap::before {
+  content: "\20B9"; position: absolute; left: 18px; top: 50%; transform: translateY(-50%);
+  font-size: 26px; font-weight: 800; color: var(--accent-2); pointer-events: none;
+}
+.amount-wrap input { min-height: 68px; padding-left: 46px; font-size: 30px; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+
+.primary-btn, .secondary-btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; height: 56px;
+  border-radius: 19px; font-size: 16px; font-weight: 800; transition: transform 0.15s var(--ease), opacity 0.2s;
+}
+.primary-btn { background: var(--grad); color: var(--on-accent); box-shadow: 0 12px 26px rgba(255, 107, 90, 0.3); }
+.secondary-btn { background: var(--surface-3); color: var(--text); border: 1px solid var(--line-strong); }
+.primary-btn:active, .secondary-btn:active { transform: scale(0.97); }
+#btn-add-account, #input-sheet-save { margin-top: 24px; }
+
+.empty-state { text-align: center; padding: 36px 20px; }
+.empty-icon {
+  width: 68px; height: 68px; margin: 0 auto 14px; border-radius: 24px;
+  display: grid; place-items: center; background: var(--accent-soft); color: var(--accent);
+}
+.empty-icon .ic { width: 30px; height: 30px; }
+.empty-title { font-size: 16px; font-weight: 800; }
+.empty-sub { margin-top: 6px; font-size: 13.5px; color: var(--text-muted); line-height: 1.5; }
+
+/* =====================================================================
+   Home
+   ===================================================================== */
+.hero-card {
+  position: relative; overflow: hidden; padding: 24px 22px 22px; border-radius: var(--r-lg);
+  background: linear-gradient(165deg, #1F1A1B 0%, #151518 62%); border: 1px solid var(--line-strong);
+  box-shadow: 0 22px 54px rgba(0, 0, 0, 0.5);
+}
+.hero-card::before {
+  content: ""; position: absolute; width: 280px; height: 280px; right: -100px; top: -120px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 128, 80, 0.5), transparent 66%);
+}
+.hero-card::after {
+  content: ""; position: absolute; width: 220px; height: 220px; left: -90px; bottom: -120px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 181, 71, 0.18), transparent 68%);
+}
+.hero-card > * { position: relative; z-index: 1; }
+.hero-label { display: flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 700; color: var(--text-dim); }
+.hero-label .ic { width: 18px; height: 18px; color: var(--accent-2); }
+.hero-eye { margin-left: auto; width: 34px; height: 34px; border-radius: 12px; display: grid; place-items: center;
+  background: rgba(255,255,255,0.06); border: 1px solid var(--line); color: var(--text-dim); cursor: pointer; }
+.hero-eye:active { transform: scale(0.94); }
+.hero-eye .ic { width: 18px; height: 18px; color: inherit; }
+.hero-value {
+  margin: 8px 0 22px; font-size: 38px; line-height: 1.12; font-weight: 800; letter-spacing: -0.03em; white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  background: linear-gradient(120deg, #FFF4E8 0%, #FFC985 55%, #FF9573 100%);
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent;
+}
+.hero-split { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.hero-chip { padding: 13px 14px; border-radius: 20px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--line); min-width: 0; }
+.chip-label { display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 600; color: var(--text-muted); }
+.chip-ic { width: 22px; height: 22px; border-radius: 8px; display: grid; place-items: center; }
+.chip-ic .ic { width: 14px; height: 14px; stroke-width: 2.4; }
+.chip-ic.up { background: var(--income-soft); color: var(--income); }
+.chip-ic.down { background: var(--expense-soft); color: var(--expense); }
+.chip-value { margin-top: 7px; font-size: 16px; font-weight: 800; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.alloc { margin-top: 20px; }
+.alloc-bar { display: flex; gap: 4px; height: 10px; }
+.alloc-bar.empty { background: rgba(255, 255, 255, 0.08); border-radius: 99px; }
+.alloc-seg { min-width: 6px; border-radius: 99px; transition: flex-basis 0.6s var(--ease); }
+.gauge-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 12px; }
+.gauge-legend:empty { display: none; }
+.gauge-legend-item { display: flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 600; color: var(--text-dim); text-transform: capitalize; }
+.gauge-legend-item .pct { color: var(--text-muted); font-weight: 600; }
+.gauge-legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+/* =====================================================================
+   Accounts
+   ===================================================================== */
+.acc-group { margin-bottom: 18px; }
+.acc-group-head { display: flex; align-items: center; justify-content: space-between; margin: 0 4px 10px; }
+.acc-group-title { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
+.acc-group-title .ic { width: 16px; height: 16px; }
+.acc-group-meta { font-size: 12.5px; font-weight: 700; color: var(--text-dim); font-variant-numeric: tabular-nums; }
+
+.account-row { display: flex; align-items: center; gap: 14px; padding: 14px 16px; margin-bottom: 10px; cursor: pointer; transition: transform 0.15s var(--ease), background 0.2s; }
+.account-row:active { transform: scale(0.985); background: var(--surface-2); }
+.acc-icon { width: 46px; height: 46px; border-radius: 16px; display: grid; place-items: center; flex: none; }
+.acc-icon.bank { background: rgba(255, 181, 71, 0.14); color: #FFB547; }
+.acc-icon.investment { background: rgba(140, 158, 255, 0.15); color: #8C9EFF; }
+.acc-icon.credit { background: rgba(255, 111, 125, 0.14); color: #FF6F7D; }
+.acc-info { flex: 1; min-width: 0; }
+.acc-name { font-size: 15.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.acc-type { margin-top: 2px; font-size: 12.5px; font-weight: 500; color: var(--text-muted); text-transform: capitalize; }
+.acc-balance { font-size: 15.5px; font-weight: 800; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.acc-balance.positive { color: var(--income); }
+.acc-balance.negative { color: var(--expense); }
+
+.credit-bill-card { padding: 16px; margin-bottom: 12px; }
+.credit-bill-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.credit-bill-icon { width: 44px; height: 44px; border-radius: 15px; display: grid; place-items: center; flex: none; background: rgba(255, 111, 125, 0.14); color: #FF6F7D; }
+.credit-bill-name { font-size: 15.5px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.credit-bill-outstanding { margin-top: 2px; font-size: 12.5px; color: var(--text-muted); }
+.credit-bill-status { flex: none; display: inline-flex; align-items: center; gap: 5px; padding: 6px 12px; border-radius: 99px; font-size: 12px; font-weight: 800; }
+.credit-bill-status .ic { width: 14px; height: 14px; stroke-width: 2.6; }
+.credit-bill-status.paid { background: var(--income-soft); color: var(--income); }
+.credit-bill-status.overdue { background: var(--expense-soft); color: var(--danger); }
+.credit-bill-status.pending { background: var(--warn-soft); color: var(--warn); }
+.credit-bill-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-top: 1px solid var(--line); font-size: 14px; }
+.credit-bill-row .k { color: var(--text-muted); font-weight: 500; }
+.credit-bill-row .v { font-weight: 800; font-variant-numeric: tabular-nums; }
+.credit-bill-note { margin-top: 8px; padding: 11px 13px; border-radius: 14px; background: var(--surface-2); font-size: 12.5px; line-height: 1.5; color: var(--text-dim); }
+
+/* =====================================================================
+   Transactions
+   ===================================================================== */
+.txn-day-group { margin-bottom: 14px; overflow: hidden; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); }
+.txn-day-head { display: flex; align-items: center; justify-content: space-between; padding: 13px 16px 11px; background: var(--surface-2); }
+.txn-day-head .d { font-size: 12.5px; font-weight: 700; letter-spacing: 0.02em; color: var(--text-dim); }
+.txn-day-total { font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.txn-row { display: flex; align-items: center; gap: 13px; padding: 13px 16px; cursor: pointer; transition: background 0.2s; }
+.txn-row:active { background: var(--surface-2); }
+.txn-day-group .glass-card.txn-row { background: transparent; border: 0; border-radius: 0; border-top: 1px solid var(--line); }
+.txn-day-group .glass-card.txn-row:active { background: var(--surface-2); }
+.txn-icon { width: 44px; height: 44px; border-radius: 15px; flex: none; display: grid; place-items: center; }
+.txn-icon.emoji { font-size: 21px; }
+.txn-icon.income { background: var(--income-soft); color: var(--income); }
+.txn-icon.expense { background: var(--expense-soft); color: var(--expense); }
+.txn-icon.transfer { background: var(--transfer-soft); color: var(--transfer); }
+.txn-info { flex: 1; min-width: 0; }
+.txn-title { font-size: 14.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.txn-sub { margin-top: 3px; font-size: 12px; font-weight: 500; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.txn-amt { font-size: 14.5px; font-weight: 800; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.txn-amt.income, .txn-day-total.income { color: var(--income); }
+.txn-amt.expense, .txn-day-total.expense { color: var(--expense); }
+.txn-amt.transfer, .txn-day-total.transfer { color: var(--transfer); }
+
+.txn-view { display: none; }
+.txn-view.active { display: block; animation: pageIn 0.3s var(--ease) both; }
+
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.cal-weekday { padding: 4px 0 8px; text-align: center; font-size: 11px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); }
+.cal-cell {
+  aspect-ratio: 1 / 1.2; padding: 7px 2px 4px; border-radius: 15px; min-width: 0;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  background: var(--surface); border: 1px solid var(--line);
+}
+.cal-cell.empty { background: transparent; border-color: transparent; }
+.cal-cell.today { background: var(--accent-soft); border-color: var(--accent); }
+.cal-day-num { font-size: 13.5px; font-weight: 700; }
+.cal-cell.today .cal-day-num { color: var(--accent); }
+.cal-day-total { font-size: 9.5px; font-weight: 800; white-space: nowrap; letter-spacing: -0.02em; }
+.cal-day-total.neg { color: var(--expense); }
+.cal-day-total.pos { color: var(--income); }
+
+/* =====================================================================
+   Stats
+   ===================================================================== */
+.trend-card { padding: 18px 16px 12px; }
+.trend-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.trend-head .lbl { font-size: 14.5px; font-weight: 800; }
+.trend-head .range { font-size: 11.5px; font-weight: 600; color: var(--text-muted); }
+#trend-canvas { display: block; width: 100%; height: 120px; }
+
+.breakdown-row { display: flex; align-items: center; gap: 14px; padding: 14px 16px; margin-bottom: 10px; }
+.bd-ic { width: 44px; height: 44px; border-radius: 15px; display: grid; place-items: center; flex: none; }
+.bd-info { flex: 1; min-width: 0; }
+.bd-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.bd-name { font-size: 14.5px; font-weight: 700; text-transform: capitalize; }
+.bd-value { font-size: 14.5px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.bd-bar-track { height: 8px; margin-top: 10px; border-radius: 99px; background: var(--surface-3); overflow: hidden; }
+.bd-bar-fill { height: 100%; border-radius: 99px; }
+.bd-pct { margin-top: 6px; font-size: 12px; font-weight: 600; color: var(--text-muted); }
+
+.spend-total-card { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 20px; margin-bottom: 14px; }
+.spend-total-label { font-size: 12.5px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.04em; text-transform: uppercase; }
+.spend-total-value { margin-top: 6px; font-size: 27px; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.spend-donut-wrap { width: 104px; height: 104px; flex: none; }
+.spend-donut-svg { width: 100%; height: 100%; }
+.spend-donut-legend { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 6px; }
+.spend-donut-legend:empty { display: none; }
+.spend-donut-legend-item { display: flex; align-items: center; gap: 8px; padding: 7px 12px; border-radius: 99px; background: var(--surface); border: 1px solid var(--line); font-size: 12.5px; font-weight: 600; }
+.spend-donut-legend-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+
+.spend-cat-card { padding: 18px; margin-top: 16px; }
+.spend-cat-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.spend-cat-name { font-size: 16px; font-weight: 800; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.spend-cat-amt { font-size: 16px; font-weight: 800; color: var(--expense); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.spend-cat-pct { margin: 8px 0 12px; font-size: 12.5px; font-weight: 600; color: var(--text-muted); }
+.spend-src-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); font-size: 14px; font-weight: 600; }
+.spend-src-row > span:first-child { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.spend-src-row .ic { width: 18px; height: 18px; color: var(--text-muted); }
+.spend-src-row .v { font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* =====================================================================
+   Settings
+   ===================================================================== */
+.settings-group { margin-bottom: 28px; }
+.glabel { margin: 0 4px 12px; font-size: 12px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
+.settings-note { margin: 0 4px 14px; font-size: 12.5px; line-height: 1.55; color: var(--text-muted); }
+.settings-item { display: flex; align-items: center; gap: 14px; padding: 14px 16px; margin-bottom: 10px; cursor: pointer; transition: transform 0.15s var(--ease), background 0.2s; }
+.settings-item:active { transform: scale(0.985); background: var(--surface-2); }
+.si-ic { width: 44px; height: 44px; border-radius: 15px; display: grid; place-items: center; flex: none; background: var(--accent-soft); color: var(--accent); }
+.si-ic.blue { background: var(--transfer-soft); color: var(--transfer); }
+.si-ic.green { background: var(--income-soft); color: var(--income); }
+.si-ic.rose { background: var(--expense-soft); color: var(--expense); }
+.si-text { flex: 1; min-width: 0; }
+.settings-item .t { font-size: 15px; font-weight: 700; }
+.settings-item .d { margin-top: 3px; font-size: 12.5px; color: var(--text-muted); line-height: 1.4; }
+.settings-item .arrow { color: var(--text-muted); display: grid; }
+.settings-footer { padding: 6px 12px 0; text-align: center; font-size: 12px; font-weight: 500; color: var(--text-muted); line-height: 1.6; }
+
+.cat-card { padding: 16px; margin-bottom: 12px; }
+.cat-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.cat-card-head .name { font-size: 16px; font-weight: 800; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.del-cat { padding: 8px 14px; border-radius: 99px; background: var(--expense-soft); color: var(--danger); font-size: 12.5px; font-weight: 700; }
+.subcat-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.subcat-chip { display: inline-flex; align-items: center; gap: 8px; padding: 6px 7px 6px 13px; border-radius: 99px; background: var(--surface-2); border: 1px solid var(--line); font-size: 13px; font-weight: 600; }
+.budget-tag { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 99px; background: var(--surface-3); color: var(--text-muted); font-size: 11.5px; font-weight: 700; cursor: pointer; }
+.budget-tag.set { background: var(--warn-soft); color: var(--warn); }
+.budget-tag .ic { width: 12px; height: 12px; stroke-width: 2.4; }
+.subcat-chip .rm { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: rgba(255, 255, 255, 0.07); color: var(--text-muted); cursor: pointer; }
+.subcat-chip .rm .ic { width: 12px; height: 12px; stroke-width: 2.6; }
+.add-subcat-btn { padding: 8px 14px; border-radius: 99px; border: 1.5px dashed var(--line-strong); color: var(--accent); font-size: 13px; font-weight: 700; }
+.add-cat-btn { margin-top: 4px; }
+
+/* =====================================================================
+   Bottom sheets, backdrop, toast
+   ===================================================================== */
+.sheet-backdrop {
+  position: fixed; inset: 0; z-index: 100; background: rgba(0, 0, 0, 0.62);
+  -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px);
+  opacity: 0; pointer-events: none; transition: opacity 0.3s;
+}
+.sheet-backdrop.show { opacity: 1; pointer-events: auto; }
+.bottom-sheet {
+  position: fixed; z-index: 110; left: 50%; bottom: 0; width: 100%; max-width: 480px;
+  max-height: 92vh; max-height: 92dvh; overflow-y: auto; overscroll-behavior: contain;
+  padding: 12px 20px calc(24px + var(--sab));
+  background: #16161B; border: 1px solid var(--line-strong); border-bottom: 0; border-radius: 32px 32px 0 0;
+  box-shadow: 0 -20px 60px rgba(0, 0, 0, 0.6);
+  transform: translate(-50%, 105%); visibility: hidden;
+  transition: transform 0.38s var(--ease), visibility 0s linear 0.38s;
+}
+.bottom-sheet.show { transform: translate(-50%, 0); visibility: visible; transition: transform 0.38s var(--ease), visibility 0s; }
+.sheet-handle { width: 42px; height: 5px; margin: 0 auto 16px; border-radius: 99px; background: var(--line-strong); }
+.bottom-sheet h3 { font-size: 21px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 4px; }
+.sheet-top-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.sheet-top-row h3 { margin-bottom: 0; }
+.sheet-btn-row { display: flex; gap: 12px; margin-top: 26px; }
+.sheet-btn-row .secondary-btn { flex: 1; font-size: 14.5px; }
+.sheet-btn-row .primary-btn { flex: 1.15; }
+#input-sheet-field { margin-top: 14px; }
+.type-chips { display: flex; gap: 10px; }
+.chip {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 7px; padding: 15px 6px;
+  border-radius: 17px; background: var(--surface-2); border: 1.5px solid transparent;
+  font-size: 13.5px; font-weight: 700; color: var(--text-dim); cursor: pointer; user-select: none;
+  transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.12s;
+}
+.chip .ic { width: 18px; height: 18px; }
+.chip:active { transform: scale(0.96); }
+.chip.selected { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+#acc-credit-fields { animation: pageIn 0.3s var(--ease) both; }
+
+.detail-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 18px; padding: 15px 2px; border-bottom: 1px solid var(--line); }
+.detail-row:last-child { border-bottom: 0; }
+.detail-row .k { flex: none; font-size: 13.5px; font-weight: 500; color: var(--text-muted); }
+.detail-row .v { font-size: 14.5px; font-weight: 700; text-align: right; word-break: break-word; }
+
+/* PWA install banner */
+#install-banner {
+  position: fixed; z-index: 150; left: 14px; right: 14px; max-width: 452px; margin: 0 auto;
+  bottom: calc(14px + var(--sab)); display: none; align-items: center; gap: 12px;
+  padding: 12px 12px 12px 14px; border-radius: 24px;
+  background: rgba(30, 30, 38, 0.97); border: 1px solid var(--line-strong);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.6);
+}
+#install-banner.show { display: flex; animation: pageIn 0.35s var(--ease) both; }
+.ib-icon { width: 44px; height: 44px; border-radius: 15px; flex: none; display: grid; place-items: center; background: var(--grad); color: var(--on-accent); }
+.ib-icon .ic { stroke-width: 2.2; }
+.ib-text { flex: 1; min-width: 0; }
+.ib-title { font-size: 15px; font-weight: 800; }
+.ib-sub { margin-top: 2px; font-size: 12.5px; color: var(--text-muted); }
+.ib-install { height: 40px; padding: 0 18px; border-radius: 14px; background: var(--grad); color: var(--on-accent); font-size: 14px; font-weight: 800; }
+.ib-dismiss { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; color: var(--text-muted); }
+
+.toast {
+  position: fixed; z-index: 200; top: calc(14px + var(--sat)); left: 50%;
+  display: flex; align-items: center; gap: 10px; max-width: min(440px, calc(100vw - 28px));
+  padding: 13px 18px 13px 14px; border-radius: 19px; background: #26262F; border: 1px solid var(--line-strong);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55); font-size: 14px; font-weight: 600; line-height: 1.4;
+  transform: translate(-50%, -150%); opacity: 0; pointer-events: none;
+  transition: transform 0.4s var(--ease), opacity 0.25s;
+}
+.toast.show { transform: translate(-50%, 0); opacity: 1; }
+.toast-ic { display: grid; flex: none; color: var(--income); }
+.toast.error .toast-ic { color: var(--danger); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+</style>
+</head>
+<body>
+
+<!-- ================= Icon sprite ================= -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5V19a1.5 1.5 0 0 1-1.5 1.5H15V15H9v5.5H5.5A1.5 1.5 0 0 1 4 19z"/></symbol>
+  <symbol id="i-receipt" viewBox="0 0 24 24"><path d="M6 3.5h12v17l-3-2-3 2-3-2-3 2z"/><path d="M9.5 8.5h5M9.5 12h5"/></symbol>
+  <symbol id="i-wallet" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="14" rx="3.5"/><path d="M16 6V5a2 2 0 0 0-2-2H6a3 3 0 0 0-3 3"/><path d="M21 12h-4a2 2 0 0 0 0 4h4"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M3 3l18 18"/><path d="M10.6 5.1A9.7 9.7 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4.1M6.5 6.6C3.8 8.3 2 12 2 12s3.6 7 10 7c1.6 0 3-.4 4.2-1"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M5 20v-7M12 20V5M19 20v-10"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h9M19 7h1M4 17h1M11 17h9"/><circle cx="16" cy="7" r="2.5"/><circle cx="8" cy="17" r="2.5"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9.5" rx="3"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-chev-l" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></symbol>
+  <symbol id="i-chev-r" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+  <symbol id="i-bank" viewBox="0 0 24 24"><path d="M3 9.5 12 4l9 5.5"/><path d="M5.5 11.5v6.5M10 11.5v6.5M14 11.5v6.5M18.5 11.5v6.5M3.5 20.5h17"/></symbol>
+  <symbol id="i-card" viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="3.5"/><path d="M2.5 10h19M6.5 15h3"/></symbol>
+  <symbol id="i-trend" viewBox="0 0 24 24"><path d="m3 17 6-6 4 4 8-8"/><path d="M15 7h6v6"/></symbol>
+  <symbol id="i-arrow-up-right" viewBox="0 0 24 24"><path d="M7 17 17 7M8 7h9v9"/></symbol>
+  <symbol id="i-arrow-down-left" viewBox="0 0 24 24"><path d="M17 7 7 17M16 17H7V8"/></symbol>
+  <symbol id="i-swap" viewBox="0 0 24 24"><path d="M4 8h15M15 4l4 4-4 4M20 16H5M9 12l-4 4 4 4"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V5M7 9l5-5 5 5M5 20h14"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H9l2 2.5h7.5A2.5 2.5 0 0 1 21 10v7.5a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z"/></symbol>
+  <symbol id="i-file-plus" viewBox="0 0 24 24"><path d="M14 3H7.5A2.5 2.5 0 0 0 5 5.5v13A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5V8z"/><path d="M14 3v5h5M12 11.5v6M9 14.5h6"/></symbol>
+  <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="3.5"/><path d="M8 3v4M16 3v4M3.5 10.5h17"/></symbol>
+  <symbol id="i-tag" viewBox="0 0 24 24"><path d="M3.5 12.2V5.5a2 2 0 0 1 2-2h6.7a2 2 0 0 1 1.4.6l6.8 6.8a2 2 0 0 1 0 2.8l-6.7 6.7a2 2 0 0 1-2.8 0L4.1 13.6a2 2 0 0 1-.6-1.4z"/><circle cx="8.2" cy="8.2" r="1.3"/></symbol>
+  <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></symbol>
+  <symbol id="i-check-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12.5 3 3 5-6"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3.5 2.8 19.5a1 1 0 0 0 .9 1.5h16.6a1 1 0 0 0 .9-1.5z"/><path d="M12 10v4.2M12 17.4v.01"/></symbol>
+  <symbol id="i-backspace" viewBox="0 0 24 24"><path d="M9.5 5H19a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9.5L3 12z"/><path d="m13 9.5 4 5M17 9.5l-4 5"/></symbol>
+  <symbol id="i-arrow-left" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></symbol>
+  <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7.5 19a4.5 4.5 0 0 1-.6-8.96 6 6 0 0 1 11.6 1.46A3.8 3.8 0 0 1 17.5 19z"/></symbol>
+  <symbol id="i-cloud-off" viewBox="0 0 24 24"><path d="M7.5 19a4.5 4.5 0 0 1-.6-8.96 6 6 0 0 1 11.6 1.46A3.8 3.8 0 0 1 17.5 19z"/><path d="M4 4l16 16"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.5-4M4 5v3.5h3.5M4 13a8 8 0 0 0 14.5 4M20 19v-3.5h-3.5"/></symbol>
+  <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h3M10 12h10M16 8l4 4-4 4"/></symbol>
+</svg>
+
+<div class="phone-frame">
+
+  <!-- ================= PIN SCREEN ================= -->
+  <div id="pin-screen" class="screen active">
+    <div id="pin-content">
+      <div class="dial-wrap">
+        <svg class="dial-svg" id="pin-dial" viewBox="0 0 136 136"></svg>
+        <div class="app-icon-badge" id="app-icon">
+          <img src="icon-192.png" alt="Expense Tracker"
+               onerror="this.remove(); document.getElementById('icon-fallback').style.display='block';">
+          <svg id="icon-fallback" class="ic" style="display:none" viewBox="0 0 24 24"><use href="#i-wallet"/></svg>
+        </div>
+      </div>
+
+      <div class="pin-title">Welcome back</div>
+      <div class="pin-subtitle" id="pin-subtitle">Enter your PIN to unlock your vault</div>
+
+      <div class="pin-error" id="pin-error"></div>
+
+      <div id="keypad-section">
+        <div class="pin-dots" id="pin-dots"></div>
+        <div class="keypad" id="keypad">
+          <button data-key="1">1</button>
+          <button data-key="2">2</button>
+          <button data-key="3">3</button>
+          <button data-key="4">4</button>
+          <button data-key="5">5</button>
+          <button data-key="6">6</button>
+          <button data-key="7">7</button>
+          <button data-key="8">8</button>
+          <button data-key="9">9</button>
+          <button class="key-action" data-key="clear" aria-label="Clear">C</button>
+          <button data-key="0">0</button>
+          <button class="key-action" data-key="back" aria-label="Delete"><svg class="ic"><use href="#i-backspace"/></svg></button>
+        </div>
+      </div>
+
+      <div id="vault-choice-section" class="vault-choice" style="display:none">
+        <p>Open your .fvault file, or continue with cloud sync</p>
+        <button class="pill-btn" id="btn-open-vault"><svg class="ic"><use href="#i-folder"/></svg>Open Existing Vault</button>
+        <button class="pill-btn secondary" id="btn-new-vault"><svg class="ic"><use href="#i-file-plus"/></svg>Create New Vault</button>
+        <div class="choice-or"><span>or</span></div>
+        <button class="pill-btn secondary" id="btn-cloud-vault"><svg class="ic"><use href="#i-cloud"/></svg>Continue with Cloud Sync</button>
+        <button class="link-btn" id="btn-back-to-pin">Back</button>
+      </div>
+
+      <div class="persistence-note" id="persistence-note" style="display:none"></div>
+      <input type="file" id="import-file-input" accept=".fvault" style="display:none">
+    </div>
+  </div>
+
+  <!-- ================= APP SHELL ================= -->
+  <div id="app-screen" class="screen">
+    <div class="topbar">
+      <div class="brand">
+        <div class="greeting-icon"><svg class="ic"><use href="#i-wallet"/></svg></div>
+        <div class="brand-text">
+          <div class="app-name">Expense Tracker</div>
+          <div class="app-tag" id="topbar-date"></div>
+        </div>
+      </div>
+      <div class="top-actions">
+        <button class="icon-btn" id="nav-cloud" title="Cloud sync: off" aria-label="Cloud sync"><svg class="ic"><use href="#i-cloud-off"/></svg></button>
+        <button class="icon-btn" id="nav-settings" title="Settings" aria-label="Settings"><svg class="ic"><use href="#i-sliders"/></svg></button>
+        <button class="icon-btn" id="nav-logout" title="Lock vault" aria-label="Lock vault"><svg class="ic"><use href="#i-lock"/></svg></button>
+      </div>
+    </div>
+
+    <div class="content">
+      <!-- Home page -->
+      <div class="page active" id="page-home">
+        <div class="glass-card hero-card">
+          <div class="hero-label"><svg class="ic"><use href="#i-wallet"/></svg>Net Worth
+            <button class="hero-eye" id="btn-toggle-balances" type="button" aria-label="Show balances" title="Show balances">
+              <svg class="ic"><use href="#i-eye-off"/></svg>
+            </button>
+          </div>
+          <div class="hero-value" id="networth-value">₹ 0</div>
+          <div class="hero-split">
+            <div class="hero-chip">
+              <div class="chip-label"><span class="chip-ic up"><svg class="ic"><use href="#i-arrow-up-right"/></svg></span>Assets</div>
+              <div class="chip-value" id="assets-value">₹ 0</div>
+            </div>
+            <div class="hero-chip">
+              <div class="chip-label"><span class="chip-ic down"><svg class="ic"><use href="#i-arrow-down-left"/></svg></span>Liabilities</div>
+              <div class="chip-value" id="liabilities-value">₹ 0</div>
+            </div>
+          </div>
+          <div class="alloc">
+            <div class="alloc-bar empty" id="alloc-bar"></div>
+            <div class="gauge-legend" id="gauge-legend"></div>
+          </div>
+        </div>
+
+        <div class="section-title">
+          <h3>Recent Accounts</h3>
+          <a href="#" id="view-all-accounts">View all</a>
+        </div>
+        <div id="recent-accounts-list"></div>
+      </div>
+
+      <!-- Transactions page -->
+      <div class="page" id="page-transactions">
+        <div class="page-title">Transactions</div>
+
+        <div class="seg-tabs" id="txn-view-tabs">
+          <div class="seg-tab active" data-view="daily">Daily</div>
+          <div class="seg-tab" data-view="calendar">Calendar</div>
+          <div class="seg-tab" data-view="custom">Custom</div>
+        </div>
+
+        <div class="txn-view active" id="txn-view-daily">
+          <div class="cal-head">
+            <button id="daily-prev" aria-label="Previous day"><svg class="ic"><use href="#i-chev-l"/></svg></button>
+            <span class="cal-month-label" id="daily-date-label"></span>
+            <button id="daily-next" aria-label="Next day"><svg class="ic"><use href="#i-chev-r"/></svg></button>
+          </div>
+          <div id="txn-daily-list"></div>
+        </div>
+
+        <div class="txn-view" id="txn-view-calendar">
+          <div class="cal-head">
+            <button id="cal-prev" aria-label="Previous month"><svg class="ic"><use href="#i-chev-l"/></svg></button>
+            <span class="cal-month-label" id="cal-month-label"></span>
+            <button id="cal-next" aria-label="Next month"><svg class="ic"><use href="#i-chev-r"/></svg></button>
+          </div>
+          <div class="cal-grid" id="cal-grid"></div>
+        </div>
+
+        <div class="txn-view" id="txn-view-custom">
+          <div class="custom-range-row">
+            <div>
+              <span class="field-label">From</span>
+              <input type="date" id="txn-from-date">
+            </div>
+            <div>
+              <span class="field-label">To</span>
+              <input type="date" id="txn-to-date">
+            </div>
+          </div>
+          <div id="txn-custom-list"></div>
+        </div>
+      </div>
+
+      <!-- Accounts page -->
+      <div class="page" id="page-accounts">
+        <div class="page-title">Accounts</div>
+        <div id="accounts-list"></div>
+
+        <div class="section-title" id="credit-billing-title" style="display:none;"><h3><svg class="ic"><use href="#i-card"/></svg>Credit Card Billing</h3></div>
+        <div id="credit-billing-list"></div>
+      </div>
+
+      <!-- Stats page -->
+      <div class="page" id="page-stats">
+        <div class="page-title">Statistics</div>
+
+        <div class="glass-card trend-card">
+          <div class="trend-head">
+            <span class="lbl">Net Worth Trend</span>
+            <span class="range" id="trend-range"></span>
+          </div>
+          <canvas id="trend-canvas"></canvas>
+        </div>
+
+        <div class="section-title"><h3>Breakdown</h3></div>
+        <div id="breakdown-list"></div>
+
+        <div class="section-title"><h3>Spending Analysis</h3></div>
+        <div class="seg-tabs" id="spend-range-tabs">
+          <div class="seg-tab active" data-range="monthly">Monthly</div>
+          <div class="seg-tab" data-range="custom">Custom</div>
+          <div class="seg-tab" data-range="all">All Time</div>
+        </div>
+
+        <div class="cal-head" id="spend-month-nav">
+          <button id="spend-month-prev" aria-label="Previous month"><svg class="ic"><use href="#i-chev-l"/></svg></button>
+          <span class="cal-month-label" id="spend-month-label"></span>
+          <button id="spend-month-next" aria-label="Next month"><svg class="ic"><use href="#i-chev-r"/></svg></button>
+        </div>
+
+        <div class="custom-range-row" id="spend-custom-range" style="display:none;">
+          <div>
+            <span class="field-label">From</span>
+            <input type="date" id="spend-from-date">
+          </div>
+          <div>
+            <span class="field-label">To</span>
+            <input type="date" id="spend-to-date">
+          </div>
+        </div>
+
+        <div class="glass-card spend-total-card">
+          <div>
+            <div class="spend-total-label">Total Spent</div>
+            <div class="spend-total-value" id="spend-total-value">₹ 0</div>
+          </div>
+          <div class="spend-donut-wrap">
+            <svg class="spend-donut-svg" id="spend-donut-svg" viewBox="0 0 120 120"></svg>
+          </div>
+        </div>
+        <div class="spend-donut-legend" id="spend-donut-legend"></div>
+
+        <span class="field-label">Category</span>
+        <select id="spend-category-select"></select>
+
+        <span class="field-label">Sub Category</span>
+        <select id="spend-subcategory-select"></select>
+
+        <div id="spend-analysis-list"></div>
+      </div>
+
+      <!-- Settings page -->
+      <div class="page" id="page-settings">
+        <div class="page-title">Settings</div>
+
+        <div class="settings-group">
+          <div class="glabel">Cloud Sync</div>
+          <div class="settings-note" id="cloud-mode-desc"></div>
+          <div class="glass-card settings-item" id="btn-cloud-sync">
+            <div class="si-ic green"><svg class="ic" id="cloud-sync-ic"><use href="#i-cloud"/></svg></div>
+            <div class="si-text"><div class="t" id="cloud-sync-title">Connect Cloud Sync</div><div class="d" id="cloud-sync-sub"></div></div>
+            <div class="arrow"><svg class="ic"><use href="#i-chev-r"/></svg></div>
+          </div>
+          <div class="glass-card settings-item" id="btn-cloud-disconnect" style="display:none">
+            <div class="si-ic rose"><svg class="ic"><use href="#i-logout"/></svg></div>
+            <div class="si-text"><div class="t">Sign Out of Cloud</div><div class="d">Stop syncing on this device. Your cloud data is kept.</div></div>
+            <div class="arrow"><svg class="ic"><use href="#i-chev-r"/></svg></div>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <div class="glabel">Vault File</div>
+          <div class="settings-note" id="vault-mode-desc"></div>
+          <div class="glass-card settings-item" id="btn-save-copy">
+            <div class="si-ic"><svg class="ic"><use href="#i-download"/></svg></div>
+            <div class="si-text"><div class="t">Save a Copy Now</div><div class="d">Force-save the current vault state</div></div>
+            <div class="arrow"><svg class="ic"><use href="#i-chev-r"/></svg></div>
+          </div>
+          <div class="glass-card settings-item" id="btn-switch-vault">
+            <div class="si-ic blue"><svg class="ic"><use href="#i-upload"/></svg></div>
+            <div class="si-text"><div class="t">Switch Vault</div><div class="d">Open or import a different .fvault file</div></div>
+            <div class="arrow"><svg class="ic"><use href="#i-chev-r"/></svg></div>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <div class="glabel">Categories</div>
+          <div class="seg-tabs" id="cat-manage-tabs">
+            <div class="seg-tab active" data-cattype="expense">Expense</div>
+            <div class="seg-tab" data-cattype="income">Income</div>
+          </div>
+          <div class="cal-head" id="budget-month-nav" style="display:none;">
+            <button id="budget-prev" aria-label="Previous month"><svg class="ic"><use href="#i-chev-l"/></svg></button>
+            <span class="cal-month-label" id="budget-month-label"></span>
+            <button id="budget-next" aria-label="Next month"><svg class="ic"><use href="#i-chev-r"/></svg></button>
+          </div>
+          <div id="cat-manage-list"></div>
+          <button class="secondary-btn add-cat-btn" id="btn-add-category"><svg class="ic"><use href="#i-plus"/></svg>Add Category</button>
+        </div>
+
+        <div class="settings-group">
+          <div class="glabel">Session</div>
+          <div class="glass-card settings-item" id="btn-lock-now">
+            <div class="si-ic rose"><svg class="ic"><use href="#i-lock"/></svg></div>
+            <div class="si-text"><div class="t">Lock Vault</div><div class="d">Require PIN to continue</div></div>
+            <div class="arrow"><svg class="ic"><use href="#i-chev-r"/></svg></div>
+          </div>
+        </div>
+
+        <div class="settings-footer">Expense Tracker · nothing stored in the browser · AES-256-GCM</div>
+      </div>
+    </div>
+
+    <nav class="bottom-nav">
+      <button class="nav-item active-nav" data-page="home">
+        <span class="nav-ico"><svg class="ic"><use href="#i-home"/></svg></span><span>Home</span>
+      </button>
+      <button class="nav-item" data-page="transactions">
+        <span class="nav-ico"><svg class="ic"><use href="#i-receipt"/></svg></span><span>Activity</span>
+      </button>
+      <button class="fab" id="fab-add" aria-label="Add"><svg class="ic"><use href="#i-plus"/></svg></button>
+      <button class="nav-item" data-page="accounts">
+        <span class="nav-ico"><svg class="ic"><use href="#i-wallet"/></svg></span><span>Accounts</span>
+      </button>
+      <button class="nav-item" data-page="stats">
+        <span class="nav-ico"><svg class="ic"><use href="#i-chart"/></svg></span><span>Stats</span>
+      </button>
+    </nav>
+  </div>
+</div>
+
+<!-- Add Account bottom sheet -->
+<div class="sheet-backdrop" id="sheet-backdrop"></div>
+<div class="bottom-sheet" id="add-sheet">
+  <div class="sheet-handle"></div>
+  <h3 id="acc-sheet-title">Add Account</h3>
+
+  <span class="field-label">Account Name</span>
+  <input type="text" id="acc-name" placeholder="e.g. HDFC Savings" autocomplete="off">
+
+  <span class="field-label">Account Type</span>
+  <div class="type-chips" id="acc-type-chips">
+    <div class="chip selected" data-type="bank"><svg class="ic"><use href="#i-bank"/></svg>Bank</div>
+    <div class="chip" data-type="credit"><svg class="ic"><use href="#i-card"/></svg>Credit</div>
+    <div class="chip" data-type="investment"><svg class="ic"><use href="#i-trend"/></svg>Invest</div>
+  </div>
+
+  <span class="field-label" id="acc-balance-label">Initial Balance</span>
+  <input type="text" id="acc-balance" placeholder="0.00" inputmode="decimal">
+
+  <div id="acc-credit-fields" style="display:none;">
+    <span class="field-label">Bill Date (day of month)</span>
+    <input type="number" id="acc-bill-date" placeholder="e.g. 5" min="1" max="31" inputmode="numeric">
+
+    <span class="field-label">Due Date (day of month)</span>
+    <input type="number" id="acc-due-date" placeholder="e.g. 25" min="1" max="31" inputmode="numeric">
+  </div>
+
+  <button class="primary-btn" id="btn-add-account">Add Account</button>
+</div>
+
+<div class="bottom-sheet" id="add-txn-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-top-row">
+    <h3 id="txn-sheet-title">Add Transaction</h3>
+    <button class="icon-btn" id="btn-close-txn-sheet" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
+  </div>
+
+  <div class="seg-tabs" id="txn-type-tabs">
+    <div class="seg-tab" data-ttype="income">Income</div>
+    <div class="seg-tab active" data-ttype="expense">Expense</div>
+    <div class="seg-tab" data-ttype="transfer">Transfer</div>
+  </div>
+
+  <div id="txn-fields-standard">
+    <span class="field-label">Amount</span>
+    <div class="amount-wrap"><input type="text" inputmode="decimal" id="txn-amount" placeholder="0.00" autocomplete="off"></div>
+    <div class="custom-range-row sheet-row">
+      <div>
+        <span class="field-label">Date</span>
+        <input type="date" id="txn-date">
+      </div>
+      <div>
+        <span class="field-label">Time</span>
+        <input type="time" id="txn-time">
+      </div>
+    </div>
+    <span class="field-label">Category</span>
+    <select id="txn-category"></select>
+    <span class="field-label">Sub Category</span>
+    <select id="txn-subcategory"></select>
+    <span class="field-label">Account</span>
+    <select id="txn-account"></select>
+    <span class="field-label">Notes</span>
+    <input type="text" id="txn-notes" placeholder="Optional note" list="txn-notes-suggestions" autocomplete="off">
+    <datalist id="txn-notes-suggestions"></datalist>
+  </div>
+
+  <div id="txn-fields-transfer" style="display:none;">
+    <span class="field-label">Amount</span>
+    <div class="amount-wrap"><input type="text" inputmode="decimal" id="txn-t-amount" placeholder="0.00" autocomplete="off"></div>
+    <div class="custom-range-row sheet-row">
+      <div>
+        <span class="field-label">Date</span>
+        <input type="date" id="txn-t-date">
+      </div>
+      <div>
+        <span class="field-label">Time</span>
+        <input type="time" id="txn-t-time">
+      </div>
+    </div>
+    <span class="field-label">From Account</span>
+    <select id="txn-from-account"></select>
+    <span class="field-label">To Account</span>
+    <select id="txn-to-account"></select>
+    <span class="field-label">Notes</span>
+    <input type="text" id="txn-t-notes" placeholder="Optional note" autocomplete="off">
+  </div>
+
+  <div class="sheet-btn-row">
+    <button class="secondary-btn" id="btn-txn-continue">Save &amp; Continue</button>
+    <button class="primary-btn" id="btn-txn-save">Save</button>
+  </div>
+</div>
+
+<div class="bottom-sheet" id="input-sheet">
+  <div class="sheet-handle"></div>
+  <h3 id="input-sheet-title">Add Category</h3>
+  <input type="text" id="input-sheet-field" placeholder="Name" autocomplete="off">
+  <button class="primary-btn" id="input-sheet-save">Save</button>
+</div>
+
+<div class="bottom-sheet" id="txn-detail-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-top-row">
+    <h3>Transaction Details</h3>
+    <button class="icon-btn" id="btn-close-txn-detail-sheet" aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
+  </div>
+  <div id="txn-detail-body"></div>
+  <div class="sheet-btn-row">
+    <button class="primary-btn" id="btn-edit-txn">Edit Transaction</button>
+  </div>
+</div>
+
+<!-- PWA install banner -->
+<div id="install-banner">
+  <div class="ib-icon"><svg class="ic"><use href="#i-wallet"/></svg></div>
+  <div class="ib-text">
+    <div class="ib-title">Install Expense Tracker</div>
+    <div class="ib-sub">Add to home screen &mdash; works offline</div>
+  </div>
+  <button class="ib-install" id="ib-install">Install</button>
+  <button class="ib-dismiss" id="ib-dismiss" aria-label="Dismiss"><svg class="ic"><use href="#i-x"/></svg></button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---------------------------------------------------------------
+  // Config
+  // ---------------------------------------------------------------
+  const MASTER_PIN = "981330";
+  const FVAULT_TYPES = [{
+    description: "Expense Vault",
+    accept: { "application/octet-stream": [".fvault"] }
+  }];
+  const TYPE_ICON = { bank: "bank", credit: "card", investment: "trend" };   // sprite icon names
+  const TYPE_COLOR = { bank: "#FFB547", investment: "#8C9EFF", credit: "#FF6F7D" };
+
+  // Inline SVG icon from the sprite defined at the top of <body>.
+  function icon(name) {
+    return `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-${name}"/></svg>`;
+  }
+  function typeIcon(type) {
+    return icon(TYPE_ICON[type] || "wallet");
+  }
+  // Strips status emojis from messages; the UI shows an icon instead.
+  function cleanMsg(msg) {
+    return String(msg).replace(/[✅❌⚠]\uFE0F?/g, "").replace(/\s{2,}/g, " ").trim();
+  }
+
+  // ---------------------------------------------------------------
+  // State
+  // ---------------------------------------------------------------
+  let pinBuffer = "";
+  let fileHandle = null;         // FileSystemFileHandle for the open .fvault (desktop Chrome/Edge only)
+  let appData = null;            // decrypted app data (only in memory while unlocked)
+  let lastEncryptedText = null;  // most recent encrypted payload, for manual "Save a Copy"
+  let selectedType = "bank";
+  let hasFSAccess = !!(window.showOpenFilePicker && window.showSaveFilePicker);
+  let currentPage = "home";
+  let txnFormType = "expense";
+  let catManageType = "expense";
+  let calendarCursor = new Date();
+  let dailyCursor = new Date();
+  let budgetCursor = new Date();
+  let spendRangeMode = "monthly";
+  let spendMonthCursor = new Date();
+  let spendSelectedCategory = null;
+  let spendSelectedSubcategory = "";
+  let inputSheetContext = null;
+  let editingTxnId = null;
+  let currentDetailTxnId = null;
+  let editingAccountId = null;
+
+  // ---------------------------------------------------------------
+  // Elements
+  // ---------------------------------------------------------------
+  const pinScreen = document.getElementById("pin-screen");
+  const appScreen = document.getElementById("app-screen");
+  const pinContent = document.getElementById("pin-content");
+  const pinDial = document.getElementById("pin-dial");
+  const pinDots = document.getElementById("pin-dots");
+  const pinError = document.getElementById("pin-error");
+  const pinSubtitle = document.getElementById("pin-subtitle");
+  const keypadSection = document.getElementById("keypad-section");
+  const vaultChoiceSection = document.getElementById("vault-choice-section");
+  const persistenceNote = document.getElementById("persistence-note");
+  const importFileInput = document.getElementById("import-file-input");
+  const toast = document.getElementById("toast");
+  const fab = document.getElementById("fab-add");
+  const sheetBackdrop = document.getElementById("sheet-backdrop");
+  const addSheet = document.getElementById("add-sheet");
+  const addTxnSheet = document.getElementById("add-txn-sheet");
+  const inputSheet = document.getElementById("input-sheet");
+  const txnDetailSheet = document.getElementById("txn-detail-sheet");
+
+  if (!hasFSAccess) {
+    persistenceNote.style.display = "block";
+    persistenceNote.textContent = "Your browser (e.g. Chrome on Android) can't save files directly. " +
+      "Use Cloud Sync to keep your vault backed up automatically. Without it, every change downloads a fresh .fvault copy.";
+  }
+
+  document.getElementById("topbar-date").textContent = formatDate(new Date());
+
+  // ---------------------------------------------------------------
+  // Helpers
+  // ---------------------------------------------------------------
+  function showToast(msg, isError, duration = 2200) {
+    toast.innerHTML = `<span class="toast-ic">${icon(isError ? "alert" : "check-circle")}</span><span>${escapeHtml(cleanMsg(msg))}</span>`;
+    toast.className = "toast show" + (isError ? " error" : "");
+    setTimeout(() => { toast.className = "toast"; }, duration);
+  }
+
+  function formatINR(amount) {
+    const num = Number(amount) || 0;
+    const sign = num < 0 ? "-" : "";
+    const abs = Math.abs(num);
+    const isInt = Number.isInteger(abs);
+    const formatted = abs.toLocaleString("en-IN", {
+      minimumFractionDigits: isInt ? 0 : 2,
+      maximumFractionDigits: 2
+    });
+    return `₹ ${sign}${formatted}`;
+  }
+
+  function formatDate(input) {
+    if (typeof input === "string" && /^\d{4}-\d{2}-\d{2}$/.test(input)) {
+      const [yyyy, mm, dd] = input.split("-");
+      return `${dd}/${mm}/${yyyy}`;
+    }
+    const d = new Date(input);
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const yyyy = d.getFullYear();
+    return `${dd}/${mm}/${yyyy}`;
+  }
+
+  function formatDateTime(input) {
+    const d = new Date(input);
+    const time = d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+    return `${formatDate(d)}, ${time}`;
+  }
+
+  function b64FromBytes(bytes) {
+    let binary = "";
+    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+    return btoa(binary);
+  }
+
+  function bytesFromB64(b64) {
+    const binary = atob(b64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return bytes;
+  }
+
+  function defaultAppData() {
+    return {
+      version: 1,
+      createdAt: new Date().toISOString(),
+      loginLogs: [],
+      accounts: [],
+      history: [],
+      transactions: [],
+      categories: { income: [], expense: [] },
+      budgets: {}
+    };
+  }
+
+  function migrateAppData(data) {
+    if (!data.history) data.history = [];
+    if (!data.transactions) data.transactions = [];
+    if (!data.categories) data.categories = { income: [], expense: [] };
+    if (!data.categories.income) data.categories.income = [];
+    if (!data.categories.expense) data.categories.expense = [];
+    if (!data.budgets) data.budgets = {};
+  }
+
+  function getCategoryList(type) {
+    return appData.categories[type === "income" ? "income" : "expense"];
+  }
+
+  // ---------------------------------------------------------------
+  // Subcategory budgets (expense-only, per calendar month)
+  // ---------------------------------------------------------------
+  function budgetKeyOf(catName, subName) {
+    return `${catName}||${subName}`;
+  }
+
+  function budgetMonthKey() {
+    return `${budgetCursor.getFullYear()}-${String(budgetCursor.getMonth() + 1).padStart(2, "0")}`;
+  }
+
+  function budgetMonthLabel() {
+    return budgetCursor.toLocaleDateString(undefined, { month: "short", year: "numeric" });
+  }
+
+  function getBudgetLimit(monthKey, catName, subName) {
+    const m = appData.budgets[monthKey];
+    if (!m) return null;
+    const v = m[budgetKeyOf(catName, subName)];
+    return (typeof v === "number" && !isNaN(v) && v > 0) ? v : null;
+  }
+
+  function setBudgetLimit(monthKey, catName, subName, value) {
+    if (!appData.budgets[monthKey]) appData.budgets[monthKey] = {};
+    const key = budgetKeyOf(catName, subName);
+    if (value === null) delete appData.budgets[monthKey][key];
+    else appData.budgets[monthKey][key] = value;
+  }
+
+  function sumExpenseForSubcategoryMonth(monthKey, catName, subName) {
+    return appData.transactions
+      .filter(t => t.type === "expense" && t.category === catName && (t.subcategory || "") === subName && typeof t.date === "string" && t.date.slice(0, 7) === monthKey)
+      .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+  }
+
+  function checkBudgetWarning(catName, subName, monthKey) {
+    if (!subName || !monthKey) return null;
+    const limit = getBudgetLimit(monthKey, catName, subName);
+    if (limit === null) return null;
+    const spent = sumExpenseForSubcategoryMonth(monthKey, catName, subName);
+    const ratio = spent / limit;
+    if (ratio >= 1) {
+      return { final: true, msg: `Final warning: "${subName}" limit reached (${formatINR(spent)} of ${formatINR(limit)})` };
+    }
+    if (ratio >= 0.8) {
+      return { final: false, msg: `80% of "${subName}" budget used (${formatINR(spent)} of ${formatINR(limit)})` };
+    }
+    return null;
+  }
+
+  function todayISO() {
+    return new Date().toISOString().slice(0, 10);
+  }
+
+  function recordSnapshot() {
+    if (!appData.history) appData.history = [];
+    const totals = computeTotals();
+    const t = todayISO();
+    const existing = appData.history.find(h => h.date === t);
+    if (existing) {
+      existing.assets = totals.assets;
+      existing.liabilities = totals.liabilities;
+      existing.networth = totals.networth;
+    } else {
+      appData.history.push({ date: t, assets: totals.assets, liabilities: totals.liabilities, networth: totals.networth });
+    }
+    appData.history.sort((a, b) => a.date.localeCompare(b.date));
+    if (appData.history.length > 365) appData.history = appData.history.slice(-365);
+  }
+
+  // ---------------------------------------------------------------
+  // Crypto (AES-GCM, key derived from the fixed PIN via PBKDF2)
+  // ---------------------------------------------------------------
+  async function deriveKey(pin, salt) {
+    const enc = new TextEncoder();
+    const keyMaterial = await crypto.subtle.importKey(
+      "raw", enc.encode(pin), "PBKDF2", false, ["deriveKey"]
+    );
+    return crypto.subtle.deriveKey(
+      { name: "PBKDF2", salt, iterations: 150000, hash: "SHA-256" },
+      keyMaterial,
+      { name: "AES-GCM", length: 256 },
+      false,
+      ["encrypt", "decrypt"]
+    );
+  }
+
+  async function encryptAppData(data, pin) {
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const key = await deriveKey(pin, salt);
+    const enc = new TextEncoder();
+    const plaintext = enc.encode(JSON.stringify(data));
+    const ciphertext = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, plaintext);
+    return JSON.stringify({
+      format: "fvault",
+      version: 1,
+      salt: b64FromBytes(salt),
+      iv: b64FromBytes(iv),
+      data: b64FromBytes(new Uint8Array(ciphertext))
+    });
+  }
+
+  async function decryptEnvelopeText(text, pin) {
+    const envelope = JSON.parse(text);
+    const salt = bytesFromB64(envelope.salt);
+    const iv = bytesFromB64(envelope.iv);
+    const ciphertext = bytesFromB64(envelope.data);
+    const key = await deriveKey(pin, salt);
+    const plainBuf = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, ciphertext);
+    return JSON.parse(new TextDecoder().decode(plainBuf));
+  }
+
+  // ---------------------------------------------------------------
+  // Firebase cloud sync (Google sign-in + Firestore)
+  //
+  // Setup:
+  //  1. Host this app on https:// (e.g. GitHub Pages) - Google sign-in popups
+  //     do not work on file:// or plain http.
+  //  2. Firebase console -> create a project, enable Authentication -> Google,
+  //     and create a Firestore database.
+  //  3. Project settings -> Your apps -> Web app -> paste the config values below.
+  //  4. Authentication -> Settings -> Authorized domains -> add your GitHub Pages domain.
+  //  5. Firestore rules (per-record sync lives under expense_vaults/{uid}/records):
+  //       match /expense_vaults/{uid} { allow read: if request.auth.uid == uid; }
+  //       match /expense_vaults/{uid}/records/{id} { allow read, write: if request.auth.uid == uid; }
+  //
+  // Incremental sync: every account, transaction, category list, monthly budget
+  // and daily snapshot is its own AES-GCM encrypted Firestore document
+  // (expense_vaults/{uid}/records/{hashedId}). Only records that changed are
+  // uploaded, and other devices receive changes live. Account balances are
+  // derived (opening balance + transactions) so concurrent edits on two
+  // devices add up instead of overwriting each other.
+  // The pre-incremental single document expense_vaults/{uid} is read once to
+  // migrate old vaults and is never modified.
+  // ---------------------------------------------------------------
+  const FIREBASE_CONFIG = {
+    apiKey: "AIzaSyB0N3pSnCRXns0Pvq8pdV3UpjwqZZWoVeA",
+    authDomain: "monthlyexpensetracker-532a2.firebaseapp.com",
+    projectId: "monthlyexpensetracker-532a2",
+    appId: "1:64087067934:web:9546c8e2a218d96c6c4d0f"
+  };
+  const CLOUD_COLLECTION = "expense_vaults";
+  const CLOUD_TIMEOUT_MS = 15000;
+
+  let fbAuth = null;
+  let fbDb = null;
+  let cloudUser = null;            // signed-in Google user (persisted by Firebase between visits)
+  let cloudActive = false;         // true while this vault is being synced to the cloud
+  let cloudState = "off";          // off | idle | syncing | error
+  let cloudPushSeq = 0;
+  let authReady = Promise.resolve();
+  let cloudAttached = false;       // initial cloud load finished; safe to upload/merge records
+  let cloudShadow = new Map();     // record id -> JSON last known to be in the cloud
+  let cloudUnsub = null;           // Firestore live-listener unsubscribe
+  let cloudGate = Promise.resolve();
+  let cloudOpenGate = () => {};
+  let cloudInbox = Promise.resolve();      // serialises incoming remote snapshots
+  let cloudFlushChain = Promise.resolve(); // serialises outgoing change batches
+  let cloudKeyCache = null;
+  let cloudCacheUid = null;
+  const cloudDocIds = new Map();   // record id -> hashed document id
+  const cloudRidOfDoc = new Map(); // hashed document id -> record id
+
+  if (window.firebase && FIREBASE_CONFIG.apiKey.indexOf("PASTE_YOUR") === -1) {
+    try {
+      firebase.initializeApp(FIREBASE_CONFIG);
+      fbAuth = firebase.auth();
+      fbDb = firebase.firestore();
+      // Offline cache: fast unlocks, cheap reads, and edits queue while offline.
+      fbDb.enablePersistence({ synchronizeTabs: true }).catch(() => { /* unsupported / other tab: fine */ });
+      authReady = new Promise(resolve => {
+        fbAuth.onAuthStateChanged(user => {
+          cloudUser = user;
+          if (!user && cloudActive) { cloudActive = false; cloudAttached = false; cloudStop(); cloudState = "off"; }
+          updateCloudUi();
+          resolve();
+        });
+      });
+    } catch (e) {
+      fbAuth = null;
+      fbDb = null;
+    }
+  }
+
+  function withTimeout(promise, ms) {
+    return Promise.race([
+      promise,
+      new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), ms))
+    ]);
+  }
+
+  function vaultStamp(data) {
+    return (data && (data.updatedAt || data.createdAt)) || "";
+  }
+
+  function setCloudState(state) {
+    cloudState = state;
+    updateCloudUi();
+  }
+
+  function updateCloudUi() {
+    const btn = document.getElementById("nav-cloud");
+    if (!btn) return;
+    btn.classList.toggle("connected", cloudState === "idle");
+    btn.classList.toggle("syncing", cloudState === "syncing");
+    btn.classList.toggle("error", cloudState === "error");
+    btn.querySelector("use").setAttribute("href", cloudState === "off" ? "#i-cloud-off" : "#i-cloud");
+    const label = {
+      off: "Cloud sync: off",
+      idle: "Cloud sync: connected",
+      syncing: "Cloud sync: syncing",
+      error: "Cloud sync: last sync failed"
+    }[cloudState];
+    btn.title = label;
+    btn.setAttribute("aria-label", label);
+
+    const title = document.getElementById("cloud-sync-title");
+    const sub = document.getElementById("cloud-sync-sub");
+    const desc = document.getElementById("cloud-mode-desc");
+    const disconnect = document.getElementById("btn-cloud-disconnect");
+    if (!title || !sub || !desc || !disconnect) return;
+
+    document.getElementById("cloud-sync-ic").querySelector("use")
+      .setAttribute("href", cloudActive ? "#i-refresh" : "#i-cloud");
+    disconnect.style.display = cloudUser ? "" : "none";
+    const who = cloudUser && (cloudUser.email || cloudUser.displayName) ? (cloudUser.email || cloudUser.displayName) : "your Google account";
+
+    if (!fbAuth) {
+      title.textContent = "Cloud Sync Unavailable";
+      sub.textContent = "Firebase isn't configured in this build, or couldn't load (offline?)";
+      desc.textContent = "Cloud sync stores an encrypted copy of your vault in your own Firebase project.";
+    } else if (cloudActive) {
+      title.textContent = "Sync Now";
+      sub.textContent = cloudState === "syncing" ? "Syncing..."
+        : cloudState === "error" ? "Last sync failed - tap to retry"
+        : "Connected as " + who;
+      desc.textContent = "Only the records you change are encrypted and synced, and other devices update live.";
+    } else {
+      title.textContent = "Connect Cloud Sync";
+      sub.textContent = cloudState === "syncing" ? "Connecting..."
+        : cloudUser ? "Signed in as " + who + " - tap to turn sync on"
+        : "Sign in with Google to back up and sync this vault";
+      desc.textContent = "Cloud sync keeps an encrypted copy of your vault in the cloud so it is available, and stays in step, on all your devices.";
+    }
+  }
+
+  async function ensureCloudUser() {
+    if (!fbAuth) throw new Error("not-configured");
+    await authReady;
+    if (cloudUser) return cloudUser;
+    const result = await fbAuth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
+    cloudUser = result.user;
+    return cloudUser;
+  }
+
+  // ---------- Per-record encryption ----------
+  function round6(n) {
+    return Math.round(n * 1e6) / 1e6;
+  }
+
+  function stableStringify(v) {
+    if (v === null || typeof v !== "object") return JSON.stringify(v);
+    if (Array.isArray(v)) return "[" + v.map(stableStringify).join(",") + "]";
+    return "{" + Object.keys(v).sort()
+      .filter(k => v[k] !== undefined)
+      .map(k => JSON.stringify(k) + ":" + stableStringify(v[k]))
+      .join(",") + "}";
+  }
+
+  function cloudRecordsRef() {
+    return fbDb.collection(CLOUD_COLLECTION).doc(cloudUser.uid).collection("records");
+  }
+
+  // One key per session: PBKDF2 runs once, not once per record. The salt is derived from the uid.
+  async function cloudKey() {
+    if (cloudKeyCache) return cloudKeyCache;
+    const enc = new TextEncoder();
+    const digest = await crypto.subtle.digest("SHA-256", enc.encode("expense-vault-salt:" + cloudUser.uid));
+    cloudKeyCache = deriveKey(MASTER_PIN, new Uint8Array(digest).slice(0, 16));
+    return cloudKeyCache;
+  }
+
+  // Hashed document ids keep record kinds and creation times out of the Firestore paths.
+  async function docIdFor(rid) {
+    let id = cloudDocIds.get(rid);
+    if (id) return id;
+    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("expense-doc:" + cloudUser.uid + ":" + rid));
+    id = Array.from(new Uint8Array(buf).slice(0, 16), b => b.toString(16).padStart(2, "0")).join("");
+    cloudDocIds.set(rid, id);
+    cloudRidOfDoc.set(id, rid);
+    return id;
+  }
+
+  async function encryptRecord(docId, json) {
+    const key = await cloudKey();
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const enc = new TextEncoder();
+    const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv, additionalData: enc.encode(docId) }, key, enc.encode(json));
+    return { v: 1, iv: b64FromBytes(iv), data: b64FromBytes(new Uint8Array(ct)) };
+  }
+
+  async function decryptRecordDoc(docId, obj) {
+    const key = await cloudKey();
+    const enc = new TextEncoder();
+    const plain = await crypto.subtle.decrypt(
+      { name: "AES-GCM", iv: bytesFromB64(obj.iv), additionalData: enc.encode(docId) },
+      key,
+      bytesFromB64(obj.data)
+    );
+    const json = new TextDecoder().decode(plain);
+    const rec = JSON.parse(json);
+    cloudDocIds.set(rec.i, docId);
+    cloudRidOfDoc.set(docId, rec.i);
+    return { rec, json };
+  }
+
+  // ---------- Vault <-> records ----------
+  function accountEffects() {
+    const eff = new Map();
+    const add = (id, v) => eff.set(id, (eff.get(id) || 0) + v);
+    for (const t of appData.transactions) {
+      const amt = Number(t.amount) || 0;
+      if (t.type === "transfer") { add(t.fromAccountId, -amt); add(t.toAccountId, amt); }
+      else if (t.type === "income") add(t.accountId, amt);
+      else if (t.type === "expense") add(t.accountId, -amt);
+    }
+    return eff;
+  }
+
+  // Snapshot of the whole vault as record id -> JSON string (taken synchronously, immune to later edits).
+  // Balances are stored as an opening balance so they can be re-derived from transactions on any device.
+  function collectRecordJson() {
+    const out = new Map();
+    const put = (rid, type, d) => out.set(rid, stableStringify({ i: rid, t: type, d }));
+    const eff = accountEffects();
+    for (const a of appData.accounts) {
+      const d = Object.assign({}, a);
+      d.openingBalance = round6((Number(a.balance) || 0) - (eff.get(a.id) || 0));
+      delete d.balance;
+      put("a_" + a.id, "acc", d);
+    }
+    for (const t of appData.transactions) put("t_" + t.id, "txn", t);
+    for (const kind of ["income", "expense"]) put("c_" + kind, "cat", { kind, list: appData.categories[kind] });
+    for (const month of Object.keys(appData.budgets)) put("b_" + month, "bud", { month, limits: appData.budgets[month] });
+    for (const h of appData.history) put("s_" + h.date, "snap", h);
+    put("m", "meta", {
+      createdAt: appData.createdAt,
+      version: appData.version,
+      loginLogs: (appData.loginLogs || []).slice(-100)
+    });
+    return out;
+  }
+
+  // Merge records received from the cloud into appData (in place) and re-derive balances.
+  function applyRecords(items, removedRids) {
+    const eff0 = accountEffects();
+    const opening = new Map();
+    for (const a of appData.accounts) opening.set(a.id, round6((Number(a.balance) || 0) - (eff0.get(a.id) || 0)));
+    const accs = new Map(appData.accounts.map(a => [a.id, a]));
+    const txns = new Map(appData.transactions.map(t => [t.id, t]));
+    const hist = new Map(appData.history.map(h => [h.date, h]));
+
+    for (const rid of removedRids) {
+      if (rid.startsWith("a_")) { const id = Number(rid.slice(2)); accs.delete(id); opening.delete(id); }
+      else if (rid.startsWith("t_")) txns.delete(Number(rid.slice(2)));
+      else if (rid.startsWith("b_")) delete appData.budgets[rid.slice(2)];
+      cloudShadow.delete(rid);
+    }
+
+    for (const { rec, json } of items) {
+      const d = rec.d;
+      if (rec.t === "acc") {
+        const acc = Object.assign({}, d);
+        opening.set(acc.id, Number(acc.openingBalance) || 0);
+        delete acc.openingBalance;
+        acc.balance = 0;
+        accs.set(acc.id, acc);
+      } else if (rec.t === "txn") {
+        txns.set(d.id, d);
+      } else if (rec.t === "cat") {
+        appData.categories[d.kind] = d.list || [];
+      } else if (rec.t === "bud") {
+        appData.budgets[d.month] = d.limits || {};
+      } else if (rec.t === "snap") {
+        hist.set(d.date, d);
+      } else if (rec.t === "meta") {
+        if (d.createdAt && (!appData.createdAt || d.createdAt < appData.createdAt)) appData.createdAt = d.createdAt;
+        const logs = new Set([...(appData.loginLogs || []), ...(d.loginLogs || [])]);
+        appData.loginLogs = [...logs].sort().slice(-100);
+      }
+      cloudShadow.set(rec.i, json);
+    }
+
+    appData.accounts = [...accs.values()].sort((a, b) => a.id - b.id);
+    appData.transactions = [...txns.values()].sort((a, b) => a.id - b.id);
+    appData.history = [...hist.values()].sort((a, b) => a.date.localeCompare(b.date)).slice(-365);
+    const eff = accountEffects();
+    for (const a of appData.accounts) a.balance = round6((opening.get(a.id) || 0) + (eff.get(a.id) || 0));
+  }
+
+  // ---------- Live listener ----------
+  function cloudStop() {
+    if (cloudUnsub) { cloudUnsub(); cloudUnsub = null; }
+    cloudOpenGate();
+  }
+
+  // Resolves with the first usable snapshot; later snapshots are merged as they arrive.
+  function cloudSubscribe() {
+    cloudStop();
+    cloudGate = new Promise(resolve => { cloudOpenGate = resolve; });
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      const timer = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        cloudStop();
+        reject(new Error("timeout"));
+      }, CLOUD_TIMEOUT_MS);
+      cloudUnsub = cloudRecordsRef().onSnapshot(snap => {
+        if (!settled) {
+          if (snap.empty && snap.metadata.fromCache) return; // empty cache says nothing - wait for the server
+          settled = true;
+          clearTimeout(timer);
+          resolve(snap);
+          return;
+        }
+        cloudInbox = cloudInbox
+          .then(() => cloudGate)
+          .then(() => applyRemoteSnapshot(snap))
+          .catch(() => setCloudState("error"));
+      }, err => {
+        if (!settled) { settled = true; clearTimeout(timer); reject(err); }
+        else setCloudState("error");
+      });
+    });
+  }
+
+  function refreshAfterRemote() {
+    renderAccounts();
+    updateTotals();
+    if (currentPage === "stats") renderStats();
+    if (currentPage === "settings") renderCatSettings();
+    refreshActiveTxnView();
+  }
+
+  async function applyRemoteSnapshot(snap) {
+    if (!appData || !cloudActive || !cloudAttached) return;
+    const items = [];
+    const removed = [];
+    for (const ch of snap.docChanges()) {
+      if (ch.type === "removed") {
+        const rid = cloudRidOfDoc.get(ch.doc.id);
+        if (rid && cloudShadow.has(rid)) removed.push(rid);
+        continue;
+      }
+      if (ch.doc.metadata.hasPendingWrites) continue; // our own write echoing back
+      const item = await decryptRecordDoc(ch.doc.id, ch.doc.data());
+      if (cloudShadow.get(item.rec.i) !== item.json) items.push(item);
+    }
+    if (!appData || (!items.length && !removed.length)) return;
+    applyRecords(items, removed);
+    refreshAfterRemote();
+    showToast("Updated from cloud");
+  }
+
+  // ---------- Upload ----------
+  async function cloudQueueChanges(current) {
+    if (!cloudAttached || !cloudActive || !cloudUser) return [];
+    const writes = [];
+    const deletes = [];
+    for (const [rid, json] of current) if (cloudShadow.get(rid) !== json) writes.push([rid, json]);
+    // Old daily snapshots rolling off the 365-day window are kept in the cloud, never deleted.
+    for (const rid of cloudShadow.keys()) if (!current.has(rid) && !rid.startsWith("s_")) deletes.push(rid);
+    if (!writes.length && !deletes.length) return [];
+
+    const ref = cloudRecordsRef();
+    const ops = [];
+    for (const [rid, json] of writes) {
+      const docId = await docIdFor(rid);
+      ops.push({ del: false, rid, json, ref: ref.doc(docId), data: await encryptRecord(docId, json) });
+    }
+    for (const rid of deletes) ops.push({ del: true, rid, ref: ref.doc(await docIdFor(rid)) });
+    for (const op of ops) {
+      if (op.del) cloudShadow.delete(op.rid);
+      else cloudShadow.set(op.rid, op.json);
+    }
+
+    const commits = [];
+    for (let i = 0; i < ops.length; i += 400) {
+      const chunk = ops.slice(i, i + 400);
+      const batch = fbDb.batch();
+      for (const op of chunk) {
+        if (op.del) batch.delete(op.ref);
+        else batch.set(op.ref, op.data);
+      }
+      commits.push(batch.commit().catch(err => {
+        // Forget what we assumed was uploaded so the next save retries it.
+        for (const op of chunk) {
+          if (op.del) cloudShadow.set(op.rid, "?");
+          else cloudShadow.delete(op.rid);
+        }
+        throw err;
+      }));
+    }
+    return commits;
+  }
+
+  // Fire-and-forget so the UI never waits on the network; the status icon shows progress.
+  function pushToCloud() {
+    if (!cloudAttached) return;
+    const current = collectRecordJson();
+    const seq = ++cloudPushSeq;
+    setCloudState("syncing");
+    const queued = cloudFlushChain.then(() => cloudQueueChanges(current));
+    cloudFlushChain = queued.catch(() => {});
+    queued.then(commits => Promise.all(commits)).then(() => {
+      if (seq === cloudPushSeq && cloudState !== "error") setCloudState("idle");
+    }).catch(() => {
+      setCloudState("error");
+      showToast("Cloud sync failed - it will retry on the next change", true);
+    });
+  }
+
+  // ---------- Attach / migrate ----------
+  async function migrateLegacyCloudVault() {
+    let text = null;
+    try {
+      const snap = await withTimeout(fbDb.collection(CLOUD_COLLECTION).doc(cloudUser.uid).get(), CLOUD_TIMEOUT_MS);
+      text = snap.exists ? (snap.data().content || null) : null;
+    } catch (e) {
+      if (e && e.code === "permission-denied") return; // rules only cover the records path: no legacy copy
+      e.stage = "download";
+      throw e;
+    }
+    if (!text) return;
+    const old = await decryptEnvelopeText(text, MASTER_PIN);
+    const localEmpty = !appData.accounts.length && !appData.transactions.length;
+    if (localEmpty || vaultStamp(old) > vaultStamp(appData)) appData = old;
+  }
+
+  // Connect appData (already set by the caller) to the cloud: load records, merge them in
+  // (cloud wins when the same record exists on both sides), then keep listening for changes.
+  async function cloudAttach() {
+    cloudAttached = false;
+    if (cloudCacheUid !== cloudUser.uid) {
+      cloudCacheUid = cloudUser.uid;
+      cloudKeyCache = null;
+      cloudDocIds.clear();
+      cloudRidOfDoc.clear();
+    }
+    cloudShadow = new Map();
+    let snap;
+    try {
+      snap = await cloudSubscribe();
+    } catch (e) {
+      e.stage = "download";
+      throw e;
+    }
+    try {
+      const items = await Promise.all(snap.docs.map(d => decryptRecordDoc(d.id, d.data())));
+      if (items.length) applyRecords(items, []);
+      else await migrateLegacyCloudVault();
+      migrateAppData(appData);
+      cloudAttached = true;
+    } catch (e) {
+      cloudStop();
+      if (!e.stage) e.stage = "decrypt";
+      throw e;
+    } finally {
+      cloudOpenGate();
+    }
+  }
+
+  function cloudErrorToast(e, stage) {
+    const s = (e && e.stage) || stage;
+    if (e && e.code === "auth/popup-closed-by-user") return "Cancelled";
+    if (e && e.code === "auth/popup-blocked") return "Allow pop-ups for this site to sign in ❌";
+    if (e && e.code === "permission-denied") return "Cloud access denied - check your Firestore rules ❌";
+    if (s === "signin") return "Cloud sign-in failed ❌";
+    if (s === "download") return "Couldn't reach the cloud - check your connection ❌";
+    return "Cloud copy couldn't be read - nothing was changed ❌";
+  }
+
+  function refreshAllViews() {
+    closeAllSheets();
+    renderAccounts();
+    updateTotals();
+    showPage(currentPage);
+    refreshActiveTxnView();
+  }
+
+  // Vault-choice screen: sign in and load (or create) the cloud vault.
+  async function handleCloudContinueClick() {
+    if (!fbAuth) { showToast("Cloud sync isn't configured in this build", true); return; }
+    let stage = "signin";
+    setCloudState("syncing");
+    try {
+      await ensureCloudUser();
+      stage = "download";
+      fileHandle = null;
+      appData = defaultAppData();
+      cloudActive = true;
+      await cloudAttach();
+      const isNew = !appData.accounts.length && !appData.transactions.length;
+      setCloudState("idle");
+      enterDashboard();
+      showToast(isNew ? "New cloud vault created ✅" : "Loaded from cloud ✅");
+    } catch (e) {
+      cloudActive = false;
+      cloudAttached = false;
+      cloudStop();
+      setCloudState("off");
+      appData = null;
+      showToast(cloudErrorToast(e, stage), true);
+    }
+  }
+
+  // Settings / top bar: connect an already-open vault to the cloud, or sync now.
+  async function handleCloudButton() {
+    if (!fbAuth) { showToast("Cloud sync isn't configured in this build", true); return; }
+    if (!appData) return;
+    if (cloudState === "syncing") return;
+
+    if (cloudActive) {
+      try {
+        await saveVault();
+        showToast("Syncing to cloud");
+      } catch (e) {
+        showToast("Could not save vault ❌", true);
+      }
+      return;
+    }
+
+    let stage = "signin";
+    setCloudState("syncing");
+    try {
+      await ensureCloudUser();
+      stage = "download";
+      cloudActive = true;
+      await cloudAttach();
+      refreshAllViews();
+      await saveVault();
+      showToast("Cloud sync connected ✅");
+    } catch (e) {
+      cloudActive = false;
+      cloudAttached = false;
+      cloudStop();
+      setCloudState("off");
+      showToast(cloudErrorToast(e, stage), true);
+    }
+  }
+
+  async function handleCloudDisconnect() {
+    if (!fbAuth) return;
+    cloudActive = false;
+    cloudAttached = false;
+    cloudStop();
+    cloudShadow = new Map();
+    setCloudState("off");
+    try { await fbAuth.signOut(); } catch (e) { /* ignore */ }
+    updateVaultModeDesc();
+    showToast(fileHandle && hasFSAccess
+      ? "Signed out of cloud sync"
+      : "Signed out - changes will download a .fvault copy again");
+  }
+
+  // ---------------------------------------------------------------
+  // File System Access helpers + cross-browser persistence
+  //
+  // Desktop Chrome/Edge: writes straight back to the linked .fvault file.
+  // Browsers without File System Access support (e.g. Chrome for Android):
+  // every save auto-downloads a fresh .fvault file, and "opening" a vault
+  // is done through a plain <input type="file"> picker instead.
+  // ---------------------------------------------------------------
+  async function pickOpenFile() {
+    const [handle] = await window.showOpenFilePicker({
+      types: FVAULT_TYPES,
+      excludeAcceptAllOption: false,
+      multiple: false
+    });
+    return handle;
+  }
+
+  async function pickSaveFile() {
+    return window.showSaveFilePicker({
+      suggestedName: "expenses.fvault",
+      types: FVAULT_TYPES
+    });
+  }
+
+  function downloadVaultFile(text) {
+    const blob = new Blob([text], { type: "application/octet-stream" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "expenses.fvault";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  async function saveVault() {
+    if (!appData) return;
+    recordSnapshot();
+    appData.updatedAt = new Date().toISOString();
+    // Cloud sync only uploads the records that changed.
+    if (cloudActive) pushToCloud();
+    // The full encrypted file is only built when it is actually written/downloaded.
+    if (hasFSAccess && fileHandle) {
+      const text = await encryptAppData(appData, MASTER_PIN);
+      lastEncryptedText = text;
+      const writable = await fileHandle.createWritable();
+      await writable.write(text);
+      await writable.close();
+    } else if (!cloudActive) {
+      const text = await encryptAppData(appData, MASTER_PIN);
+      lastEncryptedText = text;
+      downloadVaultFile(text);
+    }
+    updateVaultModeDesc();
+  }
+
+  function updateVaultModeDesc() {
+    const desc = document.getElementById("vault-mode-desc");
+    if (!desc) return;
+    const linked = hasFSAccess && fileHandle;
+    if (linked && cloudActive) {
+      desc.textContent = "Live-linked to your .fvault file and synced to the cloud — every change is saved to both automatically.";
+    } else if (cloudActive) {
+      desc.textContent = "Stored in the cloud — every change syncs automatically. Use “Save a Copy Now” to download an offline .fvault backup.";
+    } else {
+      desc.textContent = linked
+        ? "Live-linked to your .fvault file — every change writes straight to it automatically."
+        : "Every change automatically downloads an updated .fvault file. Replace your old file with the newest download so it stays in sync.";
+    }
+  }
+
+  // ---------------------------------------------------------------
+  // PIN screen logic
+  // ---------------------------------------------------------------
+  function drawDial(progress) {
+    if (!pinDial) return;
+    const r = 62, c = 2 * Math.PI * r;
+    pinDial.innerHTML = `
+      <defs>
+        <linearGradient id="pin-ring-grad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#FF6B5A"/><stop offset="1" stop-color="#FFB547"/>
+        </linearGradient>
+      </defs>
+      <circle cx="68" cy="68" r="${r}" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4"/>
+      <circle cx="68" cy="68" r="${r}" fill="none" stroke="url(#pin-ring-grad)" stroke-width="4" stroke-linecap="round"
+              stroke-dasharray="${Math.max(progress, 0) * c} ${c}" transform="rotate(-90 68 68)"/>`;
+  }
+
+  function renderDots() {
+    pinDots.innerHTML = "";
+    for (let i = 0; i < MASTER_PIN.length; i++) {
+      const dot = document.createElement("div");
+      dot.className = "pin-dot" + (i < pinBuffer.length ? " filled" : "");
+      pinDots.appendChild(dot);
+    }
+    drawDial(pinBuffer.length / MASTER_PIN.length);
+  }
+
+  function resetPin(errorMsg) {
+    pinBuffer = "";
+    renderDots();
+    if (errorMsg) {
+      pinError.textContent = cleanMsg(errorMsg);
+      pinContent.classList.add("shake");
+      setTimeout(() => pinContent.classList.remove("shake"), 400);
+    }
+  }
+
+  function showKeypad(subtitle) {
+    pinError.textContent = "";
+    pinSubtitle.textContent = subtitle || "Enter your PIN to unlock your vault";
+    keypadSection.style.display = "block";
+    vaultChoiceSection.style.display = "none";
+    resetPin();
+  }
+
+  function showVaultChoice() {
+    keypadSection.style.display = "none";
+    vaultChoiceSection.style.display = "block";
+    pinError.textContent = "";
+  }
+
+  async function onPinComplete() {
+    if (pinBuffer !== MASTER_PIN) {
+      resetPin("Incorrect PIN ❌");
+      return;
+    }
+
+    pinError.textContent = "";
+
+    // Already linked to a file and/or the cloud in this session (e.g. returning from Lock) -> re-open it.
+    if ((hasFSAccess && fileHandle) || (cloudActive && cloudUser)) {
+      const hasFile = hasFSAccess && fileHandle;
+      try {
+        appData = null;
+        let base = null;
+        if (hasFile) {
+          const file = await fileHandle.getFile();
+          base = await decryptEnvelopeText(await file.text(), MASTER_PIN);
+          migrateAppData(base);
+        }
+        appData = base || defaultAppData();
+        if (cloudActive && cloudUser) {
+          try {
+            await cloudAttach();
+          } catch (e) {
+            if (!hasFile) throw e;
+            // The local file is fine: keep working, but pause cloud sync rather than risk overwriting newer cloud data.
+            cloudActive = false;
+            cloudAttached = false;
+            setCloudState("off");
+            showToast(cloudErrorToast(e, "download") + " Sync paused.", true);
+          }
+        }
+        enterDashboard();
+        return;
+      } catch (e) {
+        appData = null;
+        if (hasFile) {
+          resetPin("Could not unlock vault ❌");
+          return;
+        }
+        // Cloud-only vault that can't be reached right now -> offer the other options instead of a dead end.
+        cloudActive = false;
+        cloudAttached = false;
+        setCloudState("off");
+        showToast(cloudErrorToast(e, "download"), true);
+      }
+    }
+
+    // Nothing linked -> let the user open an existing vault, create a new one, or use the cloud.
+    showVaultChoice();
+  }
+
+  document.getElementById("keypad").addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-key]");
+    if (!btn) return;
+    const key = btn.getAttribute("data-key");
+
+    if (key === "clear") {
+      pinBuffer = "";
+    } else if (key === "back") {
+      pinBuffer = pinBuffer.slice(0, -1);
+    } else if (pinBuffer.length < MASTER_PIN.length) {
+      pinBuffer += key;
+    }
+
+    pinError.textContent = "";
+    renderDots();
+
+    if (pinBuffer.length === MASTER_PIN.length) {
+      onPinComplete();
+    }
+  });
+
+  async function handleOpenVaultClick() {
+    if (hasFSAccess) {
+      try {
+        const handle = await pickOpenFile();
+        const file = await handle.getFile();
+        const text = await file.text();
+        appData = await decryptEnvelopeText(text, MASTER_PIN);
+        migrateAppData(appData);
+        fileHandle = handle;
+        cloudActive = false;
+        setCloudState("off");
+        enterDashboard();
+      } catch (e) {
+        if (e && e.name === "AbortError") return; // user cancelled picker
+        showToast("Could not open vault file ❌", true);
+      }
+    } else {
+      importFileInput.click();
+    }
+  }
+
+  async function handleNewVaultClick() {
+    if (hasFSAccess) {
+      try {
+        const handle = await pickSaveFile();
+        fileHandle = handle;
+        appData = defaultAppData();
+        cloudActive = false;
+        setCloudState("off");
+        await saveVault();
+        enterDashboard();
+        showToast("New vault created ✅");
+      } catch (e) {
+        if (e && e.name === "AbortError") return;
+        showToast("Could not create vault file ❌", true);
+      }
+    } else {
+      fileHandle = null;
+      appData = defaultAppData();
+      cloudActive = false;
+      setCloudState("off");
+      await saveVault();
+      enterDashboard();
+      showToast("New vault created — a .fvault file was downloaded ✅");
+    }
+  }
+
+  document.getElementById("btn-open-vault").addEventListener("click", handleOpenVaultClick);
+  document.getElementById("btn-new-vault").addEventListener("click", handleNewVaultClick);
+  document.getElementById("btn-cloud-vault").addEventListener("click", handleCloudContinueClick);
+
+  importFileInput.addEventListener("change", async (e) => {
+    const file = e.target.files[0];
+    e.target.value = "";
+    if (!file) return;
+    try {
+      const text = await file.text();
+      appData = await decryptEnvelopeText(text, MASTER_PIN);
+      migrateAppData(appData);
+      fileHandle = null;
+      cloudActive = false;
+      setCloudState("off");
+      enterDashboard();
+      showToast("Vault imported ✅");
+    } catch (err) {
+      showToast("Could not read that vault file ❌", true);
+    }
+  });
+
+  document.getElementById("btn-back-to-pin").addEventListener("click", () => {
+    showKeypad();
+  });
+
+  // ---------------------------------------------------------------
+  // Dashboard logic
+  // ---------------------------------------------------------------
+  function enterDashboard() {
+    appData.loginLogs.push(new Date().toISOString());
+    pinScreen.classList.remove("active");
+    appScreen.classList.add("active");
+
+    showPage("home");
+    renderAccounts();
+    updateTotals();
+    updateVaultModeDesc();
+    saveVault();
+  }
+
+  function lockVault() {
+    cloudStop();
+    appData = null;
+    balancesHidden = true;
+    updateBalanceToggle();
+    closeAllSheets();
+    appScreen.classList.remove("active");
+    pinScreen.classList.add("active");
+    if (!(hasFSAccess && fileHandle)) fileHandle = null;
+    showKeypad("Vault locked. Enter PIN to unlock.");
+  }
+
+  function showPage(name) {
+    document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+    document.getElementById("page-" + name).classList.add("active");
+    document.querySelectorAll(".nav-item").forEach(b => b.classList.remove("active-nav"));
+    const navBtn = document.querySelector('.nav-item[data-page="' + name + '"]');
+    if (navBtn) navBtn.classList.add("active-nav");
+    currentPage = name;
+    document.getElementById("nav-settings").classList.toggle("on", name === "settings");
+    document.querySelector(".content").scrollTop = 0;
+    if (name === "stats") renderStats();
+    if (name === "settings") { updateVaultModeDesc(); updateCloudUi(); renderCatSettings(); }
+    if (name === "transactions") renderTxnDaily();
+  }
+
+  document.querySelectorAll(".nav-item").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const page = btn.getAttribute("data-page");
+      if (page === "home") updateTotals();
+      showPage(page);
+    });
+  });
+
+  document.getElementById("view-all-accounts").addEventListener("click", (e) => {
+    e.preventDefault();
+    showPage("accounts");
+  });
+
+  document.getElementById("nav-settings").addEventListener("click", () => showPage("settings"));
+  document.getElementById("nav-logout").addEventListener("click", lockVault);
+  document.getElementById("btn-lock-now").addEventListener("click", lockVault);
+  document.getElementById("btn-save-copy").addEventListener("click", async () => {
+    await saveVault();
+    if (cloudActive && !(hasFSAccess && fileHandle)) {
+      lastEncryptedText = await encryptAppData(appData, MASTER_PIN);
+      downloadVaultFile(lastEncryptedText);
+      showToast("Cloud synced — .fvault copy downloaded ✅");
+    } else {
+      showToast(hasFSAccess && fileHandle ? "Vault saved ✅" : "Fresh .fvault copy downloaded ✅");
+    }
+  });
+  document.getElementById("nav-cloud").addEventListener("click", handleCloudButton);
+  document.getElementById("btn-cloud-sync").addEventListener("click", handleCloudButton);
+  document.getElementById("btn-cloud-disconnect").addEventListener("click", handleCloudDisconnect);
+  document.getElementById("btn-switch-vault").addEventListener("click", () => {
+    handleOpenVaultClick();
+  });
+
+  function computeTotals() {
+    let assets = 0, liabilities = 0, bank = 0, investment = 0, credit = 0;
+    for (const acc of appData.accounts) {
+      const bal = Number(acc.balance) || 0;
+      if (acc.type === "bank") { assets += bal; bank += bal; }
+      else if (acc.type === "investment") { assets += bal; investment += bal; }
+      else if (acc.type === "credit") { liabilities += bal; credit += bal; }
+    }
+    return { assets, liabilities, networth: assets - liabilities, bank, investment, credit };
+  }
+
+  let balancesHidden = true; // hidden by default every time the vault is opened
+  const BALANCE_MASK = "₹ ****";
+
+  function updateTotals() {
+    const totals = computeTotals();
+    document.getElementById("assets-value").textContent = balancesHidden ? BALANCE_MASK : formatINR(totals.assets);
+    document.getElementById("liabilities-value").textContent = balancesHidden ? BALANCE_MASK : formatINR(totals.liabilities);
+    setGaugeValueText(balancesHidden ? BALANCE_MASK : formatINR(totals.networth));
+    drawGauge(totals);
+    renderRecentAccounts();
+  }
+
+  function updateBalanceToggle() {
+    const btn = document.getElementById("btn-toggle-balances");
+    btn.querySelector("use").setAttribute("href", balancesHidden ? "#i-eye-off" : "#i-eye");
+    const label = balancesHidden ? "Show balances" : "Hide balances";
+    btn.title = label;
+    btn.setAttribute("aria-label", label);
+  }
+
+  document.getElementById("btn-toggle-balances").addEventListener("click", () => {
+    balancesHidden = !balancesHidden;
+    updateBalanceToggle();
+    updateTotals();
+  });
+
+  function setGaugeValueText(text) {
+    const el = document.getElementById("networth-value");
+    el.textContent = text;
+    let size = 38;
+    if (text.length > 12) size = 34;
+    if (text.length > 15) size = 30;
+    if (text.length > 18) size = 26;
+    if (text.length > 21) size = 22;
+    el.style.fontSize = size + "px";
+  }
+
+  function drawGauge(totals) {
+    const bar = document.getElementById("alloc-bar");
+    const legend = document.getElementById("gauge-legend");
+    if (!bar) return;
+    bar.innerHTML = "";
+    legend.innerHTML = "";
+
+    const segments = [
+      { type: "bank", value: Math.abs(totals.bank) },
+      { type: "investment", value: Math.abs(totals.investment) },
+      { type: "credit", value: Math.abs(totals.credit) }
+    ];
+    const grand = segments.reduce((s, seg) => s + seg.value, 0);
+
+    bar.classList.toggle("empty", grand <= 0);
+    if (grand <= 0) return;
+
+    segments.forEach(seg => {
+      if (seg.value <= 0) return;
+      const frac = seg.value / grand;
+      const part = document.createElement("div");
+      part.className = "alloc-seg";
+      part.style.flex = `${frac} 1 0`;
+      part.style.background = TYPE_COLOR[seg.type];
+      bar.appendChild(part);
+
+      const item = document.createElement("div");
+      item.className = "gauge-legend-item";
+      item.innerHTML = `<span class="gauge-legend-dot" style="background:${TYPE_COLOR[seg.type]}"></span>${seg.type} <span class="pct">${(frac * 100).toFixed(0)}%</span>`;
+      legend.appendChild(item);
+    });
+  }
+
+  function renderStats() {
+    drawTrend();
+    renderBreakdown();
+    renderSpendAnalysis();
+  }
+
+  function drawTrend() {
+    const canvas = document.getElementById("trend-canvas");
+    if (!canvas) return;
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas.clientWidth || 300, h = 120;
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    const ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+
+    const hist = (appData && appData.history) || [];
+    document.getElementById("trend-range").textContent = hist.length > 1
+      ? (formatDate(hist[0].date) + " → " + formatDate(hist[hist.length - 1].date)) : "";
+
+    if (hist.length < 2) {
+      ctx.fillStyle = "#7D7D8A";
+      ctx.font = "600 12px 'Manrope', sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("History builds as you use the app", w / 2, h / 2 + 4);
+      return;
+    }
+
+    const values = hist.map(p => p.networth);
+    const max = Math.max(...values), min = Math.min(...values);
+    const pad = 8;
+    const xStep = (w - pad * 2) / (hist.length - 1);
+    const yFor = v => (max === min) ? h / 2 : (h - pad - ((v - min) / (max - min)) * (h - pad * 2));
+
+    ctx.beginPath();
+    hist.forEach((p, i) => {
+      const x = pad + i * xStep, y = yFor(p.networth);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.lineTo(pad + (hist.length - 1) * xStep, h);
+    ctx.lineTo(pad, h);
+    ctx.closePath();
+    const grad = ctx.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, "rgba(255,107,90,0.28)");
+    grad.addColorStop(1, "rgba(255,107,90,0)");
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    ctx.beginPath();
+    hist.forEach((p, i) => {
+      const x = pad + i * xStep, y = yFor(p.networth);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    const lineGrad = ctx.createLinearGradient(0, 0, w, 0);
+    lineGrad.addColorStop(0, "#FF6B5A");
+    lineGrad.addColorStop(1, "#FFB547");
+    ctx.strokeStyle = lineGrad;
+    ctx.lineWidth = 2.6;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    ctx.stroke();
+
+    const lx = pad + (hist.length - 1) * xStep, ly = yFor(values[values.length - 1]);
+    ctx.beginPath();
+    ctx.arc(lx, ly, 6, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(255,181,71,0.25)";
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(lx, ly, 3.5, 0, Math.PI * 2);
+    ctx.fillStyle = "#FFB547";
+    ctx.fill();
+  }
+  window.addEventListener("resize", () => {
+    if (appData && document.getElementById("page-stats").classList.contains("active")) drawTrend();
+  });
+
+  function renderBreakdown() {
+    const list = document.getElementById("breakdown-list");
+    if (!list) return;
+    const totals = computeTotals();
+    const rows = [
+      { type: "bank", value: totals.bank },
+      { type: "investment", value: totals.investment },
+      { type: "credit", value: totals.credit }
+    ];
+    const grand = rows.reduce((s, r) => s + Math.abs(r.value), 0);
+    if (grand === 0) {
+      list.innerHTML = emptyStateHtml("Add accounts to see your breakdown here");
+      return;
+    }
+    list.innerHTML = rows.map(r => {
+      const pct = grand > 0 ? (Math.abs(r.value) / grand * 100) : 0;
+      return `
+        <div class="glass-card breakdown-row">
+          <div class="bd-ic" style="background:${TYPE_COLOR[r.type]}24; color:${TYPE_COLOR[r.type]};">${typeIcon(r.type)}</div>
+          <div class="bd-info">
+            <div class="bd-top">
+              <div class="bd-name">${r.type}</div>
+              <div class="bd-value">${formatINR(r.value)}</div>
+            </div>
+            <div class="bd-bar-track"><div class="bd-bar-fill" style="width:${pct}%; background:${TYPE_COLOR[r.type]};"></div></div>
+            <div class="bd-pct">${pct.toFixed(1)}%</div>
+          </div>
+        </div>`;
+    }).join("");
+  }
+
+  // ---------------------------------------------------------------
+  // Spending analysis: expense breakdown by category -> sub category
+  // -> source account, for a chosen time frame (monthly / custom / all time)
+  // ---------------------------------------------------------------
+  function spendMonthLabel() {
+    return spendMonthCursor.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+  }
+
+  function getSpendRange() {
+    if (spendRangeMode === "monthly") {
+      const key = `${spendMonthCursor.getFullYear()}-${String(spendMonthCursor.getMonth() + 1).padStart(2, "0")}`;
+      return { from: key + "-01", to: key + "-31" };
+    }
+    if (spendRangeMode === "custom") {
+      const from = document.getElementById("spend-from-date").value || null;
+      const to = document.getElementById("spend-to-date").value || null;
+      return { from, to };
+    }
+    return { from: null, to: null };
+  }
+
+  function computeSpendAnalysis() {
+    const { from, to } = getSpendRange();
+    const groups = {};
+    let total = 0;
+    appData.transactions.forEach(t => {
+      if (t.type !== "expense") return;
+      if (from && t.date < from) return;
+      if (to && t.date > to) return;
+      const cat = t.category || "Uncategorised";
+      const sub = t.subcategory || "Other";
+      const accId = t.accountId;
+      const amt = Number(t.amount) || 0;
+      total += amt;
+      if (!groups[cat]) groups[cat] = { total: 0, subs: {} };
+      groups[cat].total += amt;
+      if (!groups[cat].subs[sub]) groups[cat].subs[sub] = { total: 0, sources: {} };
+      groups[cat].subs[sub].total += amt;
+      groups[cat].subs[sub].sources[accId] = (groups[cat].subs[sub].sources[accId] || 0) + amt;
+    });
+    return { groups, total };
+  }
+
+  function renderSpendAnalysis() {
+    const list = document.getElementById("spend-analysis-list");
+    const totalValueEl = document.getElementById("spend-total-value");
+    if (!list || !totalValueEl || !appData) return;
+
+    document.getElementById("spend-month-nav").style.display = spendRangeMode === "monthly" ? "flex" : "none";
+    document.getElementById("spend-custom-range").style.display = spendRangeMode === "custom" ? "flex" : "none";
+    if (spendRangeMode === "monthly") {
+      document.getElementById("spend-month-label").textContent = spendMonthLabel();
+    }
+
+    const { groups, total } = computeSpendAnalysis();
+    totalValueEl.textContent = formatINR(total);
+
+    drawSpendDonut(groups, total);
+    populateSpendFilterSelects(groups);
+    renderSpendDetail(groups, total);
+  }
+
+  // Palette used to colour each expense category slice in the spend donut
+  // chart; cycles if there are more categories than colours.
+  const CATEGORY_PALETTE = ["#FF6B5A", "#FFB547", "#4ADE9C", "#7CB4FF", "#B388FF", "#FF7AB6", "#5EEAD4", "#FFD76A", "#A3E635", "#F97316"];
+
+  function categoryColor(index) {
+    return CATEGORY_PALETTE[index % CATEGORY_PALETTE.length];
+  }
+
+  // Renders a donut chart (SVG) + legend showing each category's share of
+  // total spend for the current time frame, inside the Total Spent card.
+  function drawSpendDonut(groups, total) {
+    const svg = document.getElementById("spend-donut-svg");
+    const legend = document.getElementById("spend-donut-legend");
+    if (!svg || !legend) return;
+    svg.innerHTML = "";
+    legend.innerHTML = "";
+    const ns = "http://www.w3.org/2000/svg";
+    const cx = 60, cy = 60, r = 48;
+
+    const catNames = Object.keys(groups).sort((a, b) => groups[b].total - groups[a].total);
+
+    if (!catNames.length || total <= 0) {
+      const bg = document.createElementNS(ns, "circle");
+      bg.setAttribute("cx", cx); bg.setAttribute("cy", cy); bg.setAttribute("r", r);
+      bg.setAttribute("fill", "none");
+      bg.setAttribute("stroke", "rgba(255,255,255,0.08)");
+      bg.setAttribute("stroke-width", 12);
+      svg.appendChild(bg);
+      return;
+    }
+
+    const circumference = 2 * Math.PI * r;
+    let startAngle = -90;
+
+    catNames.forEach((cat, i) => {
+      const value = groups[cat].total;
+      if (value <= 0) return;
+      const frac = value / total;
+      const color = categoryColor(i);
+
+      const circle = document.createElementNS(ns, "circle");
+      circle.setAttribute("cx", cx); circle.setAttribute("cy", cy); circle.setAttribute("r", r);
+      circle.setAttribute("fill", "none");
+      circle.setAttribute("stroke", color);
+      circle.setAttribute("stroke-width", 12);
+      circle.setAttribute("stroke-linecap", "round");
+      circle.setAttribute("stroke-dasharray", `${Math.max(frac * circumference - 6, 0.01)} ${circumference}`);
+      circle.setAttribute("transform", `rotate(${startAngle} ${cx} ${cy})`);
+      svg.appendChild(circle);
+      startAngle += frac * 360;
+
+      const pct = frac * 100;
+      const item = document.createElement("div");
+      item.className = "spend-donut-legend-item";
+      item.innerHTML = `<span class="spend-donut-legend-dot" style="background:${color}"></span>${escapeHtml(cat)} · ${pct.toFixed(1)}%`;
+      legend.appendChild(item);
+    });
+  }
+
+  // Populate the Category / Sub Category combo boxes from the current
+  // time frame's grouped data, keeping the previous selection when possible.
+  function populateSpendFilterSelects(groups) {
+    const catSel = document.getElementById("spend-category-select");
+    const subSel = document.getElementById("spend-subcategory-select");
+    const catNames = Object.keys(groups).sort((a, b) => groups[b].total - groups[a].total);
+
+    if (!catNames.length) {
+      spendSelectedCategory = null;
+      spendSelectedSubcategory = "";
+      catSel.innerHTML = `<option value="">No expenses yet</option>`;
+      catSel.disabled = true;
+      subSel.innerHTML = `<option value="">—</option>`;
+      subSel.disabled = true;
+      return;
+    }
+
+    catSel.disabled = false;
+    subSel.disabled = false;
+
+    if (!spendSelectedCategory || !catNames.includes(spendSelectedCategory)) {
+      spendSelectedCategory = catNames[0];
+      spendSelectedSubcategory = "";
+    }
+
+    catSel.innerHTML = catNames.map(c =>
+      `<option value="${escapeHtml(c)}">${escapeHtml(c)} — ${formatINR(groups[c].total)}</option>`
+    ).join("");
+    catSel.value = spendSelectedCategory;
+
+    const subNames = Object.keys(groups[spendSelectedCategory].subs)
+      .sort((a, b) => groups[spendSelectedCategory].subs[b].total - groups[spendSelectedCategory].subs[a].total);
+    const wholeTotal = groups[spendSelectedCategory].total;
+
+    subSel.innerHTML = [`<option value="">Whole Category — ${formatINR(wholeTotal)}</option>`]
+      .concat(subNames.map(s =>
+        `<option value="${escapeHtml(s)}">${escapeHtml(s)} — ${formatINR(groups[spendSelectedCategory].subs[s].total)}</option>`
+      )).join("");
+
+    if (spendSelectedSubcategory && !subNames.includes(spendSelectedSubcategory)) {
+      spendSelectedSubcategory = "";
+    }
+    subSel.value = spendSelectedSubcategory;
+  }
+
+  // Render the single scoped breakdown card for the selected
+  // category (and optional sub category), split by source account.
+  function renderSpendDetail(groups, total) {
+    const list = document.getElementById("spend-analysis-list");
+
+    if (!spendSelectedCategory || !groups[spendSelectedCategory]) {
+      list.innerHTML = emptyStateHtml("No expenses recorded in this time frame");
+      return;
+    }
+
+    const catData = groups[spendSelectedCategory];
+    const isWhole = !spendSelectedSubcategory;
+    const scopeData = isWhole ? catData : catData.subs[spendSelectedSubcategory];
+    if (!scopeData) {
+      list.innerHTML = emptyStateHtml("No expenses for this selection");
+      return;
+    }
+
+    const scopeTotal = scopeData.total;
+    const pctOfTotal = total > 0 ? (scopeTotal / total * 100) : 0;
+
+    let sourcesObj;
+    if (isWhole) {
+      sourcesObj = {};
+      Object.values(catData.subs).forEach(subData => {
+        Object.entries(subData.sources).forEach(([accId, amt]) => {
+          sourcesObj[accId] = (sourcesObj[accId] || 0) + amt;
+        });
+      });
+    } else {
+      sourcesObj = scopeData.sources;
+    }
+
+    const accIds = Object.keys(sourcesObj).sort((a, b) => sourcesObj[b] - sourcesObj[a]);
+    const sourcesHtml = accIds.map(accId => {
+      const acc = appData.accounts.find(a => a.id === Number(accId));
+      const label = acc ? acc.name : "Unknown account";
+      const labelIcon = acc ? typeIcon(acc.type) : icon("wallet");
+      const amt = sourcesObj[accId];
+      const srcPct = scopeTotal > 0 ? (amt / scopeTotal * 100) : 0;
+      return `
+        <div class="spend-src-row">
+          <span>${labelIcon}${escapeHtml(label)}</span>
+          <span class="v">${formatINR(amt)} <span style="color:var(--text-muted); font-weight:500;">(${srcPct.toFixed(0)}%)</span></span>
+        </div>`;
+    }).join("");
+
+    const scopeLabel = isWhole
+      ? escapeHtml(spendSelectedCategory)
+      : `${escapeHtml(spendSelectedCategory)} › ${escapeHtml(spendSelectedSubcategory)}`;
+
+    list.innerHTML = `
+      <div class="glass-card spend-cat-card">
+        <div class="spend-cat-head">
+          <span class="spend-cat-name">${scopeLabel}</span>
+          <span class="spend-cat-amt">${formatINR(scopeTotal)}</span>
+        </div>
+        <div class="bd-bar-track"><div class="bd-bar-fill" style="width:${pctOfTotal}%; background:var(--danger);"></div></div>
+        <div class="spend-cat-pct">${pctOfTotal.toFixed(1)}% of total spend</div>
+        <div class="spend-sub-list">
+          ${sourcesHtml || `<div class="spend-src-row"><span>No source data</span></div>`}
+        </div>
+      </div>`;
+  }
+
+  document.getElementById("spend-range-tabs").addEventListener("click", (e) => {
+    const tab = e.target.closest(".seg-tab");
+    if (!tab) return;
+    spendRangeMode = tab.getAttribute("data-range");
+    document.querySelectorAll("#spend-range-tabs .seg-tab").forEach(t => t.classList.toggle("active", t === tab));
+    if (spendRangeMode === "custom") {
+      const fromInput = document.getElementById("spend-from-date");
+      const toInput = document.getElementById("spend-to-date");
+      if (!fromInput.value) fromInput.value = todayISO();
+      if (!toInput.value) toInput.value = todayISO();
+    }
+    renderSpendAnalysis();
+  });
+
+  document.getElementById("spend-month-prev").addEventListener("click", () => {
+    spendMonthCursor.setMonth(spendMonthCursor.getMonth() - 1);
+    renderSpendAnalysis();
+  });
+  document.getElementById("spend-month-next").addEventListener("click", () => {
+    spendMonthCursor.setMonth(spendMonthCursor.getMonth() + 1);
+    renderSpendAnalysis();
+  });
+  document.getElementById("spend-from-date").addEventListener("change", renderSpendAnalysis);
+  document.getElementById("spend-to-date").addEventListener("change", renderSpendAnalysis);
+
+  document.getElementById("spend-category-select").addEventListener("change", (e) => {
+    spendSelectedCategory = e.target.value || null;
+    spendSelectedSubcategory = "";
+    renderSpendAnalysis();
+  });
+  document.getElementById("spend-subcategory-select").addEventListener("change", (e) => {
+    spendSelectedSubcategory = e.target.value;
+    renderSpendAnalysis();
+  });
+
+  function accountRowHtml(acc, showType = true) {
+    const balanceClass = acc.type === "credit" ? "negative" : "positive";
+    return `
+      <div class="glass-card account-row" data-account-id="${acc.id}">
+        <div class="acc-icon ${acc.type}">${typeIcon(acc.type)}</div>
+        <div class="acc-info">
+          <div class="acc-name">${escapeHtml(acc.name)}</div>
+          ${showType ? `<div class="acc-type">${escapeHtml(acc.type)}</div>` : ""}
+        </div>
+        <div class="acc-balance ${balanceClass}">${formatINR(acc.balance)}</div>
+      </div>`;
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement("div");
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function emptyStateHtml(text) {
+    return `
+      <div class="glass-card empty-state">
+        <div class="empty-icon">${icon("wallet")}</div>
+        <div class="empty-title">No accounts yet</div>
+        <div class="empty-sub">${text}</div>
+      </div>`;
+  }
+
+  const TYPE_LABEL = { bank: "Bank Accounts", investment: "Investments", credit: "Credit Cards" };
+  const TYPE_ORDER = ["bank", "investment", "credit"];
+
+  function renderAccounts() {
+    const list = document.getElementById("accounts-list");
+    if (appData.accounts.length === 0) {
+      list.innerHTML = emptyStateHtml("Tap the + button to add your first account");
+      renderCreditBilling();
+      return;
+    }
+
+    const groups = {};
+    appData.accounts.slice().reverse().forEach(acc => {
+      const t = TYPE_ORDER.includes(acc.type) ? acc.type : "bank";
+      (groups[t] = groups[t] || []).push(acc);
+    });
+
+    list.innerHTML = TYPE_ORDER
+      .filter(t => groups[t] && groups[t].length)
+      .map(t => {
+        const accs = groups[t];
+        const subtotal = accs.reduce((s, a) => s + (Number(a.balance) || 0), 0);
+        return `
+          <div class="acc-group">
+            <div class="acc-group-head">
+              <span class="acc-group-title" style="color:${TYPE_COLOR[t]}">${typeIcon(t)}<span style="color:var(--text-muted)">${TYPE_LABEL[t]}</span></span>
+              <span class="acc-group-meta">${accs.length} · ${formatINR(subtotal)}</span>
+            </div>
+            ${accs.map(acc => accountRowHtml(acc, false)).join("")}
+          </div>`;
+      }).join("");
+
+    renderCreditBilling();
+  }
+
+  function renderRecentAccounts() {
+    const list = document.getElementById("recent-accounts-list");
+    if (appData.accounts.length === 0) {
+      list.innerHTML = emptyStateHtml("Add an account to see it here");
+      return;
+    }
+    list.innerHTML = appData.accounts.slice().reverse().slice(0, 3).map(accountRowHtml).join("");
+  }
+
+  // ---------------------------------------------------------------
+  // Credit card billing cycle logic
+  // ---------------------------------------------------------------
+
+  // Builds a Date for (year, monthIndex, day), clamping day to the last
+  // valid day of that month (handles e.g. billDate=31 in a 30-day month).
+  // monthIndex may be out of the 0-11 range; the Date constructor normalises
+  // it (and the year) correctly, so this also works for month rollovers.
+  function clampedMonthDate(year, monthIndex, day) {
+    const lastDay = new Date(year, monthIndex + 1, 0).getDate();
+    return new Date(year, monthIndex, Math.min(day, lastDay));
+  }
+
+  function getCreditCycleInfo(acc, refDate) {
+    const ref = refDate || new Date();
+    const today = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate());
+    const billDay = Number(acc.billDate);
+    const dueDay = Number(acc.dueDate);
+
+    // Most recently closed billing date (<= today).
+    let lastBillDate = clampedMonthDate(today.getFullYear(), today.getMonth(), billDay);
+    if (lastBillDate > today) {
+      lastBillDate = clampedMonthDate(today.getFullYear(), today.getMonth() - 1, billDay);
+    }
+
+    // The statement cycle runs from the day after the previous bill date
+    // through (and including) lastBillDate.
+    const prevBillDate = clampedMonthDate(lastBillDate.getFullYear(), lastBillDate.getMonth() - 1, billDay);
+    const cycleStart = new Date(prevBillDate);
+    cycleStart.setDate(cycleStart.getDate() + 1);
+
+    // Due date tied to this statement: if the due-day-of-month is on/before
+    // the bill-day-of-month it falls in the month after lastBillDate,
+    // otherwise it falls within the same month as lastBillDate.
+    const dueDate = dueDay <= billDay
+      ? clampedMonthDate(lastBillDate.getFullYear(), lastBillDate.getMonth() + 1, dueDay)
+      : clampedMonthDate(lastBillDate.getFullYear(), lastBillDate.getMonth(), dueDay);
+
+    // When the next statement will be generated (this one becomes stale).
+    const nextBillDate = clampedMonthDate(lastBillDate.getFullYear(), lastBillDate.getMonth() + 1, billDay);
+
+    return { today, cycleStart, lastBillDate, dueDate, nextBillDate };
+  }
+
+  // Net spend (expenses minus refunds) posted to the credit account within
+  // [cycleStart, cycleEnd] — this is "this month's bill" for that cycle.
+  function computeCreditStatement(acc, cycleStart, cycleEnd) {
+    const startIso = dateToLocalISO(cycleStart);
+    const endIso = dateToLocalISO(cycleEnd);
+    let total = 0;
+    for (const t of appData.transactions) {
+      if (t.type === "transfer" || t.accountId !== acc.id) continue;
+      if (t.date < startIso || t.date > endIso) continue;
+      total += t.type === "expense" ? Number(t.amount) : -Number(t.amount);
+    }
+    return total;
+  }
+
+  // Total paid towards the credit account (transfers in) within [since, until].
+  function computeCreditPayments(acc, sinceDate, untilDate) {
+    const sinceIso = dateToLocalISO(sinceDate);
+    const untilIso = dateToLocalISO(untilDate);
+    let total = 0;
+    for (const t of appData.transactions) {
+      if (t.type !== "transfer" || t.toAccountId !== acc.id) continue;
+      if (t.date < sinceIso || t.date > untilIso) continue;
+      total += Number(t.amount) || 0;
+    }
+    return total;
+  }
+
+  // Resolves the current billing status for a credit card: this month's
+  // bill amount, due date, and whether it has been paid (a transfer into
+  // the card of at least the statement amount, made on/after the bill
+  // date). Paid status holds until the next billing date rolls the cycle.
+  function getCreditBillingStatus(acc) {
+    const { today, cycleStart, lastBillDate, dueDate, nextBillDate } = getCreditCycleInfo(acc);
+    const statementAmount = Math.max(0, computeCreditStatement(acc, cycleStart, lastBillDate));
+    const outstanding = Math.max(0, -(Number(acc.balance) || 0));
+
+    if (statementAmount <= 0) {
+      return { statementAmount: 0, outstanding, dueDate, nextBillDate, status: "none" };
+    }
+
+    const paidSoFar = computeCreditPayments(acc, lastBillDate, nextBillDate);
+    const isPaid = paidSoFar >= statementAmount - 0.5; // tolerance for rounding
+
+    const dayMs = 24 * 60 * 60 * 1000;
+    const daysToDue = Math.round((dueDate - today) / dayMs);
+
+    let status;
+    if (isPaid) status = "paid";
+    else if (today > dueDate) status = "overdue";
+    else status = "pending";
+
+    return { statementAmount, outstanding, dueDate, nextBillDate, daysToDue, status };
+  }
+
+  function creditBillCardHtml(acc) {
+    const info = getCreditBillingStatus(acc);
+    const dueLabel = formatDate(dateToLocalISO(info.dueDate));
+    const nextBillLabel = formatDate(dateToLocalISO(info.nextBillDate));
+
+    let statusHtml, noteHtml;
+    if (info.status === "none") {
+      statusHtml = `<span class="credit-bill-status pending">No Bill Yet</span>`;
+      noteHtml = `No spend billed this cycle yet. Next bill generates on ${nextBillLabel}.`;
+    } else if (info.status === "paid") {
+      statusHtml = `<span class="credit-bill-status paid">${icon("check")}Paid</span>`;
+      noteHtml = `This month's bill of ${formatINR(info.statementAmount)} is paid. Next bill generates on ${nextBillLabel}.`;
+    } else if (info.status === "overdue") {
+      statusHtml = `<span class="credit-bill-status overdue">Overdue</span>`;
+      noteHtml = `Payment was due ${dueLabel}. Pay ${formatINR(info.statementAmount)} soon to avoid extra charges.`;
+    } else {
+      statusHtml = `<span class="credit-bill-status pending">Due in ${info.daysToDue} day${info.daysToDue === 1 ? "" : "s"}</span>`;
+      noteHtml = `Pay ${formatINR(info.statementAmount)} by ${dueLabel} to stay on track.`;
+    }
+
+    return `
+      <div class="glass-card credit-bill-card">
+        <div class="credit-bill-head">
+          <div class="credit-bill-icon">${icon("card")}</div>
+          <div style="flex:1; min-width:0;">
+            <div class="credit-bill-name">${escapeHtml(acc.name)}</div>
+            <div class="credit-bill-outstanding">Outstanding: ${formatINR(info.outstanding)}</div>
+          </div>
+          ${statusHtml}
+        </div>
+        <div class="credit-bill-row"><span class="k">This Month's Bill</span><span class="v">${formatINR(info.statementAmount)}</span></div>
+        <div class="credit-bill-row"><span class="k">Due Date</span><span class="v">${dueLabel}</span></div>
+        <div class="credit-bill-note">${noteHtml}</div>
+      </div>`;
+  }
+
+  function renderCreditBilling() {
+    const list = document.getElementById("credit-billing-list");
+    const title = document.getElementById("credit-billing-title");
+    if (!list || !title || !appData) return;
+
+    const creditAccs = appData.accounts.filter(a => a.type === "credit" && a.billDate && a.dueDate);
+    if (!creditAccs.length) {
+      title.style.display = "none";
+      list.innerHTML = "";
+      return;
+    }
+    title.style.display = "";
+    list.innerHTML = creditAccs.map(creditBillCardHtml).join("");
+  }
+
+  // ---------------------------------------------------------------
+  // Add Account bottom sheet
+  // ---------------------------------------------------------------
+  function closeAllSheets() {
+    sheetBackdrop.classList.remove("show");
+    addSheet.classList.remove("show");
+    addTxnSheet.classList.remove("show");
+    inputSheet.classList.remove("show");
+    txnDetailSheet.classList.remove("show");
+  }
+
+  function openAddSheet() {
+    closeAllSheets();
+    editingAccountId = null;
+    document.getElementById("acc-sheet-title").textContent = "Add Account";
+    document.getElementById("acc-balance-label").textContent = "Initial Balance";
+    document.getElementById("btn-add-account").textContent = "Add Account";
+    document.getElementById("acc-name").value = "";
+    document.getElementById("acc-balance").value = "";
+    document.getElementById("acc-bill-date").value = "";
+    document.getElementById("acc-due-date").value = "";
+    selectedType = "bank";
+    document.querySelectorAll("#acc-type-chips .chip").forEach(c =>
+      c.classList.toggle("selected", c.getAttribute("data-type") === "bank")
+    );
+    document.getElementById("acc-credit-fields").style.display = "none";
+    sheetBackdrop.classList.add("show");
+    addSheet.classList.add("show");
+  }
+
+  function openEditAccountSheet(acc) {
+    closeAllSheets();
+    editingAccountId = acc.id;
+    document.getElementById("acc-sheet-title").textContent = "Edit Account";
+    document.getElementById("acc-balance-label").textContent = "Balance";
+    document.getElementById("btn-add-account").textContent = "Update Account";
+    document.getElementById("acc-name").value = acc.name;
+    document.getElementById("acc-balance").value = acc.balance;
+    document.getElementById("acc-bill-date").value = acc.billDate || "";
+    document.getElementById("acc-due-date").value = acc.dueDate || "";
+    selectedType = acc.type;
+    document.querySelectorAll("#acc-type-chips .chip").forEach(c =>
+      c.classList.toggle("selected", c.getAttribute("data-type") === acc.type)
+    );
+    document.getElementById("acc-credit-fields").style.display = acc.type === "credit" ? "block" : "none";
+    sheetBackdrop.classList.add("show");
+    addSheet.classList.add("show");
+  }
+
+  function handleAccountListClick(e) {
+    const row = e.target.closest(".account-row");
+    if (!row) return;
+    const id = Number(row.getAttribute("data-account-id"));
+    const acc = appData.accounts.find(a => a.id === id);
+    if (acc) openEditAccountSheet(acc);
+  }
+
+  document.getElementById("accounts-list").addEventListener("click", handleAccountListClick);
+  document.getElementById("recent-accounts-list").addEventListener("click", handleAccountListClick);
+
+  fab.addEventListener("click", () => {
+    // Centre nav button: adds an account on the Accounts page, a transaction elsewhere.
+    if (currentPage === "accounts") openAddSheet();
+    else openAddTxnSheet();
+  });
+  sheetBackdrop.addEventListener("click", closeAllSheets);
+
+  document.getElementById("acc-type-chips").addEventListener("click", (e) => {
+    const chip = e.target.closest(".chip");
+    if (!chip) return;
+    selectedType = chip.getAttribute("data-type");
+    document.querySelectorAll("#acc-type-chips .chip").forEach(c => c.classList.remove("selected"));
+    chip.classList.add("selected");
+    document.getElementById("acc-credit-fields").style.display = selectedType === "credit" ? "block" : "none";
+  });
+
+  document.getElementById("btn-add-account").addEventListener("click", async () => {
+    const nameInput = document.getElementById("acc-name");
+    const balanceInput = document.getElementById("acc-balance");
+
+    const name = nameInput.value.trim();
+    const balance = parseFloat(balanceInput.value);
+
+    if (!name) {
+      showToast("Account name cannot be empty ❌", true);
+      return;
+    }
+    if (isNaN(balance)) {
+      showToast("Invalid balance ❌", true);
+      return;
+    }
+
+    let billDate = null;
+    let dueDate = null;
+    if (selectedType === "credit") {
+      billDate = parseInt(document.getElementById("acc-bill-date").value, 10);
+      dueDate = parseInt(document.getElementById("acc-due-date").value, 10);
+      if (isNaN(billDate) || billDate < 1 || billDate > 31) {
+        showToast("Enter a valid Bill Date (1-31) ❌", true);
+        return;
+      }
+      if (isNaN(dueDate) || dueDate < 1 || dueDate > 31) {
+        showToast("Enter a valid Due Date (1-31) ❌", true);
+        return;
+      }
+    }
+
+    if (editingAccountId !== null) {
+      const acc = appData.accounts.find(a => a.id === editingAccountId);
+      if (acc) {
+        acc.name = name;
+        acc.type = selectedType;
+        acc.balance = balance;
+        if (selectedType === "credit") {
+          acc.billDate = billDate;
+          acc.dueDate = dueDate;
+        } else {
+          delete acc.billDate;
+          delete acc.dueDate;
+        }
+      }
+      editingAccountId = null;
+
+      renderAccounts();
+      updateTotals();
+      closeAllSheets();
+
+      try {
+        await saveVault();
+      } catch (e) {
+        showToast("Updated, but failed to save vault ❌", true);
+        return;
+      }
+      showToast("Account updated ✅");
+      return;
+    }
+
+    const newAccount = {
+      id: Date.now(),
+      name,
+      type: selectedType,
+      balance
+    };
+    if (selectedType === "credit") {
+      newAccount.billDate = billDate;
+      newAccount.dueDate = dueDate;
+    }
+    appData.accounts.push(newAccount);
+
+    renderAccounts();
+    updateTotals();
+    closeAllSheets();
+
+    try {
+      await saveVault();
+    } catch (e) {
+      showToast("Added, but failed to save vault ❌", true);
+      return;
+    }
+    showToast("Account added ✅");
+  });
+
+  // ---------------------------------------------------------------
+  // Transactions
+  // ---------------------------------------------------------------
+  function txnNetAmount(t) {
+    if (t.type === "income") return Number(t.amount) || 0;
+    if (t.type === "expense") return -(Number(t.amount) || 0);
+    return 0;
+  }
+
+  function sortedTxns(txns) {
+    return txns.slice().sort((a, b) => {
+      const ak = a.date + " " + (a.time || "00:00");
+      const bk = b.date + " " + (b.time || "00:00");
+      return bk.localeCompare(ak);
+    });
+  }
+
+  function extractLeadingEmoji(str) {
+    if (!str) return null;
+    const m = String(str).trim().match(/^(\p{Extended_Pictographic}\uFE0F?(\u200D\p{Extended_Pictographic}\uFE0F?)*)/u);
+    return m ? m[0] : null;
+  }
+
+  function txnRowHtml(t) {
+    if (t.type === "transfer") {
+      const from = appData.accounts.find(a => a.id === t.fromAccountId);
+      const to = appData.accounts.find(a => a.id === t.toAccountId);
+      const title = t.notes ? t.notes : `${from ? from.name : "?"} → ${to ? to.name : "?"}`;
+      const sub = `${from ? from.name : "?"} → ${to ? to.name : "?"}${t.time ? " · " + t.time : ""}`;
+      return `
+        <div class="glass-card txn-row" data-txn-id="${t.id}">
+          <div class="txn-icon transfer">${icon("swap")}</div>
+          <div class="txn-info">
+            <div class="txn-title">${escapeHtml(title)}</div>
+            <div class="txn-sub">${escapeHtml(sub)}</div>
+          </div>
+          <div class="txn-amt transfer">${formatINR(t.amount)}</div>
+        </div>`;
+    }
+    const acc = appData.accounts.find(a => a.id === t.accountId);
+    const isIncome = t.type === "income";
+    const title = t.notes ? t.notes : (t.category || "Uncategorised");
+    const subParts = [t.category || "Uncategorised"];
+    if (t.subcategory) subParts.push(t.subcategory);
+    if (acc) subParts.push(acc.name);
+    const subEmoji = extractLeadingEmoji(t.subcategory);
+    const iconHtml = subEmoji || icon(isIncome ? "arrow-down-left" : "arrow-up-right");
+    return `
+      <div class="glass-card txn-row" data-txn-id="${t.id}">
+        <div class="txn-icon ${isIncome ? "income" : "expense"}${subEmoji ? " emoji" : ""}">${iconHtml}</div>
+        <div class="txn-info">
+          <div class="txn-title">${escapeHtml(title)}</div>
+          <div class="txn-sub">${escapeHtml(subParts.join(" · "))}</div>
+        </div>
+        <div class="txn-amt ${isIncome ? "income" : "expense"}">${isIncome ? "+ " : "- "}${formatINR(Math.abs(t.amount))}</div>
+      </div>`;
+  }
+
+  function openTxnDetail(t) {
+    const body = document.getElementById("txn-detail-body");
+    const rows = [];
+    rows.push(["Type", t.type.charAt(0).toUpperCase() + t.type.slice(1)]);
+    rows.push(["Date", formatDate(t.date)]);
+    rows.push(["Time", t.time || "—"]);
+    if (t.type === "transfer") {
+      const from = appData.accounts.find(a => a.id === t.fromAccountId);
+      const to = appData.accounts.find(a => a.id === t.toAccountId);
+      rows.push(["From Account", from ? from.name : "?"]);
+      rows.push(["To Account", to ? to.name : "?"]);
+      rows.push(["Amount", formatINR(t.amount)]);
+    } else {
+      const acc = appData.accounts.find(a => a.id === t.accountId);
+      rows.push(["Category", t.category || "Uncategorised"]);
+      rows.push(["Sub Category", t.subcategory || "—"]);
+      rows.push(["Account", acc ? acc.name : "?"]);
+      rows.push(["Amount", (t.type === "income" ? "+ " : "- ") + formatINR(Math.abs(t.amount))]);
+    }
+    rows.push(["Notes", t.notes || "—"]);
+
+    body.innerHTML = rows.map(([k, v]) =>
+      `<div class="detail-row"><span class="k">${escapeHtml(k)}</span><span class="v">${escapeHtml(String(v))}</span></div>`
+    ).join("");
+
+    currentDetailTxnId = t.id;
+    closeAllSheets();
+    sheetBackdrop.classList.add("show");
+    txnDetailSheet.classList.add("show");
+  }
+
+  function closeTxnDetailSheet() {
+    sheetBackdrop.classList.remove("show");
+    txnDetailSheet.classList.remove("show");
+  }
+
+  document.getElementById("btn-close-txn-detail-sheet").addEventListener("click", closeTxnDetailSheet);
+
+  document.getElementById("btn-edit-txn").addEventListener("click", () => {
+    const t = appData.transactions.find(x => x.id === currentDetailTxnId);
+    if (t) openEditTxnSheet(t);
+  });
+
+  function handleTxnListClick(e) {
+    const row = e.target.closest(".txn-row");
+    if (!row) return;
+    const id = Number(row.getAttribute("data-txn-id"));
+    const txn = appData.transactions.find(t => t.id === id);
+    if (txn) openTxnDetail(txn);
+  }
+
+  document.getElementById("txn-daily-list").addEventListener("click", handleTxnListClick);
+  document.getElementById("txn-custom-list").addEventListener("click", handleTxnListClick);
+
+  function renderTxnListGroupedByDay(container, txns, emptyText) {
+    if (!txns.length) {
+      container.innerHTML = `
+        <div class="glass-card empty-state">
+          <div class="empty-icon">${icon("receipt")}</div>
+          <div class="empty-title">No transactions</div>
+          <div class="empty-sub">${emptyText}</div>
+        </div>`;
+      return;
+    }
+    const sorted = sortedTxns(txns);
+    const order = [];
+    const byDate = {};
+    sorted.forEach(t => {
+      if (!byDate[t.date]) { byDate[t.date] = []; order.push(t.date); }
+      byDate[t.date].push(t);
+    });
+    container.innerHTML = order.map(date => {
+      const dayTxns = byDate[date];
+      const net = dayTxns.reduce((s, t) => s + txnNetAmount(t), 0);
+      const netClass = net > 0 ? "income" : (net < 0 ? "expense" : "transfer");
+      return `
+        <div class="txn-day-group">
+          <div class="txn-day-head">
+            <span class="d">${formatDate(date)}</span>
+            <span class="txn-day-total ${netClass}">${net === 0 ? "—" : (net > 0 ? "+ " : "- ") + formatINR(Math.abs(net))}</span>
+          </div>
+          ${dayTxns.map(txnRowHtml).join("")}
+        </div>`;
+    }).join("");
+  }
+
+  function dateToLocalISO(d) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+
+  function renderTxnDaily() {
+    const container = document.getElementById("txn-daily-list");
+    const label = document.getElementById("daily-date-label");
+    if (!container) return;
+    const iso = dateToLocalISO(dailyCursor);
+    if (label) {
+      label.textContent = dailyCursor.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+    }
+    const dayTxns = appData.transactions.filter(t => t.date === iso);
+    renderTxnListGroupedByDay(container, dayTxns, "No transactions on this day");
+  }
+
+  document.getElementById("daily-prev").addEventListener("click", () => {
+    dailyCursor.setDate(dailyCursor.getDate() - 1);
+    renderTxnDaily();
+  });
+  document.getElementById("daily-next").addEventListener("click", () => {
+    dailyCursor.setDate(dailyCursor.getDate() + 1);
+    renderTxnDaily();
+  });
+
+  function formatCompactINR(amount) {
+    const num = Number(amount) || 0;
+    if (num >= 10000000) return (num / 10000000).toFixed(1).replace(/\.0$/, "") + "Cr";
+    if (num >= 100000) return (num / 100000).toFixed(1).replace(/\.0$/, "") + "L";
+    if (num >= 1000) return (num / 1000).toFixed(1).replace(/\.0$/, "") + "k";
+    return String(Math.round(num));
+  }
+
+  function renderTxnCalendar() {
+    const grid = document.getElementById("cal-grid");
+    const label = document.getElementById("cal-month-label");
+    if (!grid) return;
+    const year = calendarCursor.getFullYear();
+    const month = calendarCursor.getMonth();
+    label.textContent = calendarCursor.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const todayIso = todayISO();
+
+    const totalsByDay = {};
+    appData.transactions.forEach(t => {
+      const d = new Date(t.date + "T00:00:00");
+      if (d.getFullYear() === year && d.getMonth() === month) {
+        if (!totalsByDay[t.date]) totalsByDay[t.date] = { income: 0, expense: 0 };
+        if (t.type === "income") totalsByDay[t.date].income += Number(t.amount) || 0;
+        else if (t.type === "expense") totalsByDay[t.date].expense += Number(t.amount) || 0;
+      }
+    });
+
+    let html = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map(w => `<div class="cal-weekday">${w}</div>`).join("");
+    for (let i = 0; i < firstDay; i++) html += `<div class="cal-cell empty"></div>`;
+    for (let day = 1; day <= daysInMonth; day++) {
+      const iso = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+      const dayTotals = totalsByDay[iso];
+      const isToday = iso === todayIso;
+      let totalHtml = "";
+      if (dayTotals) {
+        if (dayTotals.expense > 0) {
+          totalHtml = `<div class="cal-day-total neg">-${formatCompactINR(dayTotals.expense)}</div>`;
+        } else if (dayTotals.income > 0) {
+          totalHtml = `<div class="cal-day-total pos">+${formatCompactINR(dayTotals.income)}</div>`;
+        }
+      }
+      html += `<div class="cal-cell${isToday ? " today" : ""}"><div class="cal-day-num">${day}</div>${totalHtml}</div>`;
+    }
+    grid.innerHTML = html;
+  }
+
+  document.getElementById("cal-prev").addEventListener("click", () => {
+    calendarCursor.setMonth(calendarCursor.getMonth() - 1);
+    renderTxnCalendar();
+  });
+  document.getElementById("cal-next").addEventListener("click", () => {
+    calendarCursor.setMonth(calendarCursor.getMonth() + 1);
+    renderTxnCalendar();
+  });
+
+  function renderTxnCustom() {
+    const container = document.getElementById("txn-custom-list");
+    const fromVal = document.getElementById("txn-from-date").value;
+    const toVal = document.getElementById("txn-to-date").value;
+    if (!fromVal || !toVal) {
+      container.innerHTML = `
+        <div class="glass-card empty-state">
+          <div class="empty-icon">${icon("calendar")}</div>
+          <div class="empty-title">Pick a date range</div>
+          <div class="empty-sub">Choose both a From and To date to see transactions</div>
+        </div>`;
+      return;
+    }
+    const filtered = appData.transactions.filter(t => t.date >= fromVal && t.date <= toVal);
+    renderTxnListGroupedByDay(container, filtered, "No transactions in this date range");
+  }
+
+  document.getElementById("txn-from-date").addEventListener("change", renderTxnCustom);
+  document.getElementById("txn-to-date").addEventListener("change", renderTxnCustom);
+
+  document.getElementById("txn-view-tabs").addEventListener("click", (e) => {
+    const tab = e.target.closest(".seg-tab");
+    if (!tab) return;
+    const view = tab.getAttribute("data-view");
+    document.querySelectorAll("#txn-view-tabs .seg-tab").forEach(t => t.classList.toggle("active", t === tab));
+    document.querySelectorAll(".txn-view").forEach(v => v.classList.remove("active"));
+    document.getElementById("txn-view-" + view).classList.add("active");
+    if (view === "daily") renderTxnDaily();
+    else if (view === "calendar") renderTxnCalendar();
+    else if (view === "custom") renderTxnCustom();
+  });
+
+  // ---------------------------------------------------------------
+  // Add Transaction bottom sheet
+  // ---------------------------------------------------------------
+  function populateTxnAccountSelect() {
+    const sel = document.getElementById("txn-account");
+    sel.innerHTML = appData.accounts.map(a => `<option value="${a.id}">${escapeHtml(a.name)}</option>`).join("");
+  }
+
+  function populateTxnTransferSelects() {
+    const opts = appData.accounts.map(a => `<option value="${a.id}">${escapeHtml(a.name)}</option>`).join("");
+    document.getElementById("txn-from-account").innerHTML = opts;
+    document.getElementById("txn-to-account").innerHTML = opts;
+  }
+
+  function populateTxnSubcategorySelect() {
+    const sel = document.getElementById("txn-subcategory");
+    const catName = document.getElementById("txn-category").value;
+    const list = getCategoryList(txnFormType);
+    const cat = list.find(c => c.name === catName);
+    const subs = (cat && cat.subcategories) || [];
+    sel.innerHTML = subs.length
+      ? subs.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join("")
+      : `<option value="">— None —</option>`;
+  }
+
+  function populateTxnCategorySelect() {
+    const sel = document.getElementById("txn-category");
+    const list = getCategoryList(txnFormType);
+    sel.innerHTML = list.map(c => `<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)}</option>`).join("");
+    populateTxnSubcategorySelect();
+    refreshNotesSuggestions();
+  }
+
+  // ---------------------------------------------------------------
+  // Notes suggestions: based on notes used before for the same
+  // type + category + sub category combination (frequency, then recency).
+  // ---------------------------------------------------------------
+  function refreshNotesSuggestions() {
+    const datalist = document.getElementById("txn-notes-suggestions");
+    const notesInput = document.getElementById("txn-notes");
+    if (!datalist || !notesInput || !appData) return;
+
+    const catName = document.getElementById("txn-category").value;
+    const subName = document.getElementById("txn-subcategory").value;
+
+    const stats = {};
+    appData.transactions.forEach(t => {
+      if (t.type !== txnFormType) return;
+      if ((t.category || "") !== catName) return;
+      if ((t.subcategory || "") !== subName) return;
+      if (!t.notes) return;
+      const key = t.date + " " + (t.time || "00:00");
+      if (!stats[t.notes]) stats[t.notes] = { count: 0, last: key };
+      stats[t.notes].count++;
+      if (key > stats[t.notes].last) stats[t.notes].last = key;
+    });
+
+    const sortedNotes = Object.keys(stats).sort((a, b) => {
+      if (stats[b].count !== stats[a].count) return stats[b].count - stats[a].count;
+      return stats[b].last.localeCompare(stats[a].last);
+    }).slice(0, 6);
+
+    datalist.innerHTML = sortedNotes.map(n => `<option value="${escapeHtml(n)}"></option>`).join("");
+    notesInput.placeholder = sortedNotes.length ? `e.g. ${sortedNotes[0]}` : "Optional note";
+  }
+
+  document.getElementById("txn-category").addEventListener("change", () => {
+    populateTxnSubcategorySelect();
+    refreshNotesSuggestions();
+  });
+  document.getElementById("txn-subcategory").addEventListener("change", refreshNotesSuggestions);
+
+  function setTxnFormType(type) {
+    txnFormType = type;
+    document.querySelectorAll("#txn-type-tabs .seg-tab").forEach(t =>
+      t.classList.toggle("active", t.getAttribute("data-ttype") === type)
+    );
+    const isTransfer = type === "transfer";
+    document.getElementById("txn-fields-standard").style.display = isTransfer ? "none" : "block";
+    document.getElementById("txn-fields-transfer").style.display = isTransfer ? "block" : "none";
+    if (!isTransfer) populateTxnCategorySelect();
+  }
+
+  document.getElementById("txn-type-tabs").addEventListener("click", (e) => {
+    const tab = e.target.closest(".seg-tab");
+    if (!tab) return;
+    setTxnFormType(tab.getAttribute("data-ttype"));
+  });
+
+  function setTxnSheetEditMode(isEditing) {
+    document.getElementById("txn-sheet-title").textContent = isEditing ? "Edit Transaction" : "Add Transaction";
+    document.getElementById("btn-txn-continue").style.display = isEditing ? "none" : "";
+    document.getElementById("btn-txn-save").textContent = isEditing ? "Update" : "Save";
+  }
+
+  function openAddTxnSheet() {
+    closeAllSheets();
+    editingTxnId = null;
+    setTxnSheetEditMode(false);
+    const now = new Date();
+    const nowDate = todayISO();
+    const nowTime = now.toTimeString().slice(0, 5);
+
+    setTxnFormType("expense");
+    document.getElementById("txn-date").value = nowDate;
+    document.getElementById("txn-time").value = nowTime;
+    document.getElementById("txn-amount").value = "";
+    document.getElementById("txn-notes").value = "";
+    populateTxnAccountSelect();
+    populateTxnCategorySelect();
+
+    document.getElementById("txn-t-date").value = nowDate;
+    document.getElementById("txn-t-time").value = nowTime;
+    document.getElementById("txn-t-amount").value = "";
+    document.getElementById("txn-t-notes").value = "";
+    populateTxnTransferSelects();
+
+    sheetBackdrop.classList.add("show");
+    addTxnSheet.classList.add("show");
+  }
+
+  function openEditTxnSheet(t) {
+    closeAllSheets();
+    editingTxnId = t.id;
+    setTxnSheetEditMode(true);
+    setTxnFormType(t.type);
+
+    populateTxnAccountSelect();
+    populateTxnTransferSelects();
+
+    if (t.type === "transfer") {
+      document.getElementById("txn-t-date").value = t.date;
+      document.getElementById("txn-t-time").value = t.time || "";
+      document.getElementById("txn-t-amount").value = t.amount;
+      document.getElementById("txn-t-notes").value = t.notes || "";
+      document.getElementById("txn-from-account").value = t.fromAccountId;
+      document.getElementById("txn-to-account").value = t.toAccountId;
+    } else {
+      document.getElementById("txn-date").value = t.date;
+      document.getElementById("txn-time").value = t.time || "";
+      document.getElementById("txn-amount").value = t.amount;
+      document.getElementById("txn-notes").value = t.notes || "";
+      populateTxnCategorySelect();
+      document.getElementById("txn-category").value = t.category || "";
+      populateTxnSubcategorySelect();
+      document.getElementById("txn-subcategory").value = t.subcategory || "";
+      document.getElementById("txn-account").value = t.accountId;
+      refreshNotesSuggestions();
+    }
+
+    sheetBackdrop.classList.add("show");
+    addTxnSheet.classList.add("show");
+  }
+
+  function closeAddTxnSheet() {
+    sheetBackdrop.classList.remove("show");
+    addTxnSheet.classList.remove("show");
+    editingTxnId = null;
+  }
+
+  document.getElementById("btn-close-txn-sheet").addEventListener("click", closeAddTxnSheet);
+
+  function resetTxnStandardFieldsPartial() {
+    document.getElementById("txn-amount").value = "";
+    document.getElementById("txn-account").value = "";
+    document.getElementById("txn-notes").value = "";
+    refreshNotesSuggestions();
+  }
+
+  function resetTxnTransferFieldsPartial() {
+    document.getElementById("txn-t-amount").value = "";
+    document.getElementById("txn-t-notes").value = "";
+  }
+
+  function refreshActiveTxnView() {
+    if (!document.getElementById("page-transactions").classList.contains("active")) return;
+    const activeTab = document.querySelector("#txn-view-tabs .seg-tab.active");
+    const view = activeTab ? activeTab.getAttribute("data-view") : "daily";
+    if (view === "daily") renderTxnDaily();
+    else if (view === "calendar") renderTxnCalendar();
+    else if (view === "custom") renderTxnCustom();
+  }
+
+  function revertTxnBalance(t) {
+    if (t.type === "transfer") {
+      const fromAcc = appData.accounts.find(a => a.id === t.fromAccountId);
+      const toAcc = appData.accounts.find(a => a.id === t.toAccountId);
+      if (fromAcc) fromAcc.balance = (Number(fromAcc.balance) || 0) + Number(t.amount);
+      if (toAcc) toAcc.balance = (Number(toAcc.balance) || 0) - Number(t.amount);
+    } else if (t.type === "income") {
+      const acc = appData.accounts.find(a => a.id === t.accountId);
+      if (acc) acc.balance = (Number(acc.balance) || 0) - Number(t.amount);
+    } else if (t.type === "expense") {
+      const acc = appData.accounts.find(a => a.id === t.accountId);
+      if (acc) acc.balance = (Number(acc.balance) || 0) + Number(t.amount);
+    }
+  }
+
+  async function saveTransaction(andContinue) {
+    const isTransfer = txnFormType === "transfer";
+    const isEditing = editingTxnId !== null;
+    let txn;
+
+    if (isTransfer) {
+      const date = document.getElementById("txn-t-date").value;
+      const time = document.getElementById("txn-t-time").value;
+      const amount = parseFloat(document.getElementById("txn-t-amount").value);
+      const fromId = Number(document.getElementById("txn-from-account").value);
+      const toId = Number(document.getElementById("txn-to-account").value);
+      const notes = document.getElementById("txn-t-notes").value.trim();
+
+      if (!date || !time) { showToast("Please set date and time ❌", true); return; }
+      if (isNaN(amount) || amount <= 0) { showToast("Enter a valid amount ❌", true); return; }
+      if (!fromId || !toId) { showToast("Add an account first ❌", true); return; }
+      if (fromId === toId) { showToast("From and To accounts must differ ❌", true); return; }
+
+      if (isEditing) {
+        const oldTxn = appData.transactions.find(t => t.id === editingTxnId);
+        if (oldTxn) revertTxnBalance(oldTxn);
+      }
+
+      const fromAcc = appData.accounts.find(a => a.id === fromId);
+      const toAcc = appData.accounts.find(a => a.id === toId);
+      fromAcc.balance = (Number(fromAcc.balance) || 0) - amount;
+      toAcc.balance = (Number(toAcc.balance) || 0) + amount;
+
+      txn = { id: isEditing ? editingTxnId : Date.now(), type: "transfer", date, time, amount, fromAccountId: fromId, toAccountId: toId, notes };
+    } else {
+      const date = document.getElementById("txn-date").value;
+      const time = document.getElementById("txn-time").value;
+      const amount = parseFloat(document.getElementById("txn-amount").value);
+      const category = document.getElementById("txn-category").value;
+      const subcategory = document.getElementById("txn-subcategory").value;
+      const accountId = Number(document.getElementById("txn-account").value);
+      const notes = document.getElementById("txn-notes").value.trim();
+
+      if (!date || !time) { showToast("Please set date and time ❌", true); return; }
+      if (isNaN(amount) || amount <= 0) { showToast("Enter a valid amount ❌", true); return; }
+      if (!category) { showToast("Add a category in Settings first ❌", true); return; }
+      if (!accountId) { showToast("Add an account first ❌", true); return; }
+
+      if (isEditing) {
+        const oldTxn = appData.transactions.find(t => t.id === editingTxnId);
+        if (oldTxn) revertTxnBalance(oldTxn);
+      }
+
+      const acc = appData.accounts.find(a => a.id === accountId);
+      acc.balance = (Number(acc.balance) || 0) + (txnFormType === "income" ? amount : -amount);
+
+      txn = { id: isEditing ? editingTxnId : Date.now(), type: txnFormType, date, time, amount, category, subcategory: subcategory || "", accountId, notes };
+    }
+
+
+    if (isEditing) {
+      const idx = appData.transactions.findIndex(t => t.id === editingTxnId);
+      if (idx !== -1) appData.transactions[idx] = txn; else appData.transactions.push(txn);
+    } else {
+      appData.transactions.push(txn);
+    }
+    renderAccounts();
+    updateTotals();
+    refreshActiveTxnView();
+
+    try {
+      await saveVault();
+    } catch (e) {
+      showToast("Saved, but failed to write vault ❌", true);
+    }
+
+    let budgetWarn = null;
+    if (!isTransfer && txnFormType === "expense" && txn.date) {
+      budgetWarn = checkBudgetWarning(txn.category, txn.subcategory, txn.date.slice(0, 7));
+    }
+
+    if (isEditing) {
+      editingTxnId = null;
+      closeAddTxnSheet();
+      if (budgetWarn) showToast(`Transaction updated ✅ — ⚠️ ${budgetWarn.msg}`, budgetWarn.final, 4000);
+      else showToast("Transaction updated ✅");
+      return;
+    }
+
+    if (andContinue) {
+      if (isTransfer) resetTxnTransferFieldsPartial();
+      else resetTxnStandardFieldsPartial();
+      if (budgetWarn) showToast(`Saved ✅ — ⚠️ ${budgetWarn.msg}`, budgetWarn.final, 4000);
+      else showToast("Transaction saved — ready for the next one ✅");
+    } else {
+      closeAddTxnSheet();
+      if (budgetWarn) showToast(`Transaction saved ✅ — ⚠️ ${budgetWarn.msg}`, budgetWarn.final, 4000);
+      else showToast("Transaction saved ✅");
+    }
+  }
+
+  document.getElementById("btn-txn-save").addEventListener("click", () => saveTransaction(false));
+  document.getElementById("btn-txn-continue").addEventListener("click", () => saveTransaction(true));
+
+  // ---------------------------------------------------------------
+  // Settings: Category management
+  // ---------------------------------------------------------------
+  function renderCatSettings() {
+    const list = document.getElementById("cat-manage-list");
+    if (!list) return;
+    const cats = getCategoryList(catManageType);
+    const budgetNav = document.getElementById("budget-month-nav");
+    const isExpense = catManageType === "expense";
+    budgetNav.style.display = isExpense ? "flex" : "none";
+    if (isExpense) document.getElementById("budget-month-label").textContent = budgetMonthLabel();
+    if (!cats.length) {
+      list.innerHTML = `
+        <div class="glass-card empty-state">
+          <div class="empty-icon">${icon("tag")}</div>
+          <div class="empty-title">No categories yet</div>
+          <div class="empty-sub">Add your first ${catManageType} category below</div>
+        </div>`;
+      return;
+    }
+    const monthKey = budgetMonthKey();
+    list.innerHTML = cats.map((c, ci) => `
+      <div class="glass-card cat-card">
+        <div class="cat-card-head">
+          <span class="name">${escapeHtml(c.name)}</span>
+          <button class="del-cat" data-cat-index="${ci}">Delete</button>
+        </div>
+        <div class="subcat-row">
+          ${c.subcategories.map((s, si) => {
+            let budgetTag = "";
+            if (isExpense) {
+              const limit = getBudgetLimit(monthKey, c.name, s);
+              budgetTag = `<span class="budget-tag${limit !== null ? " set" : ""}" data-cat-index="${ci}" data-sub-index="${si}">${limit !== null ? icon("target") + formatINR(limit) : "Set limit"}</span>`;
+            }
+            return `
+            <span class="subcat-chip">${escapeHtml(s)}${budgetTag}<span class="rm" data-cat-index="${ci}" data-sub-index="${si}">${icon("x")}</span></span>
+          `;
+          }).join("")}
+          <button class="add-subcat-btn" data-cat-index="${ci}">+ Subcategory</button>
+        </div>
+      </div>`).join("");
+  }
+
+  document.getElementById("cat-manage-tabs").addEventListener("click", (e) => {
+    const tab = e.target.closest(".seg-tab");
+    if (!tab) return;
+    catManageType = tab.getAttribute("data-cattype");
+    document.querySelectorAll("#cat-manage-tabs .seg-tab").forEach(t => t.classList.toggle("active", t === tab));
+    renderCatSettings();
+  });
+
+  document.getElementById("budget-prev").addEventListener("click", () => {
+    budgetCursor.setMonth(budgetCursor.getMonth() - 1);
+    renderCatSettings();
+  });
+  document.getElementById("budget-next").addEventListener("click", () => {
+    budgetCursor.setMonth(budgetCursor.getMonth() + 1);
+    renderCatSettings();
+  });
+
+  document.getElementById("cat-manage-list").addEventListener("click", async (e) => {
+    const delBtn = e.target.closest(".del-cat");
+    const rmBtn = e.target.closest(".rm");
+    const addSubBtn = e.target.closest(".add-subcat-btn");
+    const budgetTag = e.target.closest(".budget-tag");
+
+    if (delBtn) {
+      const idx = Number(delBtn.getAttribute("data-cat-index"));
+      getCategoryList(catManageType).splice(idx, 1);
+      renderCatSettings();
+      await saveVault();
+      showToast("Category deleted ✅");
+      return;
+    }
+    if (rmBtn) {
+      const ci = Number(rmBtn.getAttribute("data-cat-index"));
+      const si = Number(rmBtn.getAttribute("data-sub-index"));
+      getCategoryList(catManageType)[ci].subcategories.splice(si, 1);
+      renderCatSettings();
+      await saveVault();
+      return;
+    }
+    if (addSubBtn) {
+      const ci = Number(addSubBtn.getAttribute("data-cat-index"));
+      openInputSheet("Add Subcategory", "e.g. Groceries", { mode: "subcategory", catIndex: ci });
+      return;
+    }
+    if (budgetTag) {
+      const ci = Number(budgetTag.getAttribute("data-cat-index"));
+      const si = Number(budgetTag.getAttribute("data-sub-index"));
+      const cat = getCategoryList(catManageType)[ci];
+      const subName = cat.subcategories[si];
+      const monthKey = budgetMonthKey();
+      const existing = getBudgetLimit(monthKey, cat.name, subName);
+      openInputSheet(
+        `Budget Limit — ${subName} (${budgetMonthLabel()})`,
+        "e.g. 5000 (leave blank to clear)",
+        { mode: "budget", catName: cat.name, subName, monthKey },
+        existing !== null ? String(existing) : "",
+        "number"
+      );
+      return;
+    }
+  });
+
+  document.getElementById("btn-add-category").addEventListener("click", () => {
+    openInputSheet("Add Category", "e.g. Food & Dining", { mode: "category" });
+  });
+
+  // ---------------------------------------------------------------
+  // Generic single-field input bottom sheet (categories/subcategories/budgets)
+  // ---------------------------------------------------------------
+  function openInputSheet(title, placeholder, ctx, prefill = "", inputType = "text") {
+    closeAllSheets();
+    document.getElementById("input-sheet-title").textContent = title;
+    const field = document.getElementById("input-sheet-field");
+    field.type = inputType;
+    field.placeholder = placeholder;
+    field.value = prefill;
+    inputSheetContext = ctx;
+    sheetBackdrop.classList.add("show");
+    inputSheet.classList.add("show");
+  }
+
+  document.getElementById("input-sheet-save").addEventListener("click", async () => {
+    const val = document.getElementById("input-sheet-field").value.trim();
+    if (!inputSheetContext) return;
+
+    if (inputSheetContext.mode === "category") {
+      if (!val) { showToast("Please enter a name ❌", true); return; }
+      getCategoryList(catManageType).push({ name: val, subcategories: [] });
+    } else if (inputSheetContext.mode === "subcategory") {
+      if (!val) { showToast("Please enter a name ❌", true); return; }
+      getCategoryList(catManageType)[inputSheetContext.catIndex].subcategories.push(val);
+    } else if (inputSheetContext.mode === "budget") {
+      const { monthKey, catName, subName } = inputSheetContext;
+      if (val === "") {
+        setBudgetLimit(monthKey, catName, subName, null);
+      } else {
+        const num = parseFloat(val);
+        if (isNaN(num) || num <= 0) { showToast("Enter a valid limit ❌", true); return; }
+        setBudgetLimit(monthKey, catName, subName, num);
+      }
+    }
+
+    renderCatSettings();
+    closeAllSheets();
+    await saveVault();
+    showToast("Saved ✅");
+  });
+
+  // ---------------------------------------------------------------
+  // PWA: service worker + install prompt
+  // ---------------------------------------------------------------
+  if ("serviceWorker" in navigator) {
+    const hadController = !!navigator.serviceWorker.controller;
+    let swRefreshing = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      // Reload once when an updated service worker takes over (not on the very first install).
+      if (hadController && !swRefreshing) { swRefreshing = true; window.location.reload(); }
+    });
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("./sw.js").then(reg => {
+        reg.addEventListener("updatefound", () => {
+          const worker = reg.installing;
+          if (!worker) return;
+          worker.addEventListener("statechange", () => {
+            if (worker.state === "installed" && navigator.serviceWorker.controller) {
+              worker.postMessage({ type: "SKIP_WAITING" });
+            }
+          });
+        });
+      }).catch(err => console.warn("Service worker registration failed:", err));
+    });
+  }
+
+  const installBanner = document.getElementById("install-banner");
+  let deferredInstallPrompt = null;
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    setTimeout(() => {
+      if (!localStorage.getItem("pwa_dismissed")) installBanner.classList.add("show");
+    }, 2500);
+  });
+  window.addEventListener("appinstalled", () => {
+    installBanner.classList.remove("show");
+    deferredInstallPrompt = null;
+    showToast("Expense Tracker installed ✅");
+  });
+  document.getElementById("ib-install").addEventListener("click", () => {
+    installBanner.classList.remove("show");
+    if (!deferredInstallPrompt) { showToast("Tap ⋮ → Add to Home screen"); return; }
+    deferredInstallPrompt.prompt();
+    deferredInstallPrompt.userChoice.then(() => { deferredInstallPrompt = null; });
+  });
+  document.getElementById("ib-dismiss").addEventListener("click", () => {
+    installBanner.classList.remove("show");
+    localStorage.setItem("pwa_dismissed", "1");
+  });
+
+  // ---------------------------------------------------------------
+  // Init
+  // ---------------------------------------------------------------
+  renderDots();
+  updateCloudUi();
+})();
+</script>
+</body>
+</html>
