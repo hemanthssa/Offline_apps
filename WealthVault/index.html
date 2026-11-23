@@ -1,0 +1,1294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>WealthVault</title>
+<meta name="theme-color" content="#f4f6f3">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="WealthVault">
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<style>
+  :root{
+    --bg:#0B0D10;
+    --panel:#14171C;
+    --panel-2:#1B1F26;
+    --panel-3:#20242c;
+    --hairline:#262B33;
+    --gold:#C8A464;
+    --gold-dim:#8f7847;
+    --gold-bright:#E4C285;
+    --emerald:#3FA37D;
+    --rose:#D97066;
+    --ink:#EDE9E0;
+    --ink-dim:#8B8D93;
+    --ink-faint:#5b5e66;
+    --radius:18px;
+    --serif: Georgia, 'Iowan Old Style', 'Palatino Linotype', 'Times New Roman', serif;
+    --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    --mono: 'SF Mono', 'Menlo', 'Consolas', ui-monospace, monospace;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    margin:0; background:radial-gradient(120% 100% at 50% -10%, #171b21 0%, #0B0D10 55%);
+    color:var(--ink); font-family:var(--sans);
+    min-height:100vh; overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  button{font-family:inherit;}
+  .app{max-width:520px; margin:0 auto; min-height:100vh; position:relative; padding-bottom:96px;}
+  .hidden{display:none !important;}
+
+  /* ---------- Eyebrow / wordmark ---------- */
+  .wordmark{
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    padding:28px 0 6px; letter-spacing:5px; font-size:11px; color:var(--ink-faint);
+    text-transform:uppercase; font-family:var(--sans); font-weight:600;
+  }
+  .wordmark .dot{width:5px;height:5px;border-radius:50%;background:var(--gold);box-shadow:0 0 8px var(--gold);}
+
+  /* ================= LOCK / ONBOARDING ================= */
+  #lockView, #onboardView{
+    min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:24px; text-align:center;
+  }
+  .dial-wrap{position:relative; width:220px; height:220px; margin:18px auto 8px;}
+  .dial-svg{width:100%;height:100%;transform:rotate(0deg); transition:transform .5s cubic-bezier(.22,1,.36,1);}
+  .dial-center{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    flex-direction:column;
+  }
+  .dial-center .glyph{font-size:34px; filter:drop-shadow(0 0 12px rgba(200,164,100,.35));}
+  .pin-dots{display:flex; gap:14px; margin:22px 0 8px; justify-content:center;}
+  .pin-dot{
+    width:13px;height:13px;border-radius:50%;border:1.5px solid var(--gold-dim);
+    background:transparent; transition:all .18s ease;
+  }
+  .pin-dot.filled{background:var(--gold); border-color:var(--gold); box-shadow:0 0 10px rgba(200,164,100,.6);}
+  .pin-error{color:var(--rose); font-size:13px; height:18px; margin-bottom:6px; letter-spacing:.3px;}
+  .shake{animation:shake .4s;}
+  @keyframes shake{
+    10%,90%{transform:translateX(-1px)}
+    20%,80%{transform:translateX(2px)}
+    30%,50%,70%{transform:translateX(-5px)}
+    40%,60%{transform:translateX(5px)}
+  }
+  .keypad{display:grid; grid-template-columns:repeat(3,72px); gap:16px; margin-top:14px;}
+  .key{
+    width:72px;height:72px;border-radius:50%;border:1px solid var(--hairline);
+    background:linear-gradient(180deg,var(--panel-2),var(--panel));
+    color:var(--ink); font-size:24px; font-family:var(--serif); display:flex; align-items:center; justify-content:center;
+    cursor:pointer; user-select:none; transition:all .12s ease;
+  }
+  .key:active{background:var(--panel-3); transform:scale(.94); border-color:var(--gold-dim);}
+  .key.ghost{background:transparent; border:none; color:var(--ink-faint); font-size:15px; font-family:var(--sans);}
+  .lock-title{font-family:var(--serif); font-size:22px; color:var(--ink); margin:2px 0 2px; letter-spacing:.3px;}
+  .lock-sub{color:var(--ink-dim); font-size:13px; margin-bottom:4px;}
+
+  .onboard-card{
+    width:100%; max-width:360px; background:var(--panel); border:1px solid var(--hairline);
+    border-radius:var(--radius); padding:28px 22px; margin-top:14px;
+  }
+  .onboard-card h1{font-family:var(--serif); font-size:26px; margin:0 0 6px;}
+  .onboard-card p{color:var(--ink-dim); font-size:14px; line-height:1.5; margin:0 0 22px;}
+  .btn{
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    width:100%; padding:15px 18px; border-radius:14px; border:1px solid var(--hairline);
+    background:var(--panel-2); color:var(--ink); font-size:15px; font-weight:600; cursor:pointer;
+    margin-bottom:12px; transition:all .15s ease;
+  }
+  .btn:active{transform:scale(.98);}
+  .btn.primary{background:linear-gradient(180deg,var(--gold-bright),var(--gold)); color:#181205; border:none;}
+  .btn.ghost{background:transparent; color:var(--ink-dim); border:1px solid var(--hairline);}
+  .btn.danger{color:var(--rose);}
+  .btn.small{padding:10px 14px; font-size:13px; margin-bottom:0;}
+
+  /* ================= HEADER / NAV ================= */
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between; padding:18px 20px 4px;
+  }
+  .topbar h2{font-family:var(--serif); font-size:20px; margin:0; font-weight:400;}
+  .iconbtn{
+    width:38px;height:38px; border-radius:50%; border:1px solid var(--hairline); background:var(--panel);
+    display:flex; align-items:center; justify-content:center; color:var(--ink-dim); cursor:pointer; font-size:16px;
+  }
+
+  /* ================= DASHBOARD ================= */
+  .hero{padding:10px 20px 6px; text-align:center;}
+  .hero-eyebrow{color:var(--ink-faint); font-size:11px; letter-spacing:3px; text-transform:uppercase; margin-bottom:6px;}
+  .gauge-wrap{position:relative; width:250px; height:250px; margin:6px auto 4px;}
+  .gauge-center{
+    position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  }
+  .total-value{font-family:var(--mono); font-size:29px; font-weight:600; letter-spacing:-.5px; font-variant-numeric:tabular-nums;}
+  .total-label{color:var(--ink-faint); font-size:11px; letter-spacing:2px; text-transform:uppercase; margin-top:4px;}
+  .gain-chip{
+    display:inline-flex; align-items:center; gap:5px; margin-top:10px; padding:5px 12px; border-radius:20px;
+    font-size:12.5px; font-family:var(--mono); font-variant-numeric:tabular-nums; font-weight:600;
+  }
+  .gain-chip.pos{background:rgba(63,163,125,.14); color:var(--emerald);}
+  .gain-chip.neg{background:rgba(217,112,102,.14); color:var(--rose);}
+  .gain-chip.flat{background:rgba(139,141,147,.14); color:var(--ink-dim);}
+
+  .section-label{
+    display:flex; align-items:center; justify-content:space-between; padding:22px 20px 10px;
+  }
+  .section-label span{font-size:11px; letter-spacing:2.5px; text-transform:uppercase; color:var(--ink-faint); font-weight:600;}
+  .section-label a{font-size:12px; color:var(--gold); cursor:pointer; text-decoration:none;}
+
+  .cat-list{padding:0 20px; display:flex; flex-direction:column; gap:10px;}
+  .cat-row{
+    display:flex; align-items:center; gap:13px; background:var(--panel); border:1px solid var(--hairline);
+    border-radius:16px; padding:13px 15px; cursor:pointer; transition:border-color .15s;
+  }
+  .cat-row:active{border-color:var(--gold-dim);}
+  .cat-emoji{
+    width:44px;height:44px;border-radius:12px; display:flex;align-items:center;justify-content:center;
+    font-size:21px; flex-shrink:0;
+  }
+  .cat-info{flex:1; min-width:0;}
+  .cat-name{font-size:14.5px; font-weight:600; margin-bottom:2px;}
+  .cat-meta{font-size:11.5px; color:var(--ink-faint);}
+  .cat-right{text-align:right;}
+  .cat-value{font-family:var(--mono); font-size:14.5px; font-variant-numeric:tabular-nums; font-weight:600;}
+  .cat-pct{font-size:11px; color:var(--ink-faint); margin-top:2px;}
+  .cat-bar-track{height:3px; background:var(--hairline); border-radius:2px; margin-top:9px; overflow:hidden;}
+  .cat-bar-fill{height:100%; border-radius:2px;}
+
+  .empty-state{
+    text-align:center; padding:40px 30px; color:var(--ink-faint); font-size:13.5px; line-height:1.6;
+  }
+  .empty-state .big{font-size:30px; margin-bottom:10px; display:block;}
+
+  .trend-card{
+    margin:0 20px; background:var(--panel); border:1px solid var(--hairline); border-radius:16px; padding:16px 14px 10px;
+  }
+  .trend-head{display:flex; justify-content:space-between; align-items:baseline; padding:0 6px 6px;}
+  .trend-head .lbl{font-size:11px; letter-spacing:1.5px; text-transform:uppercase; color:var(--ink-faint);}
+  .trend-head .range{font-size:11px; color:var(--ink-faint);}
+  canvas#trendCanvas{width:100%; height:110px; display:block;}
+
+  /* ================= BOTTOM NAV ================= */
+  .bottomnav{
+    position:fixed; bottom:0; left:0; right:0; max-width:520px; margin:0 auto;
+    display:flex; background:rgba(20,23,28,.92); backdrop-filter:blur(14px);
+    border-top:1px solid var(--hairline); padding:10px 12px calc(10px + env(safe-area-inset-bottom));
+    gap:6px; z-index:40;
+  }
+  .navbtn{
+    flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; padding:6px 0;
+    color:var(--ink-faint); font-size:10.5px; letter-spacing:.5px; cursor:pointer; border-radius:10px;
+  }
+  .navbtn.active{color:var(--gold);}
+  .navbtn .ic{font-size:19px;}
+  .fab{
+    position:fixed; bottom:82px; right:calc(50% - 260px + 20px); width:56px;height:56px; border-radius:50%;
+    background:linear-gradient(180deg,var(--gold-bright),var(--gold)); color:#181205; font-size:26px; font-weight:400;
+    display:flex; align-items:center; justify-content:center; border:none; cursor:pointer;
+    box-shadow:0 8px 20px rgba(200,164,100,.35); z-index:41;
+  }
+  @media(max-width:560px){ .fab{right:20px;} }
+
+  /* ================= CATEGORIES PAGE ================= */
+  .page{padding-top:6px;}
+
+  /* ================= MODALS / SHEETS ================= */
+  .sheet-overlay{
+    position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:80; display:flex; align-items:flex-end;
+    opacity:0; pointer-events:none; transition:opacity .2s ease;
+  }
+  .sheet-overlay.open{opacity:1; pointer-events:auto;}
+  .sheet{
+    width:100%; max-width:520px; margin:0 auto; background:var(--panel); border-radius:24px 24px 0 0;
+    padding:10px 20px 28px; max-height:88vh; overflow-y:auto; transform:translateY(20px); transition:transform .25s cubic-bezier(.22,1,.36,1);
+  }
+  .sheet-overlay.open .sheet{transform:translateY(0);}
+  .sheet-handle{width:38px;height:4px; background:var(--hairline); border-radius:3px; margin:6px auto 16px;}
+  .sheet h3{font-family:var(--serif); font-size:20px; margin:0 0 18px; font-weight:400;}
+  .field{margin-bottom:14px;}
+  .field label{display:block; font-size:11.5px; color:var(--ink-faint); letter-spacing:1px; text-transform:uppercase; margin-bottom:6px;}
+  .field input, .field textarea, .field select{
+    width:100%; background:var(--panel-2); border:1px solid var(--hairline); border-radius:12px;
+    padding:13px 14px; color:var(--ink); font-size:15px; font-family:var(--sans);
+  }
+  .field input:focus, .field textarea:focus{outline:none; border-color:var(--gold-dim);}
+  .field-row{display:flex; gap:10px;}
+  .field-row .field{flex:1;}
+  .emoji-current{
+    width:60px;height:60px;border-radius:16px; display:flex;align-items:center;justify-content:center;
+    font-size:28px; background:var(--panel-2); border:1px solid var(--hairline); margin:0 auto 14px; cursor:pointer;
+  }
+  .emoji-grid{
+    display:grid; grid-template-columns:repeat(7,1fr); gap:6px; max-height:200px; overflow-y:auto;
+    padding:10px; background:var(--panel-2); border-radius:12px; margin-bottom:14px;
+  }
+  .emoji-opt{
+    aspect-ratio:1; display:flex; align-items:center; justify-content:center; font-size:19px;
+    border-radius:9px; cursor:pointer; background:transparent;
+  }
+  .emoji-opt:active{background:var(--panel-3);}
+  .color-row{display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap;}
+  .color-dot{width:30px;height:30px;border-radius:50%; cursor:pointer; border:2px solid transparent;}
+  .color-dot.sel{border-color:var(--ink);}
+  .sheet-actions{display:flex; gap:10px; margin-top:6px;}
+  .sheet-actions .btn{margin-bottom:0;}
+  .computed-hint{font-size:12px; color:var(--ink-faint); margin:-6px 0 14px; font-family:var(--mono);}
+
+  /* entry list inside category detail */
+  .entry-row{
+    display:flex; align-items:center; justify-content:space-between; background:var(--panel);
+    border:1px solid var(--hairline); border-radius:14px; padding:13px 15px; margin-bottom:9px; cursor:pointer;
+  }
+  .entry-name{font-size:14px; font-weight:600; margin-bottom:3px;}
+  .entry-meta{font-size:11.5px; color:var(--ink-faint); font-family:var(--mono);}
+  .entry-value{font-family:var(--mono); font-size:14px; font-weight:600; text-align:right; font-variant-numeric:tabular-nums;}
+  .entry-gain{font-size:11px; text-align:right; margin-top:3px; font-family:var(--mono);}
+
+  .cat-detail-hero{padding:18px 20px 4px; text-align:center;}
+  .cat-detail-emoji{font-size:38px; margin-bottom:8px;}
+  .cat-detail-total{font-family:var(--mono); font-size:26px; font-weight:600; font-variant-numeric:tabular-nums;}
+
+  /* settings */
+  .settings-group{padding:0 20px; margin-bottom:22px;}
+  .settings-group .glabel{font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--ink-faint); margin-bottom:10px;}
+  .settings-item{
+    display:flex; align-items:center; justify-content:space-between; background:var(--panel); border:1px solid var(--hairline);
+    border-radius:14px; padding:14px 16px; margin-bottom:8px; cursor:pointer;
+  }
+  .settings-item .t{font-size:14px;}
+  .settings-item .d{font-size:11.5px; color:var(--ink-faint); margin-top:2px;}
+  .settings-item .arrow{color:var(--ink-faint);}
+
+  .toast{
+    position:fixed; bottom:96px; left:50%; transform:translateX(-50%); background:var(--panel-3);
+    border:1px solid var(--hairline); color:var(--ink); padding:11px 20px; border-radius:30px; font-size:13px;
+    z-index:100; opacity:0; transition:opacity .25s ease, transform .25s ease; pointer-events:none;
+  }
+  .toast.show{opacity:1;}
+
+  ::-webkit-scrollbar{width:0; height:0;}
+
+  :root{
+    --bg:#f4f6f3; --panel:#ffffff; --panel-2:#f1f4f0; --panel-3:#e7ede8;
+    --hairline:#dce4dd; --gold:#176b56; --gold-dim:#87aa9b; --gold-bright:#25826a;
+    --emerald:#18765a; --rose:#b64e4a; --ink:#172a23; --ink-dim:#607269; --ink-faint:#77887e;
+    --radius:8px; --serif:Georgia,'Palatino Linotype',serif;
+    --sans:'Trebuchet MS','Segoe UI',sans-serif; --mono:'Segoe UI',sans-serif;
+  }
+  body{background:#f4f6f3;color:var(--ink);font-family:var(--sans);}
+  .app{max-width:1440px;padding:0 40px 72px 250px;}
+  .app:has(#onboardView:not(.hidden)),.app:has(#lockView:not(.hidden)){padding:0;}
+  .page{max-width:1140px;margin:0 auto;padding-top:0;}
+  .wordmark{justify-content:flex-start;padding:0;color:#173c31;font-size:13px;font-weight:700;letter-spacing:1.5px;}
+  .wordmark .dot{width:12px;height:12px;border-radius:4px;background:#1a745d;box-shadow:none;transform:rotate(45deg);}
+  .topbar{min-height:92px;padding:22px 0;border-bottom:1px solid var(--hairline);gap:18px;}
+  .topbar h2{flex:1;font-family:var(--sans);font-size:21px;font-weight:700;letter-spacing:0;}
+  .iconbtn{width:42px;height:42px;flex-shrink:0;border-radius:8px;background:#fff;color:#315347;cursor:pointer;}
+  .iconbtn:hover,.cat-row:hover,.entry-row:hover,.settings-item:hover{border-color:#9bbcaf;}
+  .bottomnav{position:fixed;top:0;bottom:0;left:max(0px, calc((100% - 1440px)/2));right:auto;width:220px;max-width:none;margin:0;display:flex;flex-direction:column;justify-content:flex-start;gap:6px;padding:112px 16px 24px;background:#fff;border:0;border-right:1px solid var(--hairline);backdrop-filter:none;}
+  .bottomnav::before{content:'WEALTHVAULT';position:absolute;top:36px;left:25px;color:#174e3c;font-size:13px;font-weight:700;letter-spacing:1.3px;}
+  .bottomnav::after{content:'PRIVATE PORTFOLIO';margin:auto 10px 0;color:#91a096;font-size:10px;font-weight:700;letter-spacing:1px;}
+  .navbtn{flex:none;min-height:46px;flex-direction:row;gap:13px;padding:10px 14px;border-radius:6px;color:#697c71;font-size:13px;font-weight:700;letter-spacing:0;}
+  .navbtn.active{background:#e8f2ed;color:#176b56;}
+  .navbtn .ic{width:22px;text-align:center;font-size:19px;}
+  .fab{bottom:30px;right:max(32px, calc((100% - 1376px)/2));width:54px;height:54px;background:#176b56;color:#fff;border-radius:8px;box-shadow:0 8px 24px rgba(23,107,86,.2);}
+  .fab:hover{background:#105640;}
+  .dashboard-intro{display:flex;justify-content:space-between;align-items:end;gap:20px;padding:34px 0 24px;}
+  .dashboard-intro h1{margin:5px 0 0;font-family:var(--serif);font-size:34px;font-weight:400;letter-spacing:0;}
+  .dashboard-intro .eyebrow,.hero-eyebrow{color:#718379;font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;}
+  .dashboard-intro .intro-note{color:#718379;font-size:12px;}
+  .overview-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:36px;align-items:stretch;border-top:1px solid var(--hairline);border-bottom:1px solid var(--hairline);}
+  .hero{display:flex;flex-direction:column;justify-content:center;align-items:flex-start;min-width:0;padding:24px 0;text-align:left;}
+  .gauge-wrap{width:250px;height:250px;margin:12px auto 0;}
+  .total-value{max-width:165px;overflow-wrap:anywhere;text-align:center;font-size:25px;font-weight:700;letter-spacing:0;}
+  .total-label{color:#718379;font-size:10px;letter-spacing:1px;}
+  .gain-chip{max-width:190px;justify-content:center;padding:6px 9px;border-radius:4px;font-size:11px;text-align:center;}
+  .gain-chip.pos{background:#e4f3ea;color:#18765a;}.gain-chip.neg{background:#f9eae8;color:#ad4f4a;}.gain-chip.flat{background:#edf1ed;color:#718379;}
+  .trend-section{display:flex;flex-direction:column;justify-content:center;min-width:0;padding:24px 0;}
+  .trend-section .section-label{padding:0 0 20px;}
+  .trend-card{margin:0;padding:30px 0 20px;border:0;border-radius:0;background:transparent;}
+  canvas#trendCanvas{height:110px;}
+  .section-label{padding:30px 0 16px;gap:12px;}
+  .section-label span,.settings-group .glabel{color:#667c6f;font-size:11px;font-weight:700;letter-spacing:1px;}
+  .section-label a{color:#176b56;font-size:13px;font-weight:700;}
+  .cat-list{padding:0;gap:0;}
+  .cat-row,.entry-row,.settings-item{min-width:0;margin:0;padding:16px 0;background:transparent;border:0;border-bottom:1px solid var(--hairline);border-radius:0;}
+  .cat-row{gap:16px;}.cat-emoji{width:44px;height:44px;border-radius:8px;font-size:21px;}
+  .cat-name,.entry-name{overflow-wrap:anywhere;color:#1c342a;font-size:14px;}
+  .cat-meta,.entry-meta,.cat-pct{color:#7b8b81;font-size:12px;}
+  .cat-right{min-width:90px;}.cat-value,.entry-value{color:#1b332a;font-size:14px;overflow-wrap:anywhere;}
+  .cat-bar-track{max-width:180px;height:3px;background:#e8eee9;}
+  .empty-state{padding:34px 20px;color:#718379;background:#fff;border:1px dashed #cad8ce;border-radius:8px;}
+  .empty-state .big{font-size:24px;}
+  .cat-detail-hero{text-align:left;padding:30px 0 12px;}.cat-detail-emoji{font-size:30px;}.cat-detail-total{font-size:30px;overflow-wrap:anywhere;}
+  .settings-group{padding:0;margin-bottom:28px;}.settings-item .t{font-weight:700;}.settings-item .d{color:#718379;line-height:1.5;}
+  .btn{min-height:48px;border-radius:6px;font-size:14px;}.btn.primary{background:#176b56;color:#fff;}.btn.ghost{color:#315347;border-color:#cddbd1;}.btn:hover{filter:brightness(.96);}
+  .sheet-overlay{align-items:center;justify-content:center;padding:20px;background:rgba(17,39,30,.55);}
+  .sheet{max-width:480px;max-height:min(90vh,850px);padding:24px;border-radius:8px;box-shadow:0 20px 70px rgba(17,39,30,.2);}
+  .sheet-handle{display:none;}.sheet h3{font-family:var(--sans);font-size:20px;font-weight:700;}
+  .field label{color:#63776a;font-size:11px;font-weight:700;letter-spacing:.5px;}
+  .field input,.field textarea,.field select{min-width:0;background:#f8faf8;border-radius:6px;color:#1b332a;}
+  .field input:focus,.field textarea:focus{border-color:#4b947b;box-shadow:0 0 0 3px #dcefe4;}
+  .field-row .field{min-width:0;}.emoji-current,.emoji-grid{border-radius:6px;}.color-dot.sel{outline:2px solid #176b56;outline-offset:3px;border-color:#fff;}
+  .toast{bottom:24px;max-width:calc(100% - 32px);background:#173c31;color:#fff;border:0;border-radius:6px;text-align:center;}
+  #onboardView,#lockView{min-height:100vh;padding:40px 24px;text-align:left;align-items:center;}
+  #onboardView .wordmark,#lockView .wordmark{justify-content:center;}
+  .onboard-card{max-width:450px;margin-top:30px;padding:40px;background:#fff;border:1px solid #dfe8df;border-radius:8px;box-shadow:0 20px 60px rgba(31,65,47,.07);}
+  .onboard-card::before{content:'YOUR PRIVATE PORTFOLIO';display:block;margin-bottom:20px;color:#28806a;font-size:10px;font-weight:700;letter-spacing:1.2px;}
+  .onboard-card h1{margin-bottom:14px;font-size:36px;line-height:1.12;letter-spacing:0;}
+  .onboard-card p{color:#6b7d72;line-height:1.6;}
+  .key{background:#fff;border-color:#dbe5dc;color:#1b392c;font-family:var(--sans);box-shadow:none;}
+  .key.ghost{background:transparent;color:#73867a;}.pin-dot{border-color:#8eaa99;}.pin-dot.filled{background:#176b56;border-color:#176b56;box-shadow:none;}
+  .lock-title{font-family:var(--sans);font-weight:700;}.lock-sub{color:#718379;}
+  @media(max-width:760px){
+    .app{padding:0 20px 100px;}.topbar{min-height:76px;padding:16px 0;}.topbar h2{font-size:18px;}
+    .bottomnav{top:auto;bottom:0;left:0;right:0;width:100%;max-width:none;flex-direction:row;padding:8px 12px calc(8px + env(safe-area-inset-bottom));border:0;border-top:1px solid var(--hairline);}
+    .bottomnav::before,.bottomnav::after{display:none;}.navbtn{flex:1;min-height:48px;flex-direction:column;gap:2px;padding:5px;font-size:10px;}.navbtn .ic{font-size:18px;}
+    .fab{right:20px;bottom:calc(80px + env(safe-area-inset-bottom));width:50px;height:50px;}
+    .dashboard-intro{padding:27px 0 20px;}.dashboard-intro h1{font-size:29px;}.dashboard-intro .intro-note{display:none;}
+    .overview-grid{grid-template-columns:1fr;gap:0;}.hero{padding:20px 0 12px;}.gauge-wrap{margin:4px auto;}.trend-section{padding:20px 0;border-top:1px solid var(--hairline);}.trend-card{padding:10px 0;}
+    .section-label{padding-top:24px;}.sheet-overlay{align-items:flex-end;padding:0;}.sheet{max-width:none;max-height:90vh;padding:20px 20px calc(24px + env(safe-area-inset-bottom));border-radius:12px 12px 0 0;}.sheet-handle{display:block;background:#ccd8cf;margin:0 auto 18px;}
+    .toast{bottom:calc(82px + env(safe-area-inset-bottom));}.onboard-card{padding:30px 24px;}.onboard-card h1{font-size:32px;}
+  }
+  @media(max-width:360px){.app{padding-left:14px;padding-right:14px;}.field-row{gap:8px;}.keypad{grid-template-columns:repeat(3,64px);gap:12px;}.key{width:64px;height:64px;}}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+  <!-- ============ LOCK SCREEN ============ -->
+  <div id="lockView">
+    <div class="wordmark"><span class="dot"></span> WEALTHVAULT</div>
+    <div class="dial-wrap">
+      <svg class="dial-svg" id="lockDial" viewBox="0 0 220 220"></svg>
+      <div class="dial-center">
+        <div class="glyph">🔐</div>
+      </div>
+    </div>
+    <div class="lock-title">Enter PIN</div>
+    <div class="lock-sub" id="lockSub">Unlock your vault</div>
+    <div class="pin-dots" id="pinDots"></div>
+    <div class="pin-error" id="pinError"></div>
+    <div class="keypad" id="keypad"></div>
+  </div>
+
+  <!-- ============ ONBOARDING ============ -->
+  <div id="onboardView" class="hidden">
+    <div class="wordmark"><span class="dot"></span> WEALTHVAULT</div>
+    <div class="onboard-card">
+      <h1>Your wealth,<br>quietly tracked.</h1>
+      <p>Set up a new encrypted vault, or bring in a <span style="color:var(--gold)">.fvault</span> file you've already saved.</p>
+      <button class="btn primary" id="btnNewVault">＋ Create New Vault</button>
+      <button class="btn ghost" id="btnImportVault">⇪ Import Existing Vault</button>
+      <input type="file" id="importFileInput" accept=".fvault" class="hidden">
+    </div>
+  </div>
+
+  <!-- ============ DASHBOARD ============ -->
+  <div id="dashboardView" class="hidden page">
+    <div class="topbar">
+      <div class="wordmark" style="padding:0;"><span class="dot"></span> WEALTHVAULT</div>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <div class="iconbtn" id="btnLock" title="Lock vault" aria-label="Lock vault">🔒</div>
+      </div>
+    </div>
+    <div class="dashboard-intro">
+      <div><div class="eyebrow">Your portfolio</div><h1>Overview</h1></div>
+    </div>
+    <div class="overview-grid">
+      <div class="hero">
+        <div class="hero-eyebrow" id="heroDate">—</div>
+        <div class="gauge-wrap">
+          <svg width="250" height="250" viewBox="0 0 250 250" id="gaugeSvg"></svg>
+          <div class="gauge-center">
+            <div class="total-value" id="totalValue">₹0</div>
+            <div class="total-label">Net Worth</div>
+            <div class="gain-chip flat" id="gainChip">— since start</div>
+          </div>
+        </div>
+      </div>
+      <div class="trend-section">
+        <div class="section-label"><span>Portfolio trend</span><span class="range" id="trendRange"></span></div>
+        <div class="trend-card"><canvas id="trendCanvas"></canvas></div>
+      </div>
+    </div>
+
+    <div class="section-label"><span>Asset categories</span><a id="linkManageCats">Manage categories →</a></div>
+    <div class="cat-list" id="catList"></div>
+  </div>
+
+  <!-- ============ CATEGORY MANAGER ============ -->
+  <div id="categoriesView" class="hidden page">
+    <div class="topbar">
+      <div class="iconbtn" id="btnBackFromCats" title="Back to overview" aria-label="Back to overview">←</div>
+      <h2>Categories</h2>
+      <div class="iconbtn" id="btnAddCat" title="Add category" aria-label="Add category">＋</div>
+    </div>
+    <div class="cat-list" id="catManageList" style="margin-top:10px;"></div>
+  </div>
+
+  <!-- ============ CATEGORY DETAIL ============ -->
+  <div id="catDetailView" class="hidden page">
+    <div class="topbar">
+      <div class="iconbtn" id="btnBackFromDetail" title="Back to overview" aria-label="Back to overview">←</div>
+      <h2 id="detailCatName">Category</h2>
+      <div class="iconbtn" id="btnEditCat" title="Edit category" aria-label="Edit category">✎</div>
+    </div>
+    <div class="cat-detail-hero">
+      <div class="cat-detail-emoji" id="detailEmoji">💰</div>
+      <div class="cat-detail-total" id="detailTotal">₹0</div>
+      <div class="gain-chip flat" id="detailGainChip" style="margin-top:8px;">—</div>
+    </div>
+    <div class="section-label"><span>Holdings</span><a id="linkAddEntry">＋ Add</a></div>
+    <div class="cat-list" id="entryList" style="padding-bottom:20px;"></div>
+  </div>
+
+  <!-- ============ SETTINGS ============ -->
+  <div id="settingsView" class="hidden page">
+    <div class="topbar">
+      <div class="iconbtn" id="btnBackFromSettings" title="Back to overview" aria-label="Back to overview">←</div>
+      <h2>Settings</h2>
+      <div style="width:38px;"></div>
+    </div>
+    <div class="settings-group" style="margin-top:14px;">
+      <div class="glabel">Vault File</div>
+      <div style="font-size:12.5px; color:var(--ink-dim); line-height:1.5; margin:-2px 0 12px;" id="vaultModeDesc">—</div>
+      <div class="settings-item" id="btnExport">
+        <div><div class="t">Save a Copy Now</div><div class="d">Changes save automatically — use this anytime for an extra copy</div></div>
+        <div class="arrow">⇩</div>
+      </div>
+      <div class="settings-item" id="btnImportSettings">
+        <div><div class="t">Import .fvault</div><div class="d">Load a different vault file</div></div>
+        <div class="arrow">⇧</div>
+      </div>
+      <input type="file" id="importFileInput2" accept=".fvault" class="hidden">
+    </div>
+    <div class="settings-group">
+      <div class="glabel">Session</div>
+      <div class="settings-item" id="btnLockNow">
+        <div><div class="t">Lock Vault</div><div class="d">Require PIN to continue</div></div>
+        <div class="arrow">🔒</div>
+      </div>
+    </div>
+    <div style="text-align:center; color:var(--ink-faint); font-size:11px; margin-top:20px;">WealthVault · nothing stored in the browser · AES-256-GCM</div>
+  </div>
+
+  <div class="bottomnav" id="bottomnav">
+    <div class="navbtn active" data-nav="dashboardView"><div class="ic">◎</div>Overview</div>
+    <div class="navbtn" data-nav="categoriesView"><div class="ic">▤</div>Categories</div>
+    <div class="navbtn" data-nav="settingsView"><div class="ic">⚙</div>Settings</div>
+  </div>
+  <button class="fab hidden" id="fabAdd" title="Add category or holding" aria-label="Add category or holding">＋</button>
+</div>
+
+<!-- ============ SHEET: Category form ============ -->
+<div class="sheet-overlay" id="catSheetOverlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h3 id="catSheetTitle">New Category</h3>
+    <div class="emoji-current" id="catEmojiCurrent">💰</div>
+    <div class="emoji-grid hidden" id="catEmojiGrid"></div>
+    <div class="field">
+      <label>Name</label>
+      <input type="text" id="catNameInput" placeholder="e.g. Mutual Funds">
+    </div>
+    <label style="display:block; font-size:11.5px; color:var(--ink-faint); letter-spacing:1px; text-transform:uppercase; margin-bottom:8px;">Color</label>
+    <div class="color-row" id="catColorRow"></div>
+    <div class="sheet-actions">
+      <button class="btn ghost" id="catDeleteBtn" style="display:none;">Delete</button>
+      <button class="btn primary" id="catSaveBtn">Save Category</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ SHEET: Entry form ============ -->
+<div class="sheet-overlay" id="entrySheetOverlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h3 id="entrySheetTitle">New Holding</h3>
+    <div class="field">
+      <label>Name</label>
+      <input type="text" id="entryNameInput" placeholder="e.g. HDFC Small Cap Fund">
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Quantity / Units</label>
+        <input type="number" step="any" id="entryQtyInput" placeholder="1" inputmode="decimal">
+      </div>
+      <div class="field">
+        <label>Purchase Price / Unit (₹)</label>
+        <input type="number" step="any" id="entryPPUInput" placeholder="0" inputmode="decimal">
+      </div>
+    </div>
+    <div class="field">
+      <label>Current Price / Unit (₹)</label>
+      <input type="number" step="any" id="entryCPUInput" placeholder="0" inputmode="decimal">
+    </div>
+    <div class="computed-hint" id="entryComputedHint">Invested ₹0 · Current ₹0</div>
+    <div class="field">
+      <label>Notes (optional)</label>
+      <textarea id="entryNotesInput" rows="2" placeholder="Folio number, location, anything worth remembering"></textarea>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn ghost" id="entryDeleteBtn" style="display:none;">Delete</button>
+      <button class="btn primary" id="entrySaveBtn">Save Holding</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ SHEET: PIN prompt (create / import) ============ -->
+<div class="sheet-overlay" id="pinPromptOverlay">
+  <div class="sheet" style="text-align:center;">
+    <div class="sheet-handle"></div>
+    <h3 id="pinPromptTitle">Set Your PIN</h3>
+    <div class="lock-sub" id="pinPromptSub" style="margin-bottom:18px;">Enter your 6-digit vault PIN</div>
+    <div class="pin-dots" id="pinPromptDots"></div>
+    <div class="pin-error" id="pinPromptError"></div>
+    <div class="keypad" id="pinPromptKeypad" style="margin:14px auto 0;"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+"use strict";
+
+/* ====================== CONSTANTS ====================== */
+const REQUIRED_PIN = "981330";
+const PIN_LEN = 6;
+const CATEGORY_COLORS = ["#C8A464","#3FA37D","#6E8FD9","#D97066","#B586D9","#4FB3BF","#D9A63F","#8C97A8"];
+const EMOJI_SET = ["💰","💵","💴","💶","💷","🪙","💳","🏦","🏛️","🏠","🏡","🏢","🏗️","🏭","🏘️","🌾","🐄","🚗","🚙","🏍️","🚲","✈️","🛳️","💎","👑","⌚","💍","👝","👜","🧳","📈","📉","📊","🧾","🗂️","📱","💻","🖥️","🎓","🛡️","⚱️","📦","🎁","🌳","🏞️","🛢️","⚡","🔩","🧱","🥇","🥈","🥉","🏆","🎯","🔒","🗝️","🌐","🐖","🧬","🖼️","🏔️","⛽","🛠️","📀","🎻","⚗️","🧿","🪴","🏵️"];
+
+let vault = null;           // decrypted data object
+let sessionPin = null;      // pin held in memory after unlock, used to re-encrypt on save
+let pinBuffer = "";
+let currentCategoryId = null;
+let editingCategoryId = null;
+let editingEntryId = null;
+let pendingImportBytes = null;
+let pinPromptMode = null;   // 'create' | 'import'
+
+/* ====================== UTIL ====================== */
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
+function fmtINR(n){
+  n = Math.round(n||0);
+  const neg = n<0; n = Math.abs(n);
+  let s = n.toString();
+  let last3 = s.slice(-3), rest = s.slice(0,-3);
+  if(rest !== '') last3 = ',' + last3;
+  rest = rest.replace(/\B(?=(\d{2})+(?!\d))/g, ",");
+  return (neg?"-":"") + "₹" + rest + last3;
+}
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._h); t._h = setTimeout(()=>t.classList.remove('show'), 2200);
+}
+function el(id){ return document.getElementById(id); }
+
+/* ====================== CRYPTO ====================== */
+async function deriveKey(pin, salt){
+  const enc = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(pin), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    { name:'PBKDF2', salt, iterations:210000, hash:'SHA-256' },
+    keyMaterial, { name:'AES-GCM', length:256 }, false, ['encrypt','decrypt']
+  );
+}
+async function encryptVault(obj, pin){
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const key = await deriveKey(pin, salt);
+  const plain = new TextEncoder().encode(JSON.stringify(obj));
+  const cipherBuf = await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, plain);
+  const magic = new TextEncoder().encode('FVLT');
+  const out = new Uint8Array(magic.length + salt.length + iv.length + cipherBuf.byteLength);
+  out.set(magic,0); out.set(salt,4); out.set(iv,20); out.set(new Uint8Array(cipherBuf),32);
+  return out;
+}
+async function decryptVault(bytes, pin){
+  if(bytes.length < 33) throw new Error('corrupt file');
+  const magic = new TextDecoder().decode(bytes.slice(0,4));
+  if(magic !== 'FVLT') throw new Error('not a vault file');
+  const salt = bytes.slice(4,20), iv = bytes.slice(20,32), cipher = bytes.slice(32);
+  const key = await deriveKey(pin, salt);
+  const plainBuf = await crypto.subtle.decrypt({name:'AES-GCM', iv}, key, cipher);
+  return JSON.parse(new TextDecoder().decode(plainBuf));
+}
+
+/* ====================== FILE PERSISTENCE ======================
+   No browser storage is used anywhere (no localStorage, no IndexedDB).
+   The .fvault file is the only place data lives. On browsers that support
+   the File System Access API (desktop Chrome/Edge), the app writes straight
+   back to the file the user picked, in place. On browsers that don't
+   (this includes Chrome for Android — it hasn't shipped file-picker support
+   yet), the app keeps the vault in memory for the session and requires an
+   explicit Save, which downloads the updated .fvault file. */
+const fsaSupported = (typeof window.showOpenFilePicker === 'function') && (typeof window.showSaveFilePicker === 'function');
+let fileHandle = null;
+
+
+/* ====================== VAULT DATA MODEL ====================== */
+function defaultVault(){
+  return { version:1, categories:[], entries:[], history:[] };
+}
+function categoryEntries(catId){
+  return vault.entries.filter(e=>e.categoryId===catId);
+}
+function entryCurrentValue(e){ return (Number(e.qty)||0) * (Number(e.cpu)||0); }
+function entryInvested(e){ return (Number(e.qty)||0) * (Number(e.ppu)||0); }
+function categoryTotal(catId){
+  return categoryEntries(catId).reduce((s,e)=>s+entryCurrentValue(e),0);
+}
+function categoryInvested(catId){
+  return categoryEntries(catId).reduce((s,e)=>s+entryInvested(e),0);
+}
+function grandTotal(){
+  return vault.entries.reduce((s,e)=>s+entryCurrentValue(e),0);
+}
+function grandInvested(){
+  return vault.entries.reduce((s,e)=>s+entryInvested(e),0);
+}
+function recordSnapshot(){
+  const t = todayISO();
+  const total = grandTotal();
+  const byCategory = {};
+  vault.categories.forEach(c=> byCategory[c.id] = categoryTotal(c.id));
+  const existing = vault.history.find(h=>h.date===t);
+  if(existing){ existing.total = total; existing.byCategory = byCategory; }
+  else{ vault.history.push({date:t, total, byCategory}); }
+  vault.history.sort((a,b)=> a.date.localeCompare(b.date));
+  if(vault.history.length > 365) vault.history = vault.history.slice(-365);
+}
+
+async function persist(){
+  recordSnapshot();
+  const bytes = await encryptVault(vault, sessionPin);
+  lastEncryptedBytes = bytes;
+  if(fsaSupported && fileHandle){
+    // Desktop browsers with File System Access: write straight back to the linked file.
+    try{
+      const writable = await fileHandle.createWritable();
+      await writable.write(bytes);
+      await writable.close();
+    }catch(err){
+      // Handle became invalid (permission revoked, file moved) — fall back to auto-download.
+      downloadVaultBytes(bytes);
+    }
+  } else {
+    // No File System Access support (e.g. Chrome on Android): auto-download the updated
+    // file on every change so the .fvault on the phone always reflects the latest state.
+    downloadVaultBytes(bytes);
+  }
+  updateSaveStatus();
+  renderAll();
+}
+let lastEncryptedBytes = null;
+
+function updateSaveStatus(){
+  const desc = el('vaultModeDesc');
+  if(desc){
+    desc.textContent = (fsaSupported && fileHandle)
+      ? 'Live-linked to your .fvault file — every change writes straight to it automatically.'
+      : 'Every change automatically downloads an updated .fvault file to your device. Replace your old file with the newest download, or move it into one folder so it\'s easy to find.';
+  }
+}
+function downloadVaultBytes(bytes){
+  const blob = new Blob([bytes], {type:'application/octet-stream'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'wealth.fvault';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+async function saveNow(){
+  if(!lastEncryptedBytes) return;
+  if(fsaSupported && fileHandle){
+    try{
+      const writable = await fileHandle.createWritable();
+      await writable.write(lastEncryptedBytes);
+      await writable.close();
+      showToast('Saved to your .fvault file');
+      return;
+    }catch(err){ /* fall through to download */ }
+  }
+  downloadVaultBytes(lastEncryptedBytes);
+  showToast('Downloaded a fresh copy of your .fvault file');
+}
+
+/* ====================== NAVIGATION ====================== */
+function showRootView(id){
+  ['lockView','onboardView','dashboardView','categoriesView','catDetailView','settingsView'].forEach(v=>{
+    el(v).classList.toggle('hidden', v!==id);
+  });
+  const nav = el('bottomnav');
+  const fab = el('fabAdd');
+  const showNav = ['dashboardView','categoriesView','catDetailView','settingsView'].includes(id);
+  nav.classList.toggle('hidden', !showNav);
+  document.querySelectorAll('.navbtn').forEach(b=> b.classList.toggle('active', b.dataset.nav===(id==='catDetailView' ? 'categoriesView' : id)));
+  fab.classList.toggle('hidden', !(id==='dashboardView' || id==='categoriesView' || id==='catDetailView'));
+}
+document.querySelectorAll('.navbtn').forEach(b=>{
+  b.addEventListener('click', ()=>{ showRootView(b.dataset.nav); if(b.dataset.nav==='dashboardView') renderDashboard(); if(b.dataset.nav==='categoriesView') renderCategoryManager(); });
+});
+el('fabAdd').addEventListener('click', ()=>{
+  const detailVisible = !el('catDetailView').classList.contains('hidden');
+  if(detailVisible && currentCategoryId){ openEntrySheet(null); }
+  else{ openCategorySheet(null); }
+});
+
+/* ====================== LOCK SCREEN ====================== */
+function buildKeypad(container, onDigit, onBack){
+  container.innerHTML = "";
+  const layout = ["1","2","3","4","5","6","7","8","9","","0","back"];
+  layout.forEach(k=>{
+    const d = document.createElement('div');
+    if(k===""){ d.className="key ghost"; container.appendChild(d); return; }
+    if(k==="back"){
+      d.className="key ghost"; d.textContent="⌫";
+      d.addEventListener('click', onBack);
+    } else {
+      d.className="key"; d.textContent=k;
+      d.addEventListener('click', ()=>onDigit(k));
+    }
+    container.appendChild(d);
+  });
+}
+function renderPinDots(container, count, len){
+  container.innerHTML = "";
+  for(let i=0;i<len;i++){
+    const dot = document.createElement('div');
+    dot.className = 'pin-dot' + (i<count ? ' filled':'');
+    container.appendChild(dot);
+  }
+}
+function drawDial(svgEl, progress){
+  svgEl.innerHTML = "";
+  const cx=110, cy=110, r=95;
+  const ns = "http://www.w3.org/2000/svg";
+  for(let i=0;i<40;i++){
+    const angle = (i/40) * Math.PI*2 - Math.PI/2;
+    const inner = r-10, outer = r;
+    const x1 = cx+inner*Math.cos(angle), y1=cy+inner*Math.sin(angle);
+    const x2 = cx+outer*Math.cos(angle), y2=cy+outer*Math.sin(angle);
+    const line = document.createElementNS(ns,'line');
+    line.setAttribute('x1',x1); line.setAttribute('y1',y1);
+    line.setAttribute('x2',x2); line.setAttribute('y2',y2);
+    const lit = i/40 <= progress;
+    line.setAttribute('stroke', lit ? '#176b56' : '#dce4dd');
+    line.setAttribute('stroke-width', i%5===0 ? 2.4 : 1.2);
+    svgEl.appendChild(line);
+  }
+  const circle = document.createElementNS(ns,'circle');
+  circle.setAttribute('cx',cx); circle.setAttribute('cy',cy); circle.setAttribute('r', r-22);
+  circle.setAttribute('fill','#ffffff'); circle.setAttribute('stroke','#dce4dd');
+  svgEl.appendChild(circle);
+}
+function resetLockPin(){
+  pinBuffer = "";
+  el('pinError').textContent = "";
+  renderPinDots(el('pinDots'), 0, PIN_LEN);
+  drawDial(el('lockDial'), 0);
+}
+buildKeypad(el('keypad'),
+  (d)=>{
+    if(pinBuffer.length>=PIN_LEN) return;
+    pinBuffer += d;
+    renderPinDots(el('pinDots'), pinBuffer.length, PIN_LEN);
+    drawDial(el('lockDial'), pinBuffer.length/PIN_LEN);
+    if(pinBuffer.length===PIN_LEN) attemptUnlock();
+  },
+  ()=>{
+    pinBuffer = pinBuffer.slice(0,-1);
+    renderPinDots(el('pinDots'), pinBuffer.length, PIN_LEN);
+    drawDial(el('lockDial'), pinBuffer.length/PIN_LEN);
+  }
+);
+async function attemptUnlock(){
+  try{
+    if(!fileHandle) throw new Error('no linked file');
+    const file = await fileHandle.getFile();
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const data = await decryptVault(bytes, pinBuffer);
+    vault = data; sessionPin = pinBuffer;
+    lastEncryptedBytes = bytes;
+    enterApp();
+  }catch(err){
+    el('lockView').classList.add('shake');
+    setTimeout(()=>el('lockView').classList.remove('shake'), 400);
+    el('pinError').textContent = "Incorrect PIN. Try again.";
+    resetLockPin();
+  }
+}
+function enterApp(){
+  showRootView('dashboardView');
+  updateSaveStatus();
+  renderAll();
+}
+
+/* ====================== PIN PROMPT SHEET (create / import) ====================== */
+function openPinPrompt(mode){
+  pinPromptMode = mode;
+  el('pinPromptTitle').textContent = mode==='create' ? 'Set Your PIN' : 'Enter Vault PIN';
+  el('pinPromptSub').textContent = mode==='create' ? 'Choose the 6-digit PIN that will protect this vault' : 'Enter the PIN this file was encrypted with';
+  el('pinPromptError').textContent = "";
+  pinPromptBuffer = "";
+  renderPinDots(el('pinPromptDots'), 0, PIN_LEN);
+  el('pinPromptOverlay').classList.add('open');
+}
+function closePinPrompt(){ el('pinPromptOverlay').classList.remove('open'); }
+let pinPromptBuffer = "";
+buildKeypad(el('pinPromptKeypad'),
+  (d)=>{
+    if(pinPromptBuffer.length>=PIN_LEN) return;
+    pinPromptBuffer += d;
+    renderPinDots(el('pinPromptDots'), pinPromptBuffer.length, PIN_LEN);
+    if(pinPromptBuffer.length===PIN_LEN) handlePinPromptComplete();
+  },
+  ()=>{ pinPromptBuffer = pinPromptBuffer.slice(0,-1); renderPinDots(el('pinPromptDots'), pinPromptBuffer.length, PIN_LEN); }
+);
+async function handlePinPromptComplete(){
+  if(pinPromptMode==='create'){
+    if(pinPromptBuffer !== REQUIRED_PIN){
+      el('pinPromptError').textContent = "That PIN doesn't match your vault PIN.";
+      pinPromptBuffer=""; renderPinDots(el('pinPromptDots'),0,PIN_LEN); return;
+    }
+    vault = defaultVault();
+    sessionPin = pinPromptBuffer;
+    await persist();
+    closePinPrompt();
+    enterApp();
+    showToast(fsaSupported && fileHandle ? "Vault created and linked" : "Vault created — a .fvault file has been downloaded");
+  } else if(pinPromptMode==='import'){
+    try{
+      const data = await decryptVault(pendingImportBytes, pinPromptBuffer);
+      vault = data; sessionPin = pinPromptBuffer;
+      lastEncryptedBytes = pendingImportBytes;
+      closePinPrompt();
+      enterApp();
+      showToast(fsaSupported && fileHandle ? "Vault imported and linked" : "Vault imported");
+    }catch(err){
+      el('pinPromptError').textContent = "Wrong PIN for this file.";
+      pinPromptBuffer=""; renderPinDots(el('pinPromptDots'),0,PIN_LEN);
+    }
+  }
+}
+
+/* ====================== ONBOARDING ====================== */
+el('btnNewVault').addEventListener('click', async ()=>{
+  if(fsaSupported){
+    try{
+      fileHandle = await window.showSaveFilePicker({
+        suggestedName:'wealth.fvault',
+        types:[{description:'WealthVault File', accept:{'application/octet-stream':['.fvault']}}]
+      });
+    }catch(err){ return; } // user cancelled the picker
+  } else {
+    fileHandle = null;
+  }
+  openPinPrompt('create');
+});
+el('btnImportVault').addEventListener('click', async ()=>{
+  if(fsaSupported){
+    try{
+      const [handle] = await window.showOpenFilePicker({
+        types:[{description:'WealthVault File', accept:{'application/octet-stream':['.fvault']}}]
+      });
+      fileHandle = handle;
+      const file = await handle.getFile();
+      pendingImportBytes = new Uint8Array(await file.arrayBuffer());
+      openPinPrompt('import');
+    }catch(err){ /* user cancelled */ }
+  } else {
+    el('importFileInput').click();
+  }
+});
+el('importFileInput').addEventListener('change', handleImportFile);
+el('importFileInput2').addEventListener('change', handleImportFile);
+async function handleImportFile(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  fileHandle = null; // a plain file picker gives no writable handle — manual save mode
+  const buf = new Uint8Array(await file.arrayBuffer());
+  pendingImportBytes = buf;
+  openPinPrompt('import');
+  e.target.value = "";
+}
+
+/* ====================== INIT / BOOT ====================== */
+function boot(){
+  // Nothing is persisted in the browser between sessions — every load starts here.
+  showRootView('onboardView');
+}
+
+/* ====================== RENDER: DASHBOARD ====================== */
+function renderAll(){
+  renderDashboard();
+  renderCategoryManager();
+  if(currentCategoryId) renderCategoryDetail(currentCategoryId);
+}
+function renderDashboard(){
+  if(!vault) return;
+  const total = grandTotal();
+  const invested = grandInvested();
+  el('totalValue').textContent = fmtINR(total);
+  const now = new Date();
+  el('heroDate').textContent = now.toLocaleDateString('en-IN',{weekday:'long', day:'numeric', month:'long'});
+
+  const gain = total - invested;
+  const chip = el('gainChip');
+  if(invested>0){
+    const pct = (gain/invested*100);
+    chip.className = 'gain-chip ' + (gain>0?'pos':gain<0?'neg':'flat');
+    chip.textContent = (gain>=0?'▲ ':'▼ ') + fmtINR(Math.abs(gain)) + '  (' + (gain>=0?'+':'') + pct.toFixed(1) + '%)';
+  } else {
+    chip.className = 'gain-chip flat';
+    chip.textContent = 'Add holdings to see gains';
+  }
+
+  drawGauge(total);
+
+  // category list
+  const listEl = el('catList');
+  listEl.innerHTML = "";
+  if(vault.categories.length===0){
+    listEl.innerHTML = '<div class="empty-state"><span class="big">🗃️</span>No categories yet.<br>Tap the ＋ to add your first one — Gold, Stocks, Real Estate…</div>';
+  } else {
+    const sorted = [...vault.categories].sort((a,b)=> categoryTotal(b.id)-categoryTotal(a.id));
+    sorted.forEach(cat=>{
+      const catTotal = categoryTotal(cat.id);
+      const pct = total>0 ? (catTotal/total*100) : 0;
+      const row = document.createElement('div');
+      row.className = 'cat-row';
+      row.innerHTML = `
+        <div class="cat-emoji" style="background:${cat.color}22; color:${cat.color};">${cat.emoji}</div>
+        <div class="cat-info">
+          <div class="cat-name">${escapeHtml(cat.name)}</div>
+          <div class="cat-meta">${categoryEntries(cat.id).length} holding${categoryEntries(cat.id).length!==1?'s':''}</div>
+          <div class="cat-bar-track"><div class="cat-bar-fill" style="width:${pct}%; background:${cat.color};"></div></div>
+        </div>
+        <div class="cat-right">
+          <div class="cat-value">${fmtINR(catTotal)}</div>
+          <div class="cat-pct">${pct.toFixed(1)}%</div>
+        </div>`;
+      row.addEventListener('click', ()=>{ currentCategoryId = cat.id; showRootView('catDetailView'); renderCategoryDetail(cat.id); });
+      listEl.appendChild(row);
+    });
+  }
+
+  drawTrend();
+  const hist = vault.history;
+  el('trendRange').textContent = hist.length>1 ? (hist[0].date + ' → ' + hist[hist.length-1].date) : '';
+}
+function escapeHtml(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+
+function drawGauge(total){
+  const svg = el('gaugeSvg');
+  svg.innerHTML = "";
+  const ns = "http://www.w3.org/2000/svg";
+  const cx=125, cy=125, r=112;
+  // outer tick ring (vault-dial motif)
+  for(let i=0;i<60;i++){
+    const angle = (i/60)*Math.PI*2 - Math.PI/2;
+    const inner = r-8, outer = r;
+    const x1=cx+inner*Math.cos(angle), y1=cy+inner*Math.sin(angle);
+    const x2=cx+outer*Math.cos(angle), y2=cy+outer*Math.sin(angle);
+    const line = document.createElementNS(ns,'line');
+    line.setAttribute('x1',x1); line.setAttribute('y1',y1); line.setAttribute('x2',x2); line.setAttribute('y2',y2);
+    line.setAttribute('stroke', '#d2ded5'); line.setAttribute('stroke-width', i%5===0?2:1);
+    svg.appendChild(line);
+  }
+  // segmented ring by category share
+  const cats = vault.categories;
+  const rr = r-20;
+  let startAngle = -Math.PI/2;
+  const circumference = 2*Math.PI*rr;
+  const gapDeg = cats.length>1 ? 0.018 : 0;
+  cats.forEach(cat=>{
+    const val = categoryTotal(cat.id);
+    const frac = total>0 ? val/total : 0;
+    if(frac<=0) return;
+    const sweep = frac*Math.PI*2 - gapDeg;
+    const path = document.createElementNS(ns,'circle');
+    path.setAttribute('cx',cx); path.setAttribute('cy',cy); path.setAttribute('r',rr);
+    path.setAttribute('fill','none'); path.setAttribute('stroke', cat.color); path.setAttribute('stroke-width', 14);
+    path.setAttribute('stroke-linecap','round');
+    path.setAttribute('stroke-dasharray', `${Math.max(sweep,0)*rr} ${circumference}`);
+    path.setAttribute('transform', `rotate(${startAngle*180/Math.PI} ${cx} ${cy})`);
+    svg.appendChild(path);
+    startAngle += frac*Math.PI*2;
+  });
+  if(cats.length===0 || total<=0){
+    const bg = document.createElementNS(ns,'circle');
+    bg.setAttribute('cx',cx); bg.setAttribute('cy',cy); bg.setAttribute('r',rr);
+    bg.setAttribute('fill','none'); bg.setAttribute('stroke','#e2ebe4'); bg.setAttribute('stroke-width',14);
+    svg.appendChild(bg);
+  }
+}
+
+function drawTrend(){
+  const canvas = el('trendCanvas');
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.clientWidth || 460, h = 110;
+  canvas.width = w*dpr; canvas.height = h*dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,w,h);
+  const hist = vault ? vault.history : [];
+  if(hist.length<2){
+    ctx.fillStyle = '#718379'; ctx.font = '12px sans-serif'; ctx.textAlign='center';
+    ctx.fillText('History builds as you update your vault', w/2, h/2+4);
+    return;
+  }
+  const values = hist.map(p=>p.total);
+  const max = Math.max(...values), min = Math.min(...values);
+  const pad = 8;
+  const xStep = (w-pad*2)/(hist.length-1);
+  const yFor = v => max===min ? h/2 : (h-pad-((v-min)/(max-min))*(h-pad*2));
+
+  // gradient fill
+  ctx.beginPath();
+  hist.forEach((p,i)=>{ const x=pad+i*xStep, y=yFor(p.total); if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); });
+  ctx.lineTo(pad+(hist.length-1)*xStep, h); ctx.lineTo(pad, h); ctx.closePath();
+  const grad = ctx.createLinearGradient(0,0,0,h);
+  grad.addColorStop(0,'rgba(23,107,86,.18)'); grad.addColorStop(1,'rgba(23,107,86,0)');
+  ctx.fillStyle = grad; ctx.fill();
+
+  // line
+  ctx.beginPath();
+  hist.forEach((p,i)=>{ const x=pad+i*xStep, y=yFor(p.total); if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); });
+  ctx.strokeStyle = '#176b56'; ctx.lineWidth = 2.2; ctx.lineJoin='round'; ctx.stroke();
+
+  // last point dot
+  const lx = pad+(hist.length-1)*xStep, ly = yFor(values[values.length-1]);
+  ctx.beginPath(); ctx.arc(lx,ly,3.5,0,Math.PI*2); ctx.fillStyle='#176b56'; ctx.fill();
+}
+window.addEventListener('resize', ()=>{ if(vault){ drawTrend(); } });
+
+/* ====================== CATEGORY MANAGER ====================== */
+function renderCategoryManager(){
+  if(!vault) return;
+  const listEl = el('catManageList');
+  listEl.innerHTML = "";
+  if(vault.categories.length===0){
+    listEl.innerHTML = '<div class="empty-state"><span class="big">🏷️</span>No categories yet. Tap ＋ above to create one.</div>';
+    return;
+  }
+  vault.categories.forEach(cat=>{
+    const total = categoryTotal(cat.id);
+    const row = document.createElement('div');
+    row.className = 'cat-row';
+    row.innerHTML = `
+      <div class="cat-emoji" style="background:${cat.color}22; color:${cat.color};">${cat.emoji}</div>
+      <div class="cat-info">
+        <div class="cat-name">${escapeHtml(cat.name)}</div>
+        <div class="cat-meta">${categoryEntries(cat.id).length} holding${categoryEntries(cat.id).length!==1?'s':''}</div>
+      </div>
+      <div class="cat-right"><div class="cat-value">${fmtINR(total)}</div></div>`;
+    row.addEventListener('click', ()=> openCategorySheet(cat.id));
+    listEl.appendChild(row);
+  });
+}
+el('btnAddCat').addEventListener('click', ()=> openCategorySheet(null));
+el('linkManageCats').addEventListener('click', ()=>{ showRootView('categoriesView'); renderCategoryManager(); });
+el('btnBackFromCats').addEventListener('click', ()=>{ showRootView('dashboardView'); renderDashboard(); });
+el('btnBackFromDetail').addEventListener('click', ()=>{ currentCategoryId=null; showRootView('dashboardView'); renderDashboard(); });
+el('btnBackFromSettings').addEventListener('click', ()=>{ showRootView('dashboardView'); renderDashboard(); });
+el('btnEditCat').addEventListener('click', ()=>{ if(currentCategoryId) openCategorySheet(currentCategoryId); });
+
+/* ---- category sheet ---- */
+let selectedEmoji = "💰";
+let selectedColor = CATEGORY_COLORS[0];
+function buildEmojiGrid(){
+  const grid = el('catEmojiGrid');
+  grid.innerHTML = "";
+  EMOJI_SET.forEach(em=>{
+    const d = document.createElement('div');
+    d.className = 'emoji-opt'; d.textContent = em;
+    d.addEventListener('click', ()=>{ selectedEmoji = em; el('catEmojiCurrent').textContent = em; grid.classList.add('hidden'); });
+    grid.appendChild(d);
+  });
+}
+buildEmojiGrid();
+el('catEmojiCurrent').addEventListener('click', ()=> el('catEmojiGrid').classList.toggle('hidden'));
+function buildColorRow(){
+  const row = el('catColorRow');
+  row.innerHTML = "";
+  CATEGORY_COLORS.forEach(c=>{
+    const d = document.createElement('div');
+    d.className = 'color-dot'; d.style.background = c;
+    d.addEventListener('click', ()=>{ selectedColor = c; document.querySelectorAll('.color-dot').forEach(x=>x.classList.remove('sel')); d.classList.add('sel'); });
+    row.appendChild(d);
+  });
+}
+buildColorRow();
+function openCategorySheet(catId){
+  editingCategoryId = catId;
+  const cat = catId ? vault.categories.find(c=>c.id===catId) : null;
+  el('catSheetTitle').textContent = cat ? 'Edit Category' : 'New Category';
+  el('catNameInput').value = cat ? cat.name : '';
+  selectedEmoji = cat ? cat.emoji : EMOJI_SET[0];
+  selectedColor = cat ? cat.color : CATEGORY_COLORS[vault.categories.length % CATEGORY_COLORS.length];
+  el('catEmojiCurrent').textContent = selectedEmoji;
+  el('catEmojiGrid').classList.add('hidden');
+  document.querySelectorAll('.color-dot').forEach((d,i)=> d.classList.toggle('sel', CATEGORY_COLORS[i]===selectedColor));
+  el('catDeleteBtn').style.display = cat ? 'flex' : 'none';
+  el('catSheetOverlay').classList.add('open');
+}
+function closeCategorySheet(){ el('catSheetOverlay').classList.remove('open'); }
+el('catSaveBtn').addEventListener('click', async ()=>{
+  const name = el('catNameInput').value.trim();
+  if(!name){ showToast('Give the category a name'); return; }
+  if(editingCategoryId){
+    const cat = vault.categories.find(c=>c.id===editingCategoryId);
+    cat.name = name; cat.emoji = selectedEmoji; cat.color = selectedColor;
+  } else {
+    vault.categories.push({ id: uid(), name, emoji: selectedEmoji, color: selectedColor });
+  }
+  await persist();
+  closeCategorySheet();
+  showToast('Category saved');
+});
+el('catDeleteBtn').addEventListener('click', async ()=>{
+  if(!editingCategoryId) return;
+  vault.categories = vault.categories.filter(c=>c.id!==editingCategoryId);
+  vault.entries = vault.entries.filter(e=>e.categoryId!==editingCategoryId);
+  await persist();
+  closeCategorySheet();
+  if(currentCategoryId===editingCategoryId){ currentCategoryId=null; showRootView('dashboardView'); renderDashboard(); }
+  showToast('Category deleted');
+});
+document.querySelectorAll('#catSheetOverlay').forEach(o=> o.addEventListener('click', e=>{ if(e.target===o) closeCategorySheet(); }));
+
+/* ====================== CATEGORY DETAIL ====================== */
+function renderCategoryDetail(catId){
+  const cat = vault.categories.find(c=>c.id===catId);
+  if(!cat){ showRootView('dashboardView'); return; }
+  el('detailCatName').textContent = cat.name;
+  el('detailEmoji').textContent = cat.emoji;
+  const total = categoryTotal(catId);
+  const invested = categoryInvested(catId);
+  el('detailTotal').textContent = fmtINR(total);
+  const gain = total-invested;
+  const chip = el('detailGainChip');
+  if(invested>0){
+    const pct = gain/invested*100;
+    chip.className = 'gain-chip ' + (gain>0?'pos':gain<0?'neg':'flat');
+    chip.textContent = (gain>=0?'▲ ':'▼ ') + fmtINR(Math.abs(gain)) + '  (' + (gain>=0?'+':'') + pct.toFixed(1) + '%)';
+  } else {
+    chip.className = 'gain-chip flat'; chip.textContent = 'No purchase price recorded';
+  }
+  const listEl = el('entryList');
+  listEl.innerHTML = "";
+  const entries = categoryEntries(catId);
+  if(entries.length===0){
+    listEl.innerHTML = '<div class="empty-state"><span class="big">✨</span>No holdings yet in this category.<br>Tap ＋ Add to record your first one.</div>';
+    return;
+  }
+  entries.sort((a,b)=> entryCurrentValue(b)-entryCurrentValue(a)).forEach(e=>{
+    const cur = entryCurrentValue(e), inv = entryInvested(e), g = cur-inv;
+    const row = document.createElement('div');
+    row.className = 'entry-row';
+    row.innerHTML = `
+      <div>
+        <div class="entry-name">${escapeHtml(e.name)}</div>
+        <div class="entry-meta">${e.qty} × ${fmtINR(e.cpu)}</div>
+      </div>
+      <div>
+        <div class="entry-value">${fmtINR(cur)}</div>
+        ${inv>0 ? `<div class="entry-gain" style="color:${g>=0?'#3FA37D':'#D97066'}">${g>=0?'+':''}${fmtINR(g)}</div>` : ''}
+      </div>`;
+    row.addEventListener('click', ()=> openEntrySheet(e.id));
+    listEl.appendChild(row);
+  });
+}
+el('linkAddEntry').addEventListener('click', ()=> openEntrySheet(null));
+
+/* ---- entry sheet ---- */
+function updateComputedHint(){
+  const qty = Number(el('entryQtyInput').value)||0;
+  const ppu = Number(el('entryPPUInput').value)||0;
+  const cpu = Number(el('entryCPUInput').value)||0;
+  el('entryComputedHint').textContent = `Invested ${fmtINR(qty*ppu)} · Current ${fmtINR(qty*cpu)}`;
+}
+['entryQtyInput','entryPPUInput','entryCPUInput'].forEach(id=> el(id).addEventListener('input', updateComputedHint));
+function openEntrySheet(entryId){
+  editingEntryId = entryId;
+  const e = entryId ? vault.entries.find(x=>x.id===entryId) : null;
+  el('entrySheetTitle').textContent = e ? 'Edit Holding' : 'New Holding';
+  el('entryNameInput').value = e ? e.name : '';
+  el('entryQtyInput').value = e ? e.qty : '1';
+  el('entryPPUInput').value = e ? e.ppu : '';
+  el('entryCPUInput').value = e ? e.cpu : '';
+  el('entryNotesInput').value = e ? (e.notes||'') : '';
+  el('entryDeleteBtn').style.display = e ? 'flex' : 'none';
+  updateComputedHint();
+  el('entrySheetOverlay').classList.add('open');
+}
+function closeEntrySheet(){ el('entrySheetOverlay').classList.remove('open'); }
+el('entrySaveBtn').addEventListener('click', async ()=>{
+  const name = el('entryNameInput').value.trim();
+  if(!name){ showToast('Give the holding a name'); return; }
+  if(!currentCategoryId){ showToast('Open a category first'); return; }
+  const qty = Number(el('entryQtyInput').value)||0;
+  const ppu = Number(el('entryPPUInput').value)||0;
+  const cpu = Number(el('entryCPUInput').value)||0;
+  const notes = el('entryNotesInput').value.trim();
+  if(editingEntryId){
+    const e = vault.entries.find(x=>x.id===editingEntryId);
+    Object.assign(e, {name, qty, ppu, cpu, notes});
+  } else {
+    vault.entries.push({ id: uid(), categoryId: currentCategoryId, name, qty, ppu, cpu, notes, date: todayISO() });
+  }
+  await persist();
+  renderCategoryDetail(currentCategoryId);
+  closeEntrySheet();
+  showToast('Holding saved');
+});
+el('entryDeleteBtn').addEventListener('click', async ()=>{
+  if(!editingEntryId) return;
+  vault.entries = vault.entries.filter(x=>x.id!==editingEntryId);
+  await persist();
+  renderCategoryDetail(currentCategoryId);
+  closeEntrySheet();
+  showToast('Holding deleted');
+});
+document.querySelectorAll('#entrySheetOverlay').forEach(o=> o.addEventListener('click', e=>{ if(e.target===o) closeEntrySheet(); }));
+
+/* ====================== SETTINGS ====================== */
+el('btnExport').addEventListener('click', saveNow);
+el('btnImportSettings').addEventListener('click', ()=> el('importFileInput2').click());
+el('btnLockNow').addEventListener('click', lockVault);
+el('btnLock').addEventListener('click', lockVault);
+function lockVault(){
+  vault = null; sessionPin = null; currentCategoryId = null;
+  if(fsaSupported && fileHandle){
+    resetLockPin();
+    showRootView('lockView');
+  } else {
+    fileHandle = null; lastEncryptedBytes = null;
+    showRootView('onboardView');
+  }
+}
+
+/* ====================== BOOT ====================== */
+boot();
+
+})();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(error => {
+      console.error('Service worker registration failed:', error);
+    });
+  });
+}
+</script>
+</body>
+</html>
