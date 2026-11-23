@@ -76,7 +76,7 @@
     30%,50%,70%{transform:translateX(-5px)}
     40%,60%{transform:translateX(5px)}
   }
-  .keypad{display:grid; grid-template-columns:repeat(3,72px); justify-content:center; gap:16px; margin-top:14px;}
+  .keypad{display:grid; width:max-content; max-width:100%; grid-template-columns:repeat(3,72px); justify-content:center; gap:16px; margin:14px auto 0;}
   .key{
     width:72px;height:72px;border-radius:50%;border:1px solid var(--hairline);
     background:linear-gradient(180deg,var(--panel-2),var(--panel));
@@ -559,7 +559,7 @@
     <div class="lock-sub" id="pinPromptSub" style="margin-bottom:18px;">Enter your 6-digit vault PIN</div>
     <div class="pin-dots" id="pinPromptDots"></div>
     <div class="pin-error" id="pinPromptError"></div>
-    <div class="keypad" id="pinPromptKeypad" style="margin:14px auto 0;"></div>
+    <div class="keypad" id="pinPromptKeypad"></div>
   </div>
 </div>
 
