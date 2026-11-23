@@ -340,6 +340,8 @@
   .onboard-card::before{content:'YOUR PRIVATE PORTFOLIO';display:block;margin-bottom:20px;color:#28806a;font-size:10px;font-weight:700;letter-spacing:1.2px;}
   .onboard-card h1{margin-bottom:14px;font-size:36px;line-height:1.12;letter-spacing:0;}
   .onboard-card p{color:#6b7d72;line-height:1.6;}
+  .install-status{margin:0 0 12px;color:var(--ink-dim);font-size:12px;line-height:1.5;}
+  .install-settings{width:100%;font-family:var(--sans);text-align:left;color:var(--ink);}
   .key{background:#fff;border-color:#dbe5dc;color:#1b392c;font-family:var(--sans);box-shadow:none;}
   .key.ghost{background:transparent;color:#73867a;}.pin-dot{border-color:#8eaa99;}.pin-dot.filled{background:#176b56;border-color:#176b56;box-shadow:none;}
   .lock-title{font-family:var(--sans);font-weight:700;}.lock-sub{color:#718379;}
@@ -383,6 +385,8 @@
       <p>Set up a new encrypted vault, or bring in a <span style="color:var(--gold)">.fvault</span> file you've already saved.</p>
       <button class="btn primary" id="btnNewVault">＋ Create New Vault</button>
       <button class="btn ghost" id="btnImportVault">⇪ Import Existing Vault</button>
+      <button class="btn ghost install-button hidden" type="button">Install WealthVault</button>
+      <div class="install-status hidden" role="status"></div>
       <input type="file" id="importFileInput" accept=".fvault" class="hidden">
     </div>
   </div>
@@ -472,6 +476,14 @@
         <div><div class="t">Lock Vault</div><div class="d">Require PIN to continue</div></div>
         <div class="arrow">🔒</div>
       </div>
+    </div>
+    <div class="settings-group install-section hidden">
+      <div class="glabel">App</div>
+      <button class="settings-item install-settings install-button" type="button">
+        <span><span class="t">Install WealthVault</span></span>
+        <span class="arrow">↓</span>
+      </button>
+      <div class="install-status hidden" role="status"></div>
     </div>
     <div style="text-align:center; color:var(--ink-faint); font-size:11px; margin-top:20px;">WealthVault · nothing stored in the browser · AES-256-GCM</div>
   </div>
@@ -1282,6 +1294,55 @@ boot();
 })();
 </script>
 <script>
+let deferredInstallPrompt = null;
+const installButtons = document.querySelectorAll('.install-button');
+const installSection = document.querySelector('.install-section');
+const installStatuses = document.querySelectorAll('.install-status');
+const isInstalled = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+
+function updateInstallVisibility() {
+  const installed = isInstalled();
+  installButtons.forEach(button => button.classList.toggle('hidden', installed));
+  installSection.classList.toggle('hidden', installed);
+}
+
+window.addEventListener('beforeinstallprompt', event => {
+  event.preventDefault();
+  deferredInstallPrompt = event;
+  installStatuses.forEach(status => status.classList.add('hidden'));
+  updateInstallVisibility();
+});
+
+window.addEventListener('appinstalled', () => {
+  deferredInstallPrompt = null;
+  installButtons.forEach(button => button.classList.add('hidden'));
+  installSection.classList.add('hidden');
+  installStatuses.forEach(status => status.classList.add('hidden'));
+});
+
+installButtons.forEach(button => button.addEventListener('click', async () => {
+  if (deferredInstallPrompt) {
+    const prompt = deferredInstallPrompt;
+    deferredInstallPrompt = null;
+    try {
+      await prompt.prompt();
+    } catch (error) {
+      console.warn('Install prompt failed:', error);
+    }
+    return;
+  }
+  const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const message = ios
+    ? 'In Safari, tap Share, then Add to Home Screen.'
+    : 'Open your browser menu and choose Install app or Add to Home screen.';
+  installStatuses.forEach(status => {
+    status.textContent = message;
+    status.classList.remove('hidden');
+  });
+}));
+
+updateInstallVisibility();
+
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js').catch(error => {
